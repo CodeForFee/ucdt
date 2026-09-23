@@ -51,7 +51,10 @@
     "drainage": "drainage",
     "affectedAreaCount": "Affected areas (",
     "next6hTemp": "peak, next 6 h",
-    "next6hRain": "expected, next 6 h"
+    "next6hRain": "expected, next 6 h",
+    "vs24hTemp": "vs 24 h ago",
+    "vs24hRain": "vs 24 h ago",
+    "stale": "Stale data"
   },
   "risk": {
     "low": "Low",
@@ -118,7 +121,7 @@
   "airQualityPage": {
     "title": "Air Quality",
     "subtitle": "Real-time AQI and pollution data",
-    "source": "OpenAQ / MONRE",
+    "source": "Open-Meteo · PDIM Stage 1",
     "currentAqi": "Current AQI",
     "mainPollutant": "Main pollutant: ",
     "breakdown": "Pollutant breakdown (µg/m³)",

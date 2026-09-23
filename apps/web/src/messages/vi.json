@@ -51,7 +51,10 @@
     "drainage": "thoát nước",
     "affectedAreaCount": "Khu vực ảnh hưởng (",
     "next6hTemp": "cao nhất, 6 giờ tới",
-    "next6hRain": "dự kiến, 6 giờ tới"
+    "next6hRain": "dự kiến, 6 giờ tới",
+    "vs24hTemp": "so với 24 giờ trước",
+    "vs24hRain": "so với 24 giờ trước",
+    "stale": "Dữ liệu cũ"
   },
   "risk": {
     "low": "Thấp",
@@ -118,7 +121,7 @@
   "airQualityPage": {
     "title": "Chất lượng không khí",
     "subtitle": "Dữ liệu AQI và ô nhiễm theo thời gian thực",
-    "source": "OpenAQ / MONRE",
+    "source": "Open-Meteo · PDIM Giai đoạn 1",
     "currentAqi": "Chỉ số AQI hiện tại",
     "mainPollutant": "Ô nhiễm chủ đạo: ",
     "breakdown": "Thành phần ô nhiễm (µg/m³)",
