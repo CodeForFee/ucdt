@@ -14,9 +14,27 @@ jobs:
     defaults:
       run:
         working-directory: services/climate
+    # PostGIS for the DB tests (T-003); the PDIM tests are pure and ignore it.
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4-alpine
+        env:
+          POSTGRES_DB: ucdt
+          POSTGRES_USER: ucdt
+          POSTGRES_PASSWORD: ucdt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ucdt -d ucdt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://ucdt:ucdt@localhost:5432/ucdt
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run pytest -q
