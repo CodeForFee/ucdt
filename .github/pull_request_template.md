@@ -1,5 +1,5 @@
 ## Task
-<!-- T-NNN — link to the task file in .agent/tasks/ (workspace root, outside this repo) -->
+<!-- Refs #<issue> · T-NNN · .agent/tasks/T-NNN-<slug>.md -->
 
 ## Scope
 <!-- The exclusive file globs this PR owns. Anything outside them is a bug in this PR. -->
