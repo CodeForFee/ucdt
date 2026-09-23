@@ -15,6 +15,8 @@
 
 **`dev` after a promotion (2026-09-23):** the user promotes by squash-merging `dev` → `main`, and the repo has "Automatically delete head branches" ON, so `dev` disappears after each promotion (#25). The lead re-creates it as `dev = main` (`git push origin origin/main:refs/heads/dev`) and rebases open feature branches with `git rebase --onto origin/dev <old dev tip>`, pushing to a NEW branch name (no force-push). Until the user turns that setting off, check `git ls-remote --heads origin dev` before opening PRs.
 
+**Branches are never deleted** (user rule 2026-09-23): merge with `gh pr merge --squash`, no `--delete-branch`, no `git push --delete`.
+
 **Lost:** the three legacy logs (2026-08-19T0900Z-antigravity, 2026-09-14T0730Z/0750Z-claude-opus-5) vanished from the old workspace-root `.agent/log/` during this session before the move — not deleted by any command run here, not in the Recycle Bin. Their substance survives in Bugs, Decisions and handoffs below.
 
 ## Tasks (S-001 · UCDT v2 monorepo — `.agent/sprints/S-001.md`)
@@ -30,7 +32,7 @@
 | T-007 | #9 | climate-api + contracts | 2 | claude-opus-5 (sub) | done |
 | T-008 | #10 | web: dashboard, flood, air-quality, alerts | 2 | claude-sonnet-5 (sub) | done |
 | T-009 | #11 | web: map + simulation | 2 | claude-sonnet-5 (sub) | done |
-| T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | plan |
+| T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | done |
 | T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | plan |
 | T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | plan |
 
@@ -72,15 +74,16 @@
 - 2026-08-19 Rule-based recommendation engine prioritizing by pi(r, i) = S(b) * E(i) * F(a).
 
 ## Follow-ups (not bugs, not yet tasks)
+- The web app is blank without `VITE_MAPBOX_TOKEN` (`apps/web/src/config/env.ts` requires it at startup), although only map/simulation need it. Make it optional and show a message on the map pages instead.
 - Web `shared/types` vs the API: forecast item lacks `windSpeed`; optional fields never sent: AQI `dominantPollutant`/`trend7d`/`hourlyPattern`, station `category`, simulation `geojson`. Switch web types to `@ucdt/contracts` when convenient.
 - `alerts` table has no CHECK on `type`/`severity` — one bad row makes `GET /v1/alerts` 500 (needs a migration).
 - `POST /v1/alerts/read` returns rows actually changed; legacy returned ids sent.
 - `/v1/history/{hazard}?hours=168` returns ~670 full snapshots — trim when a chart uses it.
 - System alert text says "làm mới mỗi 5 phút"; the worker runs every 15. Locked by parity.json — regenerate the fixture if changed.
 - `apps/web/src/router/routes.test.tsx` still encodes wave-1 placeholder headings (pages keep sr-only h1s to satisfy it).
-- Map pages need a real `VITE_MAPBOX_TOKEN` in `apps/web/.env.local` (none exists in this repo or the legacy FE) — map layers are unverified visually.
+- A real public Mapbox token lives in the legacy `Hackathon-FE/.env` (`NEXT_PUBLIC_MAPBOX_TOKEN`); copy it into `infra/.env` / `apps/web/.env.local` (both gitignored). Map layers verified with it at the W3 gate.
 
 ## Last 3 handoffs
+- 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 3 closed. T-010 full-stack compose + Caddy: 7 services healthy, all pages at http://localhost, SSE live through Caddy, legacy Hackathon-FE runs against the new stack, ≈ 213 MiB total. NEXT: user approves wave 4 (T-012 CI + GHCR, T-013 deploy/backup/docs).
 - 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 2 closed. T-006 #23, T-007 #24, T-008 #27, T-009 #29 merged into dev (T-008/T-009 rebased by the lead after `dev` was auto-deleted by #25 and re-created). Gate W2: all suites green; worker → API → gateway → web verified end to end incl. SSE. Fixed B-015; opened B-014 (#26), B-016 (user decision). NEXT: user approves wave 3 (T-010 compose + Caddy).
 - 2026-09-23T1740Z-claude-opus-5-1b6751ff — done: wave 1 closed. T-005 committed from the dead subagent's worktree (PR #19); found + fixed B-013 (PR #21); gate W1 green on dev; T-011 map written (56 nodes). Merged-branch deletion was blocked by the permission gate — left for the user. NEXT: user approves wave 2 (T-006..T-009).
-- 2026-09-23T1636Z-claude-opus-5-77343ae4 — partial: sprint S-001 opened (ucdt monorepo, github CodeForFee/ucdt private, flow issue→branch→PR into dev, main is the user's); T-001 done (9c96276); PR #15 merged into dev (.agent in repo, CI on dev); wave 1 T-002..T-005 dispatched in worktrees. Found B-012. NEXT: review+merge wave-1 PRs, gate W1, T-011 map, stop for user.
