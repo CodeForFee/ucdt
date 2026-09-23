@@ -22,7 +22,8 @@ describe('GET /api/stream (SSE from ucdt:events)', () => {
     const app = createApp({
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({})),
-      redis,
+      redis: createFakeRedis(),
+      subscriber: redis,
     })
 
     const res = await app.request('/api/stream')
@@ -45,5 +46,31 @@ describe('GET /api/stream (SSE from ucdt:events)', () => {
 
     expect(text).toContain('event: flood-alert')
     expect(text).toContain('data: {"type":"flood-alert","zone":"gz-q8-rach-ong"}')
+  })
+
+  test('B-013: cache keeps working while an SSE client is subscribed', async () => {
+    const redis = createFakeRedis()
+    const subscriber = createFakeRedis()
+    let subscribed: () => void = () => {}
+    const ready = new Promise<void>((resolve) => (subscribed = resolve))
+    const originalSubscribe = subscriber.subscribe.bind(subscriber)
+    subscriber.subscribe = async (channel, listener) => {
+      await originalSubscribe(channel, listener)
+      subscribed()
+    }
+
+    const app = createApp({
+      climateUrl: 'http://climate.internal',
+      climateFetch: createFakeClimateFetch(() => jsonResponse({ ok: 1 })),
+      redis,
+      subscriber,
+    })
+
+    const stream = await app.request('/api/stream')
+    await ready
+
+    expect((await app.request('/api/weather')).headers.get('X-Cache')).toBe('MISS')
+    expect((await app.request('/api/weather')).headers.get('X-Cache')).toBe('HIT')
+    await stream.body!.cancel()
   })
 })

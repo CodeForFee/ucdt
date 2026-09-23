@@ -7,6 +7,7 @@ function appWith(handler: Parameters<typeof createFakeClimateFetch>[0]) {
     climateUrl: 'http://climate.internal',
     climateFetch: createFakeClimateFetch(handler),
     redis: createFakeRedis(),
+    subscriber: createFakeRedis(),
   })
 }
 
@@ -76,6 +77,7 @@ describe('error shapes', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: (() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch,
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
     const res = await app.request('/api/weather')
     expect(res.status).toBe(502)
@@ -103,6 +105,7 @@ describe('CORS', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: (() => Promise.reject(new Error('down'))) as unknown as typeof fetch,
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
     const res = await app.request('/api/weather')
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')

@@ -7,8 +7,10 @@ const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
 
 // Bun's RedisClient already implements every method RedisLike needs.
 const redis: RedisLike = new RedisClient(redisUrl)
+// A subscribed connection rejects every other command, so SSE gets its own (B-013).
+const subscriber: RedisLike = new RedisClient(redisUrl)
 
-const app = createApp({ climateUrl, climateFetch: fetch, redis })
+const app = createApp({ climateUrl, climateFetch: fetch, redis, subscriber })
 
 export default {
   port: Number(process.env.PORT ?? 3001),

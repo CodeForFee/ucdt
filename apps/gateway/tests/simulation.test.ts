@@ -14,6 +14,7 @@ describe('GET /api/simulation query -> POST /v1/simulation body', () => {
         return jsonResponse({ deltaT: 0 })
       }),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
 
     const res = await app.request('/api/simulation')
@@ -39,6 +40,7 @@ describe('GET /api/simulation query -> POST /v1/simulation body', () => {
         return jsonResponse({ deltaT: 0 })
       }),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
 
     const res = await app.request(

@@ -8,6 +8,7 @@ describe('rate limit: 100 req/min per IP', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({ ok: true })),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
 
     const req = () => app.request('/api/weather', { headers: { 'x-forwarded-for': '1.2.3.4' } })
@@ -31,6 +32,7 @@ describe('rate limit: 100 req/min per IP', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({ ok: true })),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
     for (let i = 0; i < 100; i++) {
       await app.request('/api/weather', { headers: { 'x-forwarded-for': '9.9.9.9' } })
@@ -44,6 +46,7 @@ describe('rate limit: 100 req/min per IP', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({ ok: true })),
       redis: createDownRedis(),
+      subscriber: createDownRedis(),
     })
     const res = await app.request('/api/weather')
     expect(res.status).toBe(200)
