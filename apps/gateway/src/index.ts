@@ -2,8 +2,8 @@ import { RedisClient } from 'bun'
 import { createApp } from './app.ts'
 import type { RedisLike } from './redis.ts'
 
-const climateUrl = process.env.CLIMATE_URL ?? 'http://localhost:8000'
-const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
+const climateUrl = process.env.CLIMATE_URL ?? 'http://127.0.0.1:8000'
+const redisUrl = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379'
 
 // Bun's RedisClient already implements every method RedisLike needs.
 const redis: RedisLike = new RedisClient(redisUrl)
