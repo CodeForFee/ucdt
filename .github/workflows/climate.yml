@@ -8,9 +8,14 @@ on:
   push:
     branches: [main, dev]
 
+concurrency:
+  group: climate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   climate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/climate
@@ -34,7 +39,26 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/climate/uv.lock
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q
+      # Contracts drift check (T-007): packages/contracts must be exactly what the
+      # climate app's OpenAPI schema generates. Needs both uv (dump_openapi) and
+      # pnpm (openapi-typescript), hence it lives in this job.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
+      - run: uv run python -m climate.api.dump_openapi
+      - run: pnpm -F @ucdt/contracts gen
+        working-directory: ${{ github.workspace }}
+      - run: git diff --exit-code -- packages/contracts
+        working-directory: ${{ github.workspace }}
