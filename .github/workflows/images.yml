@@ -17,7 +17,7 @@ permissions:
   packages: write
 
 jobs:
-  climate:
+  climate-image:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -47,7 +47,7 @@ jobs:
           cache-from: type=gha,scope=climate
           cache-to: type=gha,mode=max,scope=climate
 
-  gateway:
+  gateway-image:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -78,7 +78,7 @@ jobs:
           cache-from: type=gha,scope=gateway
           cache-to: type=gha,mode=max,scope=gateway
 
-  web:
+  web-image:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
