@@ -1,0 +1,9 @@
+# Dev override: publish the stateful services on loopback only, so services run
+# on the host (uv run / bun --watch / vite) can reach them. Never used on the VPS.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

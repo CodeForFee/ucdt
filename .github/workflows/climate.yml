@@ -1,0 +1,22 @@
+# climate — Python data + processing layer. Owned by T-002 (tests), extended by T-012.
+# No path filter: this job is a required check, and a required check that is
+# skipped by a filter blocks every PR that does not touch it.
+name: climate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  climate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/climate
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .

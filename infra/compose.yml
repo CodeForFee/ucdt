@@ -1,0 +1,39 @@
+# UCDT stack. Wave 0 carries only the stateful services; the app services
+# (climate-api, climate-worker, gateway, caddy+web) are added in T-010.
+#
+#   docker compose -f infra/compose.yml up -d                 # production-shaped, nothing published
+#   docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d   # dev: ports on 127.0.0.1
+#
+# mem_limit values are sized for a 2 vCPU / 3.78 GB VPS with headroom.
+name: ucdt
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ucdt}
+      POSTGRES_USER: ${POSTGRES_USER:-ucdt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ucdt}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 96m
+
+volumes:
+  pgdata:
