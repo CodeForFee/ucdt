@@ -20,3 +20,7 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: pnpm install --frozen-lockfile
+      - run: bun test
+        working-directory: apps/gateway
+      - run: bunx tsc --noEmit
+        working-directory: apps/gateway
