@@ -33,6 +33,6 @@ docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d   # postgres 
 
 ## Working agreement
 
-- One task = one branch `feat/T-NNN-<slug>` = one PR. `main` only moves through reviewed PRs.
+- One task = one GitHub issue = one branch `feat/T-NNN-<slug>` = one PR into `dev`. `dev` only moves through reviewed PRs; `main` is promoted from `dev` by the maintainer.
 - Every PR states its scope, exit condition and the verify command with its output (see the PR template).
-- Task files, the board and session logs live in `../.agent/` (workspace root).
+- Shared agent state lives in `.agent/`: `BOARD.md` (claims, bugs, decisions), `sprints/`, `tasks/` (one file per task), `log/` (one file per session).
