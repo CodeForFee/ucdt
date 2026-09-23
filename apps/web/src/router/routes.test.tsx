@@ -6,6 +6,12 @@ import { IntlProvider } from "use-intl";
 import { routes } from "./routes";
 import messages from "@/messages/vi.json";
 
+// Every page is lazy-loaded, and the first route in this file pays the cold import of its
+// chunk (the dashboard pulls recharts). On a cold CI runner that exceeded findBy's 1 s
+// default (PR #33, 1137 ms); the page is correct, the wait was just too short.
+// 4 s stays under vitest's 5 s per-test timeout, so a real miss still fails as a findBy error.
+const LAZY = { timeout: 4000 };
+
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const queryClient = new QueryClient();
@@ -34,7 +40,7 @@ describe("routes", () => {
   it.each(cases)("renders the placeholder for %s inside the layout", async (path, heading) => {
     renderAt(path);
 
-    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: heading }, LAZY)).toBeInTheDocument();
     // Proves the page rendered inside AppLayout, not standalone — the Header's nav
     // brand is only mounted by the layout.
     expect(screen.getByRole("link", { name: /Urban Climate DT/i })).toBeInTheDocument();
@@ -42,11 +48,11 @@ describe("routes", () => {
 
   it("redirects / to /dashboard", async () => {
     renderAt("/");
-    expect(await screen.findByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tổng quan" }, LAZY)).toBeInTheDocument();
   });
 
   it("renders the not-found page for an unmatched URL", async () => {
     renderAt("/this-route-does-not-exist");
-    expect(await screen.findByText("Trang không tồn tại.")).toBeInTheDocument();
+    expect(await screen.findByText("Trang không tồn tại.", undefined, LAZY)).toBeInTheDocument();
   });
 });
