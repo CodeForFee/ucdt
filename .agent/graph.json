@@ -1,0 +1,1327 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "ucdt",
+    "languages": [
+      "Python",
+      "TypeScript",
+      "TSX",
+      "CSS",
+      "SQL"
+    ],
+    "frameworks": [
+      "FastAPI (pending T-007)",
+      "arq (pending T-006)",
+      "SQLAlchemy Core + Alembic",
+      "PostGIS",
+      "Bun + Hono",
+      "Redis",
+      "Vite + React 19",
+      "TanStack Query",
+      "react-router 7",
+      "use-intl",
+      "Tailwind v4 + shadcn",
+      "Mapbox GL",
+      "Caddy (pending T-010)"
+    ],
+    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001. State at wave-1 gate: PDIM port, DB schema, gateway and web shell are done; ingestion/worker (T-006), the climate HTTP API + contracts (T-007) and every real web page (T-008, T-009) do not exist yet, so the gateway currently forwards to a climate-api that is not written."
+  },
+  "nodes": [
+    {
+      "id": "file:package.json",
+      "type": "file",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "pnpm workspace root. Scripts: `pnpm parity` regenerates the golden fixture from the legacy TS backend. Every JS dependency for web/gateway/contracts was declared up front in T-001 — seam owners must not add dependencies (ask the lead).",
+      "tags": [
+        "config",
+        "workspace"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/compose.yml",
+      "type": "file",
+      "name": "compose.yml",
+      "filePath": "infra/compose.yml",
+      "summary": "Production-shaped compose: postgis 16-3.4 + redis 7 only (no ports published, mem_limit sized for a 2 vCPU / 3.78 GB VPS). Redis runs with persistence OFF and allkeys-lru at 64 MB — it is a cache + pub/sub bus, never a store. App services (climate-api, worker, gateway, caddy+web) are added in T-010.",
+      "tags": [
+        "infra",
+        "compose"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/compose.dev.yml",
+      "type": "file",
+      "name": "compose.dev.yml",
+      "filePath": "infra/compose.dev.yml",
+      "summary": "Dev override publishing postgres :5432 and redis :6379 on 127.0.0.1 so host processes (uv run, bun --watch, vite) reach them. Never used on the VPS.",
+      "tags": [
+        "infra",
+        "dev"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/.env.example",
+      "type": "file",
+      "name": ".env.example",
+      "filePath": "infra/.env.example",
+      "summary": "The only env template. VITE_* are baked into the static bundle at build time (not secrets; the Mapbox token is URL-scoped). SITE_ADDRESS=:80 serves by IP; a domain turns on Caddy auto-HTTPS.",
+      "tags": [
+        "infra",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.github/workflows/climate.yml",
+      "type": "file",
+      "name": "climate.yml",
+      "filePath": ".github/workflows/climate.yml",
+      "summary": "CI for services/climate: PostGIS service container, uv sync --locked, ruff check + format, pytest. Deliberately NO path filter — a required check skipped by a filter would block unrelated PRs.",
+      "tags": [
+        "ci"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.github/workflows/gateway.yml",
+      "type": "file",
+      "name": "gateway.yml",
+      "filePath": ".github/workflows/gateway.yml",
+      "summary": "CI for apps/gateway: bun test + tsc.",
+      "tags": [
+        "ci"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.github/workflows/web.yml",
+      "type": "file",
+      "name": "web.yml",
+      "filePath": ".github/workflows/web.yml",
+      "summary": "CI for apps/web: lint, vitest, vite build with a placeholder VITE_MAPBOX_TOKEN (env.ts throws without one).",
+      "tags": [
+        "ci"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tools/gen-parity.ts",
+      "type": "file",
+      "name": "gen-parity.ts",
+      "filePath": "tools/gen-parity.ts",
+      "summary": "Golden-fixture generator: runs the LEGACY ../Hackathon-BE/src (read-only sibling repo, must be checked out next to ucdt) on canned inputs — pure-function grids plus 11 scenarios, each in a fresh child process with Date frozen, TZ=Asia/Ho_Chi_Minh and fetch mocked. Output is services/climate/tests/fixtures/parity.json. LANDMINE: the fixture bakes in legacy B-012 (UTC current-hour pick), so the compute layer takes weather as given and the ingest fix is tested separately.",
+      "tags": [
+        "tooling",
+        "parity",
+        "landmine"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "services/climate/climate/__init__.py",
+      "summary": "Package docstring stating the rule: this package owns the DB schema, ingestion, every PDIM coefficient and formula, snapshots, rules and simulation. Nothing outside it computes a value it owns (DP3).",
+      "tags": [
+        "climate",
+        "doc"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "services/climate/climate/config.py",
+      "summary": "pydantic-settings Settings (DATABASE_URL, REDIS_URL, optional IQAIR/AQICN keys, ingest every 15 min, stale after 45 min, city hcmc, tz Asia/Ho_Chi_Minh), cached by get_settings(). Reads services/climate/.env.",
+      "tags": [
+        "climate",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/spatial/units.py",
+      "type": "file",
+      "name": "units.py",
+      "filePath": "services/climate/climate/spatial/units.py",
+      "summary": "The 63 spatial units: 18 FLOOD_ZONES, 22 HEAT_CELLS, 23 AQI_POINTS (+ ALL_UNITS). Named by coordinate-anchored TOPONYMS, never administrative units (district tier abolished 2025); `id` keeps the historic slug as an internal key only. localDrain/terrain/urbanDensity are expert-judgement constants pending Stage-2 calibration. Seeded into the DB by migration 001.",
+      "tags": [
+        "climate",
+        "spatial",
+        "data"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/constants.py",
+      "type": "file",
+      "name": "constants.py",
+      "filePath": "services/climate/climate/pdim/constants.py",
+      "summary": "SINGLE source of truth for every PDIM Stage-1 coefficient: flood w1..w4 = .45/.30/.25/.15, Θ=(.25,.5,.75), rainRef 50 mm/h; heat α=0.15, UHI 3.5 °C; AQI β=0.3, γ_w=.05, γ_p=.15; green->drain 0.003; AQI_CATEGORIES bands. Ported verbatim from legacy constants.ts; parity-tested. The web no longer mirrors any of these.",
+      "tags": [
+        "climate",
+        "pdim",
+        "constants",
+        "dp3"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/risk.py",
+      "type": "file",
+      "name": "risk.py",
+      "filePath": "services/climate/climate/pdim/risk.py",
+      "summary": "Scalar response functions (flood_risk_score R_f = w1P+w2T+w3I-w4D, flood_risk_level, heat_index, effective_temp, aqi_nowcast_step, estimated_depth_m) plus the JS-parity helpers js_round / to_fixed / js_iso. LANDMINE: use js_round, never Python round() — banker's rounding breaks payload parity at .5 ties; same for isoformat vs toISOString.",
+      "tags": [
+        "climate",
+        "pdim",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/flood.py",
+      "type": "file",
+      "name": "flood.py",
+      "filePath": "services/climate/climate/pdim/flood.py",
+      "summary": "City + per-zone flood risk over the 18 zones. flood_areas() is shared by baseline and what-if so before/after run on ONE grid. Zones under 0.15 are not reported. Returns all four R_f terms (B-011).",
+      "tags": [
+        "climate",
+        "pdim",
+        "flood"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/heat.py",
+      "type": "file",
+      "name": "heat.py",
+      "filePath": "services/climate/climate/pdim/heat.py",
+      "summary": "Heat/UHI hotspots over the 22 heat cells from current temperature + humidity; heat_risk_level bands 37/40/44 °C.",
+      "tags": [
+        "climate",
+        "pdim",
+        "heat"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/aqi.py",
+      "type": "file",
+      "name": "aqi.py",
+      "filePath": "services/climate/climate/pdim/aqi.py",
+      "summary": "EPA PM2.5 -> US AQI breakpoints, Open-Meteo `current` -> raw mapping, the S1 gamma nowcast over 24 h and the AQIResponse assembly (city + 23 stations; a failed station is dropped, not zeroed).",
+      "tags": [
+        "climate",
+        "pdim",
+        "aqi"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/simulation.py",
+      "type": "file",
+      "name": "simulation.py",
+      "filePath": "services/climate/climate/pdim/simulation.py",
+      "summary": "What-if Algorithm 2: validate_scenario bounds every lever (rainfall 0-500 %, duration 0-72 h, green ±100, traffic, urbanDensity) and rejects NaN/inf/bool; run_simulation re-scores flood, heat and AQI. urbanDensity reaches the UHI term (B-004). A dry day uses a 20 mm/h reference shower.",
+      "tags": [
+        "climate",
+        "pdim",
+        "simulation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/rules.py",
+      "type": "file",
+      "name": "rules.py",
+      "filePath": "services/climate/climate/pdim/rules.py",
+      "summary": "Rule base R: recommendations() and new_alerts(). Priority pi = S(b)·E(i)·F(a) with E(i)=min(1, 0.4+0.1·|affected zones|); S(b) 4/3/2/1 -> urgent/high/medium/low uniformly (B-008). Every recommendation carries ruleId, priorityScore and inputs (B-005 traceability). new_alerts dedupes against active alerts.",
+      "tags": [
+        "climate",
+        "pdim",
+        "rules"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/geo.py",
+      "type": "file",
+      "name": "geo.py",
+      "filePath": "services/climate/climate/pdim/geo.py",
+      "summary": "GeoJSON helpers: deterministic seeded 20-vertex flood blob per zone (grows with risk), feature builder, haversine.",
+      "tags": [
+        "climate",
+        "pdim",
+        "geo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/db/models.py",
+      "type": "file",
+      "name": "models.py",
+      "filePath": "services/climate/climate/db/models.py",
+      "summary": "SQLAlchemy Core tables mirroring migration 001 (spatial_units, weather_obs, aqi_obs, risk_snapshots, alerts) plus a tiny Geography(Point,4326) type — no geoalchemy2, no ORM. Migrations own the schema; this file only types columns.",
+      "tags": [
+        "climate",
+        "db"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/db/repo.py",
+      "type": "file",
+      "name": "repo.py",
+      "filePath": "services/climate/climate/db/repo.py",
+      "summary": "Async data access returning plain dicts: insert weather/aqi obs, insert_snapshot / latest_snapshot / history (oldest first), insert_alerts (ON CONFLICT DO NOTHING, returns only new ids), list_active_alerts, mark_alerts_read, list_spatial_units (lat/lng via ST_Y/ST_X). None of them commit — the caller owns the transaction.",
+      "tags": [
+        "climate",
+        "db",
+        "repository"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/db/session.py",
+      "type": "file",
+      "name": "session.py",
+      "filePath": "services/climate/climate/db/session.py",
+      "summary": "Cached async engine + sessionmaker. Usage: `async with get_sessionmaker()() as s, s.begin(): ...`.",
+      "tags": [
+        "climate",
+        "db"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/db/migrations/env.py",
+      "type": "file",
+      "name": "env.py",
+      "filePath": "services/climate/climate/db/migrations/env.py",
+      "summary": "Async alembic env. Hand-written migrations, no autogenerate (no target_metadata). URL comes from config.attributes['url'] (tests) or Settings.",
+      "tags": [
+        "climate",
+        "db",
+        "migrations"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/db/migrations/versions/001_initial.py",
+      "type": "file",
+      "name": "001_initial.py",
+      "filePath": "services/climate/climate/db/migrations/versions/001_initial.py",
+      "summary": "Initial schema + seed of the 63 spatial_units from spatial/units.py. risk_snapshots store inputs AND result as JSONB with model_version, so every served score is reproducible.",
+      "tags": [
+        "climate",
+        "db",
+        "migrations"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "file",
+      "name": "test_pdim_parity.py",
+      "filePath": "services/climate/tests/pdim/test_pdim_parity.py",
+      "summary": "Numeric parity with the legacy TS backend: every pure group and every scenario from parity.json within 1e-9, strings exact; simulationId/alert ids compared by shape only.",
+      "tags": [
+        "test",
+        "parity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/tests/pdim/test_pdim_invariants.py",
+      "type": "file",
+      "name": "test_pdim_invariants.py",
+      "filePath": "services/climate/tests/pdim/test_pdim_invariants.py",
+      "summary": "Regression invariants for legacy bugs B-004, B-005, B-008, B-011 plus alert dedupe/refire and dropped-station AQI.",
+      "tags": [
+        "test",
+        "regression"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/tests/pdim/test_pdim_legacy.py",
+      "type": "file",
+      "name": "test_pdim_legacy.py",
+      "filePath": "services/climate/tests/pdim/test_pdim_legacy.py",
+      "summary": "Ports of legacy riskCalculator / scenarioValidation / spatialNaming tests, including the assertion that no API-surface name carries an administrative label.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/tests/db/conftest.py",
+      "type": "file",
+      "name": "conftest.py",
+      "filePath": "services/climate/tests/db/conftest.py",
+      "summary": "DB tests use a SEPARATE database `ucdt_test` on the DATABASE_URL server, created if missing and migrated once per session; each test runs in a rolled-back transaction. Needs compose postgres up.",
+      "tags": [
+        "test",
+        "db"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/tests/fixtures/parity.json",
+      "type": "file",
+      "name": "parity.json",
+      "filePath": "services/climate/tests/fixtures/parity.json",
+      "summary": "Generated by tools/gen-parity.ts — do not hand-edit. 695 pure cases + 11 scenarios.",
+      "tags": [
+        "test",
+        "fixture",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/gateway/src/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "apps/gateway/src/index.ts",
+      "summary": "Bun entry: builds TWO RedisClients (commands + a dedicated pub/sub subscriber, B-013) and serves the Hono app on :3001 with idleTimeout 0 so SSE is not cut.",
+      "tags": [
+        "gateway",
+        "entry"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/gateway/src/app.ts",
+      "type": "file",
+      "name": "app.ts",
+      "filePath": "apps/gateway/src/app.ts",
+      "summary": "The public /api/* surface. Middleware: CORS *, secure headers, 64 KB body limit, logger, Redis rate limit. /api/{weather,aqi,flood,heat,recommend} -> GET /v1/<x>/latest with per-route cache TTL; alerts never cached; GET /api/simulation maps legacy query params onto the POST body; /api/stream relays Redis channel `ucdt:events`, using the JSON `type` field as the SSE event name.",
+      "tags": [
+        "gateway",
+        "routes",
+        "sse"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:apps/gateway/src/climate.ts",
+      "type": "file",
+      "name": "climate.ts",
+      "filePath": "apps/gateway/src/climate.ts",
+      "summary": "forward(): the ONLY code that talks to CLIMATE_URL. Wraps bare climate JSON in the legacy {success,data,timestamp,cached} envelope so Hackathon-FE keeps working; maps 404->404, FastAPI 422->400 with a flattened message, anything else non-2xx or unreachable -> 502.",
+      "tags": [
+        "gateway",
+        "proxy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:apps/gateway/src/cache.ts",
+      "type": "file",
+      "name": "cache.ts",
+      "filePath": "apps/gateway/src/cache.ts",
+      "summary": "GET-only, 200-only Redis response cache keyed by full URL, X-Cache HIT/MISS. Fails OPEN when Redis is down.",
+      "tags": [
+        "gateway",
+        "cache"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/gateway/src/rateLimit.ts",
+      "type": "file",
+      "name": "rateLimit.ts",
+      "filePath": "apps/gateway/src/rateLimit.ts",
+      "summary": "100 req/min per IP (first X-Forwarded-For hop) via INCR+EXPIRE, X-RateLimit-* headers, 429 with retryAfter. Fails OPEN when Redis is down.",
+      "tags": [
+        "gateway",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/gateway/src/redis.ts",
+      "type": "file",
+      "name": "redis.ts",
+      "filePath": "apps/gateway/src/redis.ts",
+      "summary": "RedisLike: the slice of Redis the gateway uses; Bun's RedisClient satisfies it structurally, tests inject a fake.",
+      "tags": [
+        "gateway",
+        "types"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/gateway/tests/fakes.ts",
+      "type": "file",
+      "name": "fakes.ts",
+      "filePath": "apps/gateway/tests/fakes.ts",
+      "summary": "In-memory Redis fake that, like real Redis, rejects key commands once subscribed (B-013 guard); a Redis that fails every call; a fake climate fetch.",
+      "tags": [
+        "test",
+        "gateway"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/main.tsx",
+      "type": "file",
+      "name": "main.tsx",
+      "filePath": "apps/web/src/main.tsx",
+      "summary": "Browser entry: mounts <App/> in StrictMode.",
+      "tags": [
+        "web",
+        "entry"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/App.tsx",
+      "type": "file",
+      "name": "App.tsx",
+      "filePath": "apps/web/src/App.tsx",
+      "summary": "Provider stack: TanStack QueryClient, use-intl IntlProvider (vi/en from a zustand locale store), RouterProvider, devtools.",
+      "tags": [
+        "web",
+        "shell"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/config/env.ts",
+      "type": "file",
+      "name": "env.ts",
+      "filePath": "apps/web/src/config/env.ts",
+      "summary": "zod-validated env. VITE_API_BASE_URL may be EMPTY (same-origin /api via Vite proxy or Caddy). VITE_MAPBOX_TOKEN is required — the app throws at import without it, including in CI builds.",
+      "tags": [
+        "web",
+        "config",
+        "landmine"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/router/routes.tsx",
+      "type": "file",
+      "name": "routes.tsx",
+      "filePath": "apps/web/src/router/routes.tsx",
+      "summary": "The route table, in its own module so tests build a memory router from the exact shipped routes. /dashboard, /map, /simulation/{heat,flood,aqi}, /flood, /air-quality, /alerts; every page lazy-loaded. Nav shows only 4 tabs (Board decision 2026-09-14); air-quality and alerts are URL-reachable.",
+      "tags": [
+        "web",
+        "routing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "directory:apps/web/src/router",
+      "type": "directory",
+      "name": "router",
+      "filePath": "apps/web/src/router",
+      "summary": "Router plumbing: index (createBrowserRouter), lazyPage (code-split pages), RouteErrorBoundary, SimulationLayout (tab bar), NotFoundPage, routes.test.",
+      "tags": [
+        "web",
+        "routing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/features",
+      "type": "directory",
+      "name": "features",
+      "filePath": "apps/web/src/features",
+      "summary": "One folder per screen: dashboard, map, simulation, flood, air-quality, alerts. Wave 1 ships PLACEHOLDER pages only; T-008 fills dashboard/flood/air-quality/alerts, T-009 map + simulation. ESLint forbids a feature importing another feature.",
+      "tags": [
+        "web",
+        "features"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "type": "file",
+      "name": "useLiveEvents.ts",
+      "filePath": "apps/web/src/shared/hooks/useLiveEvents.ts",
+      "summary": "The app's single EventSource on /api/stream (mount once, in AppLayout). `snapshot.updated` {hazard} invalidates that hazard's query via the KEY registry; `alert.created` invalidates alerts. CONTRACT: the worker (T-006) must publish JSON with `type` in {snapshot.updated, alert.created} and `hazard` matching a KEY in shared/utils/queryKeys.ts, or live refresh silently does nothing.",
+      "tags": [
+        "web",
+        "sse",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:apps/web/src/shared/lib/axios.ts",
+      "type": "file",
+      "name": "axios.ts",
+      "filePath": "apps/web/src/shared/lib/axios.ts",
+      "summary": "The single axios instance (baseURL from env, 10 s timeout) and unwrap(), which peels the gateway's {success,data} envelope.",
+      "tags": [
+        "web",
+        "network"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/shared/utils/queryKeys.ts",
+      "type": "file",
+      "name": "queryKeys.ts",
+      "filePath": "apps/web/src/shared/utils/queryKeys.ts",
+      "summary": "KEY registry for TanStack Query keys; useLiveEvents maps SSE hazard names through it, so hook keys and invalidation cannot drift.",
+      "tags": [
+        "web",
+        "query"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/shared/services",
+      "type": "directory",
+      "name": "services",
+      "filePath": "apps/web/src/shared/services",
+      "summary": "One thin fetcher per endpoint (weather, aqi, flood, heat, history, recommend, simulation, alerts) — apiClient.get/post + unwrap, nothing computed.",
+      "tags": [
+        "web",
+        "network"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/shared/hooks",
+      "type": "directory",
+      "name": "hooks",
+      "filePath": "apps/web/src/shared/hooks",
+      "summary": "TanStack Query hooks over the services (useWeatherData, useAQIData, useFloodRisk, useHeatMap, useHistory, useRecommend, useSimulation, useAlerts, useMarkAlertsRead) plus useLiveEvents.",
+      "tags": [
+        "web",
+        "query"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/shared/types",
+      "type": "directory",
+      "name": "types",
+      "filePath": "apps/web/src/shared/types",
+      "summary": "Response types ported from Hackathon-FE. To be replaced/checked against packages/contracts once T-007 generates them from the OpenAPI schema.",
+      "tags": [
+        "web",
+        "types"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/shared/lib/aqi.ts",
+      "type": "file",
+      "name": "aqi.ts",
+      "filePath": "apps/web/src/shared/lib/aqi.ts",
+      "summary": "US AQI display bands (colour + i18n code) used by every legend and marker. Display only — not a PDIM term; the AQI VALUE always comes from the API.",
+      "tags": [
+        "web",
+        "display"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/shared/components",
+      "type": "directory",
+      "name": "components",
+      "filePath": "apps/web/src/shared/components",
+      "summary": "Shared UI ported from Hackathon-FE: layout (AppLayout, Header, ThemeToggle, PageLoader), charts (recharts wrappers, AQIGauge, HeatmapGrid), common (RiskBadge, DataSourceTag, ErrorState...), map (3D buildings, terrain, boot overlay, layer lifecycle).",
+      "tags": [
+        "web",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "directory:apps/web/src/shared/stores",
+      "type": "directory",
+      "name": "stores",
+      "filePath": "apps/web/src/shared/stores",
+      "summary": "zustand stores for UI state only (city, map, simulation sliders, alerts panel, locale). Never cache server data here — that is TanStack Query's job.",
+      "tags": [
+        "web",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/components/ui",
+      "type": "directory",
+      "name": "ui",
+      "filePath": "apps/web/src/components/ui",
+      "summary": "shadcn/ui primitives (base-ui). Generated; excluded from ESLint.",
+      "tags": [
+        "web",
+        "ui",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/messages",
+      "type": "directory",
+      "name": "messages",
+      "filePath": "apps/web/src/messages",
+      "summary": "i18n catalogues vi.json / en.json for use-intl.",
+      "tags": [
+        "web",
+        "i18n"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/vite.config.ts",
+      "type": "file",
+      "name": "vite.config.ts",
+      "filePath": "apps/web/vite.config.ts",
+      "summary": "React Compiler via babel (slow builds by design), Tailwind v4, @ alias, rolldown codeSplitting groups keeping recharts and mapbox-gl off routes that do not use them. Dev proxy /api -> 127.0.0.1:3001 with timeouts disabled for SSE.",
+      "tags": [
+        "web",
+        "config",
+        "build"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:apps/web/eslint.config.js",
+      "type": "file",
+      "name": "eslint.config.js",
+      "filePath": "apps/web/eslint.config.js",
+      "summary": "Enforces feature isolation (features cannot import each other; shared cannot import a feature) — Board decision 2026-09-14.",
+      "tags": [
+        "web",
+        "lint",
+        "architecture"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:packages/contracts/package.json",
+      "type": "file",
+      "name": "package.json",
+      "filePath": "packages/contracts/package.json",
+      "summary": "@ucdt/contracts: will hold TypeScript types generated from the climate OpenAPI schema (`gen` script). EMPTY until T-007 — src/index.ts does not exist yet.",
+      "tags": [
+        "contracts",
+        "pending"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:services/climate/climate/pdim/risk.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/heat.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/aqi.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "reads PDIM_S1 coefficients"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/climate/pdim/risk.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/heat.py",
+      "target": "file:services/climate/climate/pdim/risk.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/aqi.py",
+      "target": "file:services/climate/climate/pdim/risk.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/climate/pdim/risk.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/climate/pdim/risk.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/climate/pdim/geo.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/climate/pdim/flood.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "flood_areas: one grid for baseline and what-if"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/climate/spatial/units.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/heat.py",
+      "target": "file:services/climate/climate/spatial/units.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/aqi.py",
+      "target": "file:services/climate/climate/spatial/units.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/db/repo.py",
+      "target": "file:services/climate/climate/db/models.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/db/session.py",
+      "target": "file:services/climate/climate/config.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/db/migrations/env.py",
+      "target": "file:services/climate/climate/config.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/db/migrations/versions/001_initial.py",
+      "target": "file:services/climate/climate/spatial/units.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "seeds the 63 units"
+    },
+    {
+      "source": "file:services/climate/climate/db/migrations/versions/001_initial.py",
+      "target": "file:services/climate/climate/db/models.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/risk.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/heat.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/aqi.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/tests/pdim/test_pdim_parity.py",
+      "target": "file:services/climate/tests/fixtures/parity.json",
+      "type": "reads",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tools/gen-parity.ts",
+      "target": "file:services/climate/tests/fixtures/parity.json",
+      "type": "generates",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_invariants.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_invariants.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/flood.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_invariants.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/pdim/aqi.py",
+      "target": "file:services/climate/tests/pdim/test_pdim_invariants.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/db/repo.py",
+      "target": "file:services/climate/tests/db/conftest.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/index.ts",
+      "target": "file:apps/gateway/src/app.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/index.ts",
+      "target": "file:apps/gateway/src/redis.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/app.ts",
+      "target": "file:apps/gateway/src/climate.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/app.ts",
+      "target": "file:apps/gateway/src/cache.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/app.ts",
+      "target": "file:apps/gateway/src/rateLimit.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/app.ts",
+      "target": "file:apps/gateway/src/redis.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/cache.ts",
+      "target": "file:apps/gateway/src/redis.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/rateLimit.ts",
+      "target": "file:apps/gateway/src/redis.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/gateway/src/app.ts",
+      "target": "file:apps/gateway/tests/fakes.ts",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/main.tsx",
+      "target": "file:apps/web/src/App.tsx",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/App.tsx",
+      "target": "directory:apps/web/src/router",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/App.tsx",
+      "target": "directory:apps/web/src/messages",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/router",
+      "target": "file:apps/web/src/router/routes.tsx",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy-loads every page"
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/shared/components",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "AppLayout"
+    },
+    {
+      "source": "directory:apps/web/src/shared/components",
+      "target": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "AppLayout mounts it once"
+    },
+    {
+      "source": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "target": "file:apps/web/src/shared/utils/queryKeys.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "target": "file:apps/web/src/config/env.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/shared/hooks",
+      "target": "directory:apps/web/src/shared/services",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/shared/hooks",
+      "target": "file:apps/web/src/shared/utils/queryKeys.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/shared/services",
+      "target": "file:apps/web/src/shared/lib/axios.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/shared/services",
+      "target": "directory:apps/web/src/shared/types",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/shared/lib/axios.ts",
+      "target": "file:apps/web/src/config/env.ts",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/features",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/features",
+      "target": "directory:apps/web/src/shared/components",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/eslint.config.js",
+      "target": "directory:apps/web/src/features",
+      "type": "constrains",
+      "weight": 0.7,
+      "description": "no cross-feature imports"
+    },
+    {
+      "source": "file:apps/web/src/shared/lib/axios.ts",
+      "target": "file:apps/gateway/src/app.ts",
+      "type": "calls",
+      "weight": 0.9,
+      "description": "HTTP /api/* (Vite proxy in dev, Caddy in prod)"
+    },
+    {
+      "source": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "target": "file:apps/gateway/src/app.ts",
+      "type": "subscribes",
+      "weight": 0.9,
+      "description": "SSE /api/stream"
+    },
+    {
+      "source": "file:apps/gateway/src/climate.ts",
+      "target": "file:services/climate/climate/pdim/rules.py",
+      "type": "calls",
+      "weight": 0.5,
+      "description": "HTTP CLIMATE_URL/v1/* (climate-api lands in T-007)"
+    },
+    {
+      "source": "file:infra/compose.yml",
+      "target": "file:services/climate/climate/config.py",
+      "type": "configures",
+      "weight": 0.4,
+      "description": "postgres + redis the settings point at"
+    },
+    {
+      "source": "file:.github/workflows/climate.yml",
+      "target": "file:services/climate/tests/db/conftest.py",
+      "type": "runs",
+      "weight": 0.4,
+      "description": "PostGIS service for DB tests"
+    }
+  ],
+  "layers": [
+    {
+      "id": "infra",
+      "name": "Infrastructure and CI",
+      "description": "Compose (stateful services only until T-010), env template, GitHub Actions per service, and the one-shot parity generator.",
+      "nodeIds": [
+        "file:package.json",
+        "file:infra/compose.yml",
+        "file:infra/compose.dev.yml",
+        "file:infra/.env.example",
+        "file:.github/workflows/climate.yml",
+        "file:.github/workflows/gateway.yml",
+        "file:.github/workflows/web.yml",
+        "file:tools/gen-parity.ts"
+      ]
+    },
+    {
+      "id": "processing",
+      "name": "Processing layer — PDIM (pure Python)",
+      "description": "Every coefficient and formula of PDIM Stage 1, with no I/O, so one code path scores live snapshots, what-ifs and fixtures. Ported from Hackathon-BE with 1e-9 parity. Owner of DP3.",
+      "nodeIds": [
+        "file:services/climate/climate/__init__.py",
+        "file:services/climate/climate/pdim/constants.py",
+        "file:services/climate/climate/pdim/risk.py",
+        "file:services/climate/climate/pdim/flood.py",
+        "file:services/climate/climate/pdim/heat.py",
+        "file:services/climate/climate/pdim/aqi.py",
+        "file:services/climate/climate/pdim/simulation.py",
+        "file:services/climate/climate/pdim/rules.py",
+        "file:services/climate/climate/pdim/geo.py",
+        "file:services/climate/climate/spatial/units.py"
+      ]
+    },
+    {
+      "id": "data",
+      "name": "Data layer — Postgres/PostGIS",
+      "description": "Hand-written migrations, Core tables, a dict-returning async repository. Ingestion (T-006) and the FastAPI routes (T-007) are not written yet.",
+      "nodeIds": [
+        "file:services/climate/climate/config.py",
+        "file:services/climate/climate/db/models.py",
+        "file:services/climate/climate/db/repo.py",
+        "file:services/climate/climate/db/session.py",
+        "file:services/climate/climate/db/migrations/env.py",
+        "file:services/climate/climate/db/migrations/versions/001_initial.py"
+      ]
+    },
+    {
+      "id": "climate-tests",
+      "name": "Climate tests",
+      "description": "Parity against the legacy backend, regression invariants for legacy bugs, and DB tests on a throwaway ucdt_test database.",
+      "nodeIds": [
+        "file:services/climate/tests/pdim/test_pdim_parity.py",
+        "file:services/climate/tests/pdim/test_pdim_invariants.py",
+        "file:services/climate/tests/pdim/test_pdim_legacy.py",
+        "file:services/climate/tests/db/conftest.py",
+        "file:services/climate/tests/fixtures/parity.json"
+      ]
+    },
+    {
+      "id": "gateway",
+      "name": "Gateway — Bun + Hono",
+      "description": "The only public API. Envelope, cache, rate limit, SSE, CORS. Never touches the DB, never computes a domain value.",
+      "nodeIds": [
+        "file:apps/gateway/src/index.ts",
+        "file:apps/gateway/src/app.ts",
+        "file:apps/gateway/src/climate.ts",
+        "file:apps/gateway/src/cache.ts",
+        "file:apps/gateway/src/rateLimit.ts",
+        "file:apps/gateway/src/redis.ts",
+        "file:apps/gateway/tests/fakes.ts"
+      ]
+    },
+    {
+      "id": "web-shell",
+      "name": "Web shell",
+      "description": "Entry, providers, env, router and build config of the Vite SPA.",
+      "nodeIds": [
+        "file:apps/web/src/main.tsx",
+        "file:apps/web/src/App.tsx",
+        "file:apps/web/src/config/env.ts",
+        "file:apps/web/src/router/routes.tsx",
+        "directory:apps/web/src/router",
+        "file:apps/web/vite.config.ts",
+        "file:apps/web/eslint.config.js",
+        "directory:apps/web/src/messages",
+        "directory:apps/web/src/components/ui"
+      ]
+    },
+    {
+      "id": "web-shared",
+      "name": "Web shared layer",
+      "description": "Everything features may import: network, query hooks, live events, types, UI components, UI-only stores. Presentation only — it renders what the API computed.",
+      "nodeIds": [
+        "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+        "file:apps/web/src/shared/lib/axios.ts",
+        "file:apps/web/src/shared/utils/queryKeys.ts",
+        "directory:apps/web/src/shared/services",
+        "directory:apps/web/src/shared/hooks",
+        "directory:apps/web/src/shared/types",
+        "file:apps/web/src/shared/lib/aqi.ts",
+        "directory:apps/web/src/shared/components",
+        "directory:apps/web/src/shared/stores"
+      ]
+    },
+    {
+      "id": "web-features",
+      "name": "Web features",
+      "description": "Screens, isolated from each other by ESLint. Placeholders until wave 2.",
+      "nodeIds": [
+        "directory:apps/web/src/features"
+      ]
+    },
+    {
+      "id": "contracts",
+      "name": "Contracts",
+      "description": "OpenAPI-generated TS types. Empty until T-007.",
+      "nodeIds": [
+        "file:packages/contracts/package.json"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "The rule everything follows",
+      "description": "Python owns every PDIM number (DP3). The gateway only reshapes, the web only renders. Read the package docstring, then constants.py — every coefficient in the system is there and nowhere else.",
+      "nodeIds": [
+        "file:services/climate/climate/__init__.py",
+        "file:services/climate/climate/pdim/constants.py"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "The formulas",
+      "description": "risk.py holds R_f, heat index, UHI and the AQI nowcast plus the JS-parity helpers; flood/heat/aqi assemble per-hazard responses over the 63 spatial units.",
+      "nodeIds": [
+        "file:services/climate/climate/pdim/risk.py",
+        "file:services/climate/climate/pdim/flood.py",
+        "file:services/climate/climate/spatial/units.py"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "What-if and rules",
+      "description": "simulation.py (Algorithm 2) and rules.py (pi = S·E·F, traceable recommendations, deduped alerts).",
+      "nodeIds": [
+        "file:services/climate/climate/pdim/simulation.py",
+        "file:services/climate/climate/pdim/rules.py"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "How parity is proven",
+      "description": "gen-parity.ts runs the legacy backend to produce parity.json; test_pdim_parity asserts the port within 1e-9.",
+      "nodeIds": [
+        "file:tools/gen-parity.ts",
+        "file:services/climate/tests/pdim/test_pdim_parity.py"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Storage",
+      "description": "Migration 001 seeds the units; repo.py is the only data access and never commits.",
+      "nodeIds": [
+        "file:services/climate/climate/db/migrations/versions/001_initial.py",
+        "file:services/climate/climate/db/repo.py"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Where a browser request lands",
+      "description": "Gateway app.ts: rate limit, cache, then climate.ts forwards to CLIMATE_URL/v1/* and wraps the legacy envelope. index.ts keeps a separate Redis connection for SSE (B-013).",
+      "nodeIds": [
+        "file:apps/gateway/src/app.ts",
+        "file:apps/gateway/src/climate.ts",
+        "file:apps/gateway/src/index.ts"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "The web app",
+      "description": "routes.tsx lists every screen; shared/ services + hooks fetch and unwrap; useLiveEvents turns SSE into query invalidation.",
+      "nodeIds": [
+        "file:apps/web/src/router/routes.tsx",
+        "directory:apps/web/src/shared/hooks",
+        "file:apps/web/src/shared/hooks/useLiveEvents.ts"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Run it",
+      "description": "compose.dev.yml for postgres + redis on loopback; each service has its own CI workflow with the same commands.",
+      "nodeIds": [
+        "file:infra/compose.dev.yml",
+        "file:.github/workflows/climate.yml"
+      ]
+    }
+  ]
+}

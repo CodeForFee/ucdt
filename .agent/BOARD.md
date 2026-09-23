@@ -9,7 +9,7 @@
 | claude subagents (Agent tool) | repo, shell, git worktree, gh | opus = strong, sonnet = cheap | sprint seams; each on its own branch + PR |
 
 ## Now (claims)
-- whole repo — claude-opus-5 (tech lead, sprint S-001), since 2026-09-23T1617Z. Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
+- whole repo — claude-opus-5 (tech lead, sprint S-001), since 2026-09-23T1617Z; session 1b6751ff from 2026-09-23T1740Z. Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
 
 **Git flow (user decision 2026-09-23):** one GitHub issue per task → branch `feat/T-NNN-<slug>` → PR **into `dev`** → tech lead reviews + squash-merges into `dev`, then closes the issue. **`main` belongs to the user** — agents never push or merge to main. `.agent/` lives in the repo (moved from the workspace root 2026-09-23); seam owners commit their task file + log inside their own PR, the lead commits board updates in the wave-gate PR.
 
@@ -19,11 +19,11 @@
 | id | issue | title | wave | owner | phase |
 |---|---|---|---|---|---|
 | T-001 | #2 | scaffold + interfaces | 0 | claude-opus-5 | done |
-| T-002 | #3 | PDIM logic port (Python) | 1 | claude-opus-5 (sub) | plan |
-| T-003 | #4 | DB schema + repo | 1 | claude-opus-5 (sub) | plan |
-| T-004 | #5 | gateway (Bun + Hono) | 1 | claude-sonnet-5 (sub) | plan |
-| T-005 | #6 | web shell + shared | 1 | claude-sonnet-5 (sub) | plan |
-| T-011 | #7 | godkit-map for ucdt/ | 1-gate | claude-opus-5 | plan |
+| T-002 | #3 | PDIM logic port (Python) | 1 | claude-opus-5 (sub) | done |
+| T-003 | #4 | DB schema + repo | 1 | claude-opus-5 (sub) | done |
+| T-004 | #5 | gateway (Bun + Hono) | 1 | claude-sonnet-5 (sub) | done |
+| T-005 | #6 | web shell + shared | 1 | claude-sonnet-5 (sub) → lead | done |
+| T-011 | #7 | godkit-map for ucdt/ | 1-gate | claude-opus-5 | done |
 | T-006 | #8 | ingest + worker | 2 | claude-opus-5 (sub) | plan |
 | T-007 | #9 | climate-api + contracts | 2 | claude-opus-5 (sub) | plan |
 | T-008 | #10 | web: dashboard, flood, air-quality, alerts | 2 | claude-sonnet-5 (sub) | plan |
@@ -35,6 +35,7 @@
 **Chờ người dùng:** `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
 
 ## Bugs
+- [x] B-013 `apps/gateway/src/index.ts` gave one Bun RedisClient to both cache/rate-limit and `/api/stream`; a subscribed connection rejects every other command, so after the first SSE client both middlewares failed open (no cache, no rate limit). Tests missed it: the fake allowed commands in subscriber mode. Fixed 2026-09-23 claude-opus-5 (#20, PR #21): dedicated subscriber connection, fake enforces subscriber mode, regression test.
 - [ ] B-012 `Hackathon-BE/src/utils/dataTransformer.ts` `transformOpenMeteoResponse` finds the "current hour" by matching `now.toISOString()` (UTC) against Open-Meteo `hourly.time`, which is requested in `Asia/Ho_Chi_Minh` local time — so "current" weather and the 24 h forecast start 7 h in the past (falls back to index 0 before 07:00 local). Found 2026-09-23 claude-opus-5 while planning S-001. Legacy repo is frozen; fix lands in ucdt T-006 (match on HCMC local hour) with a test.
 - [x] B-009 Flood page credited data to "VNMHA / VnDMS"; the backend contacts neither — flood risk is computed locally from Open-Meteo precipitation (googleFlood.client.ts does no network I/O). False provenance in a paper screenshot. Fixed 2026-09-14 claude-opus-5 (log 2026-09-14T0750Z-claude-opus-5)
 - [x] B-010 Flood trigger chart plotted mm/h beside % on one axis as "current vs threshold", implying higher-is-worse for drainage — the SUBTRACTIVE term. 50 mm/h was mislabelled "threshold" (it is P_ref). Fixed 2026-09-14 claude-opus-5
@@ -49,6 +50,9 @@
 - [x] B-003 Verify full sync of PDIM S1 formulas between BE & FE (`constants.ts` vs `pdim.ts`) — fixed 2026-08-19 antigravity (log 2026-08-19T0900Z-antigravity)
 
 ## Decisions
+- 2026-09-23 (S-001 W1) Python `services/climate` is the ONLY owner of PDIM coefficients and formulas; `apps/web` has no `pdim.ts` and never recomputes a served value. The gateway (Bun + Hono) never touches the DB and never computes a domain value — it forwards, envelopes, caches, rate-limits and relays SSE. Parity with the legacy TS backend is proven by `tests/pdim/test_pdim_parity.py` against `parity.json` (1e-9).
+- 2026-09-23 (S-001 W1) Live-update contract: the worker publishes JSON on Redis channel `ucdt:events` with `type` ∈ {`snapshot.updated`, `alert.created`} and, for snapshots, `hazard` ∈ web `KEY` (weather, aqi, flood, heat, recommend). The gateway uses `type` as the SSE event name; `useLiveEvents` invalidates by it. Any other shape is silently ignored.
+- 2026-09-23 Redis pub/sub always gets its own connection — never share a subscribed client with key commands (B-013).
 - 2026-09-14 Nav carries four tabs: Dashboard, Map, Simulation, Flood. Air-quality and alerts are represented by dashboard cards; their detail pages stay reachable by URL. §4.3/§4.4.2 of the manuscript were reworded to match — do not reinstate the "first-class nav tab" claim without also changing the nav.
 - 2026-09-14 Any UI that claims to decompose a composite score must show EVERY term with its weight, sum them, and render subtractive terms in the opposite direction. A partial decomposition is worse than none: it invites a reader to add up numbers that cannot reproduce the score.
 - 2026-09-14 Spatial units are named by coordinate-anchored TOPONYMS, never by administrative units. Resolution 1685/NQ-UBTVQH15 (2025) abolished the district tier in HCMC (168 commune-level units). `id` fields keep their historic slugs as internal keys only. Guarded by tests/spatialNaming.test.ts and an API-surface assertion.
@@ -61,6 +65,6 @@
 - 2026-08-19 Rule-based recommendation engine prioritizing by pi(r, i) = S(b) * E(i) * F(a).
 
 ## Last 3 handoffs
-- 2026-09-23T1617Z-claude-opus-5 — partial: opened sprint S-001 (UCDT v2 monorepo `ucdt/`, github CodeForFee/ucdt private); T-001 done (scaffold, deps, PDIM constants + 63 units, parity fixture 695+11, compose postgis+redis, CI 3/3 green). Found B-012. Branch protection unavailable (private Free). NEXT: wave 1 T-002..T-005 after user approval.
+- 2026-09-23T1740Z-claude-opus-5-1b6751ff — done: wave 1 closed. T-005 committed from the dead subagent's worktree (PR #19); found + fixed B-013 (PR #21); gate W1 green on dev; T-011 map written (56 nodes). Merged-branch deletion was blocked by the permission gate — left for the user. NEXT: user approves wave 2 (T-006..T-009).
+- 2026-09-23T1636Z-claude-opus-5-77343ae4 — partial: sprint S-001 opened (ucdt monorepo, github CodeForFee/ucdt private, flow issue→branch→PR into dev, main is the user's); T-001 done (9c96276); PR #15 merged into dev (.agent in repo, CI on dev); wave 1 T-002..T-005 dispatched in worktrees. Found B-012. NEXT: review+merge wave-1 PRs, gate W1, T-011 map, stop for user.
 - 2026-09-14T0750Z-claude-opus-5 — done: dropped air-quality + alerts nav tabs; fixed flood page (false data source, misleading trigger chart, missing terrain term) with a 4-term R_f decomposition verified against live API; manuscript corrected. PENDING: draft(3).docx locked by Word, corrected copy at docs/.draft3.tmp.docx.
-- 2026-09-14T0730Z-claude-opus-5 — done: manuscript<->prototype alignment; 63 spatial units renamed off administrative labels; fixed the processing-layer urbanDensity drop and the presentation-layer recommendation panel; FE feature-sliced refactor + 1.3k lines of dead code deleted; both repos on pnpm; docs/PO-UCDT draft(3).docx written with all 8 empty sections filled.
