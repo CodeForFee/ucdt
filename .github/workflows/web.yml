@@ -17,3 +17,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm -F web lint
+      - run: pnpm -F web test
+      - run: pnpm -F web build
+        env:
+          VITE_MAPBOX_TOKEN: pk.ci-placeholder
