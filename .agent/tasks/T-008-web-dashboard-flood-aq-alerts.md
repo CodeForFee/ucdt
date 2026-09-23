@@ -4,8 +4,8 @@ title: web: dashboard, flood, air-quality, alerts
 owner: claude-sonnet-5 (subagent)
 scope: apps/web/src/features/{dashboard,flood,air-quality,alerts}/**
 exit: `pnpm -F web build lint test` green; manual run against legacy Hackathon-BE shows every card/page
-phase: blocked
-blocked: needs-decision — `dev` no longer exists on origin (see Handoff); code/tests/build are done, PR not opened
+phase: review
+blocked:
 created: 2026-09-23T1617Z
 sprint: S-001
 issue: 10
@@ -90,3 +90,6 @@ user. My commit `56b20bf` is pushed to `feat/T-008-web-dashboard-flood-aq-alerts
 ready — someone with the authority to decide the new target branch (recreate `dev` from `main`,
 or explicitly redirect this PR to `main`) needs to say which, then `gh pr create --base <branch>`
 from this same commit finishes the job in one command.
+
+
+**Lead note (2026-09-23T1850Z):** unblocked. The maintainer squash-merged dev into main (#25) and auto-delete removed `dev`; the lead re-pushed `dev` = `main` (51d9079), rebased these commits onto it, and opened the PR from `feat/T-008-web-pages`. Follow-up: `FLOOD_WEIGHTS` in `features/flood/lib/decomposeFloodRisk.ts` duplicates PDIM coefficients with no cross-check → B-014 (climate should serve the decomposed terms).
