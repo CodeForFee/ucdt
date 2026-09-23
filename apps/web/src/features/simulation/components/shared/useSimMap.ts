@@ -49,7 +49,8 @@ export function useSimMap() {
         antialias: true,
         attributionControl: false,
       });
-    } catch {
+    } catch (err) {
+      console.error("[map] mapbox-gl init failed (WebGL unavailable?):", err);
       return;
     }
     mapRef.current = m;

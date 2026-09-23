@@ -34,7 +34,8 @@ export function FullMapView() {
         zoom: viewport.zoom,
         attributionControl: false,
       });
-    } catch {
+    } catch (err) {
+      console.error("[map] mapbox-gl init failed (WebGL unavailable?):", err);
       return;
     }
 
