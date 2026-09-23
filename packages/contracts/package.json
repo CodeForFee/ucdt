@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "gen": "openapi-typescript openapi.json -o src/schema.ts"
+    "gen": "openapi-typescript openapi.json -o src/schema.ts --default-non-nullable false"
   },
   "devDependencies": {
     "openapi-typescript": "^7.10.1",

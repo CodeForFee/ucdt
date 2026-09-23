@@ -1,0 +1,1417 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UCDT climate API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/weather/latest": {
+      "get": {
+        "tags": [
+          "latest"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_weather",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherLatest"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          }
+        }
+      }
+    },
+    "/v1/aqi/latest": {
+      "get": {
+        "tags": [
+          "latest"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_aqi",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AQILatest"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          }
+        }
+      }
+    },
+    "/v1/flood/latest": {
+      "get": {
+        "tags": [
+          "latest"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_flood",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FloodLatest"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          }
+        }
+      }
+    },
+    "/v1/heat/latest": {
+      "get": {
+        "tags": [
+          "latest"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_heat",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeatLatest"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          }
+        }
+      }
+    },
+    "/v1/recommend/latest": {
+      "get": {
+        "tags": [
+          "latest"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_recommend",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendLatest"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          }
+        }
+      }
+    },
+    "/v1/alerts": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "List Alerts",
+        "operationId": "list_alerts",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/alerts/read": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Mark Read",
+        "operationId": "mark_read",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkReadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/simulation": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Simulate",
+        "description": "Live what-if against the latest weather/flood/aqi snapshots (what legacy runSimulation fetched).",
+        "operationId": "simulate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest",
+                "default": {
+                  "cityId": "hcmc",
+                  "scenario": {
+                    "rainfallIncrease": 50.0,
+                    "rainfallDurationHours": 3.0,
+                    "addGreenCoverage": 0.0,
+                    "trafficReduction": 0.0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationResult"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "no snapshot yet"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/history/{hazard}": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "History",
+        "description": "Snapshots of the last `hours`, oldest first.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "hazard",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hazard"
+            }
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 168,
+              "minimum": 1,
+              "default": 24,
+              "title": "Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  },
+                  "title": "Response History"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Healthz",
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Healthz"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AQIForecastItem": {
+        "properties": {
+          "hour": {
+            "type": "string",
+            "title": "Hour"
+          },
+          "aqi": {
+            "type": "number",
+            "title": "Aqi"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "hour",
+          "aqi"
+        ],
+        "title": "AQIForecastItem"
+      },
+      "AQILatest": {
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat",
+            "description": "computed_at of the snapshot, ISO 8601 UTC"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
+          },
+          "aqi": {
+            "type": "number",
+            "title": "Aqi"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "pm25": {
+            "type": "number",
+            "title": "Pm25"
+          },
+          "pm10": {
+            "type": "number",
+            "title": "Pm10"
+          },
+          "o3": {
+            "type": "number",
+            "title": "O3"
+          },
+          "no2": {
+            "type": "number",
+            "title": "No2"
+          },
+          "trend": {
+            "type": "string",
+            "enum": [
+              "increasing",
+              "decreasing",
+              "stable"
+            ],
+            "title": "Trend"
+          },
+          "forecast24h": {
+            "items": {
+              "$ref": "#/components/schemas/AQIForecastItem"
+            },
+            "type": "array",
+            "title": "Forecast24H"
+          },
+          "stations": {
+            "items": {
+              "$ref": "#/components/schemas/AQIStation"
+            },
+            "type": "array",
+            "title": "Stations"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "observedAt",
+          "stale",
+          "aqi",
+          "category",
+          "pm25",
+          "pm10",
+          "o3",
+          "no2",
+          "trend",
+          "forecast24h",
+          "stations"
+        ],
+        "title": "AQILatest"
+      },
+      "AQIStation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "aqi": {
+            "type": "number",
+            "title": "Aqi"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lat",
+          "lng",
+          "aqi"
+        ],
+        "title": "AQIStation"
+      },
+      "Alert": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ],
+            "title": "Severity"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "aqi",
+              "heat",
+              "storm",
+              "system"
+            ],
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "isRead": {
+            "type": "boolean",
+            "title": "Isread"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "expiresAt": {
+            "type": "string",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "type",
+          "title",
+          "message",
+          "isRead",
+          "createdAt",
+          "expiresAt"
+        ],
+        "title": "Alert"
+      },
+      "AlertsResponse": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "type": "array",
+            "title": "Alerts"
+          },
+          "unreadCount": {
+            "type": "integer",
+            "title": "Unreadcount"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "alerts",
+          "unreadCount",
+          "totalCount"
+        ],
+        "title": "AlertsResponse"
+      },
+      "FloodArea": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Risklevel"
+          },
+          "riskScore": {
+            "type": "number",
+            "title": "Riskscore"
+          },
+          "estimatedDepth": {
+            "type": "number",
+            "title": "Estimateddepth"
+          },
+          "geojson": {
+            "$ref": "#/components/schemas/FloodGeoJSONFeature"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lat",
+          "lng",
+          "riskLevel",
+          "riskScore",
+          "estimatedDepth",
+          "geojson"
+        ],
+        "title": "FloodArea"
+      },
+      "FloodGeoJSONFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "properties": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Properties"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "FloodGeoJSONFeature"
+      },
+      "FloodLatest": {
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat",
+            "description": "computed_at of the snapshot, ISO 8601 UTC"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
+          },
+          "overallRisk": {
+            "type": "string",
+            "title": "Overallrisk"
+          },
+          "riskScore": {
+            "type": "number",
+            "title": "Riskscore"
+          },
+          "affectedAreas": {
+            "items": {
+              "$ref": "#/components/schemas/FloodArea"
+            },
+            "type": "array",
+            "title": "Affectedareas"
+          },
+          "triggers": {
+            "$ref": "#/components/schemas/FloodTriggers"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "observedAt",
+          "stale",
+          "overallRisk",
+          "riskScore",
+          "affectedAreas",
+          "triggers"
+        ],
+        "title": "FloodLatest"
+      },
+      "FloodTriggers": {
+        "properties": {
+          "currentRainfall": {
+            "type": "number",
+            "title": "Currentrainfall"
+          },
+          "soilSaturation": {
+            "type": "number",
+            "title": "Soilsaturation"
+          },
+          "drainageCapacity": {
+            "type": "number",
+            "title": "Drainagecapacity"
+          },
+          "terrainSensitivity": {
+            "type": "number",
+            "title": "Terrainsensitivity"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "currentRainfall",
+          "soilSaturation",
+          "drainageCapacity",
+          "terrainSensitivity"
+        ],
+        "title": "FloodTriggers"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HeatFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/HeatFeatureProps"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "HeatFeature"
+      },
+      "HeatFeatureProps": {
+        "properties": {
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "temperature",
+          "intensity"
+        ],
+        "title": "HeatFeatureProps"
+      },
+      "HeatGeoJSON": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/HeatFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "HeatGeoJSON"
+      },
+      "HeatHotspot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lat",
+          "lng",
+          "temperature",
+          "intensity"
+        ],
+        "title": "HeatHotspot"
+      },
+      "HeatLatest": {
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat",
+            "description": "computed_at of the snapshot, ISO 8601 UTC"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "avgTemperature": {
+            "type": "number",
+            "title": "Avgtemperature"
+          },
+          "maxTemperature": {
+            "type": "number",
+            "title": "Maxtemperature"
+          },
+          "heatIslandIntensity": {
+            "type": "number",
+            "title": "Heatislandintensity"
+          },
+          "hotspots": {
+            "items": {
+              "$ref": "#/components/schemas/HeatHotspot"
+            },
+            "type": "array",
+            "title": "Hotspots"
+          },
+          "geojson": {
+            "$ref": "#/components/schemas/HeatGeoJSON"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "observedAt",
+          "stale",
+          "city",
+          "timestamp",
+          "avgTemperature",
+          "maxTemperature",
+          "heatIslandIntensity",
+          "hotspots",
+          "geojson"
+        ],
+        "title": "HeatLatest"
+      },
+      "HistoryEntry": {
+        "properties": {
+          "computedAt": {
+            "type": "string",
+            "title": "Computedat"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result",
+            "description": "that hazard's /latest shape as it was at computedAt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "computedAt",
+          "result"
+        ],
+        "title": "HistoryEntry"
+      },
+      "MarkReadRequest": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "MarkReadRequest"
+      },
+      "MarkReadResponse": {
+        "properties": {
+          "marked": {
+            "type": "integer",
+            "title": "Marked",
+            "description": "how many of the ids were unread and are now read"
+          }
+        },
+        "type": "object",
+        "required": [
+          "marked"
+        ],
+        "title": "MarkReadResponse"
+      },
+      "PointGeometry": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "coordinates": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Coordinates"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PointGeometry"
+      },
+      "PolygonGeometry": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Coordinates"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PolygonGeometry"
+      },
+      "RecommendLatest": {
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat",
+            "description": "computed_at of the snapshot, ISO 8601 UTC"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "overallRiskLevel": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Overallrisklevel"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "observedAt",
+          "stale",
+          "recommendations",
+          "summary",
+          "overallRiskLevel"
+        ],
+        "title": "RecommendLatest"
+      },
+      "Recommendation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "ruleId": {
+            "type": "string",
+            "title": "Ruleid"
+          },
+          "priorityScore": {
+            "type": "number",
+            "title": "Priorityscore"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "title": "Priority"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "air",
+              "heat",
+              "combined"
+            ],
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "actionItems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Actionitems"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "ruleId",
+          "priorityScore",
+          "priority",
+          "category",
+          "title",
+          "message",
+          "actionItems",
+          "timestamp",
+          "inputs"
+        ],
+        "title": "Recommendation"
+      },
+      "Scenario": {
+        "properties": {
+          "rainfallIncrease": {
+            "type": "number",
+            "maximum": 500.0,
+            "minimum": 0.0,
+            "title": "Rainfallincrease",
+            "default": 50
+          },
+          "rainfallDurationHours": {
+            "type": "number",
+            "maximum": 72.0,
+            "minimum": 0.0,
+            "title": "Rainfalldurationhours",
+            "default": 3
+          },
+          "addGreenCoverage": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": -100.0,
+            "title": "Addgreencoverage",
+            "description": "percentage points vs baseline",
+            "default": 0
+          },
+          "trafficReduction": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Trafficreduction",
+            "default": 0
+          },
+          "urbanDensity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urbandensity",
+            "description": "omitted = baseline density"
+          }
+        },
+        "type": "object",
+        "title": "Scenario",
+        "description": "Bounds = legacy validateScenario. Omitted/null levers take the legacy controller defaults."
+      },
+      "SimComparison": {
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/SimComparisonSide"
+          },
+          "after": {
+            "$ref": "#/components/schemas/SimComparisonSide"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after"
+        ],
+        "title": "SimComparison"
+      },
+      "SimComparisonSide": {
+        "properties": {
+          "riskScore": {
+            "type": "number",
+            "title": "Riskscore"
+          },
+          "affectedAreas": {
+            "type": "integer",
+            "title": "Affectedareas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "riskScore",
+          "affectedAreas"
+        ],
+        "title": "SimComparisonSide"
+      },
+      "SimResults": {
+        "properties": {
+          "floodRiskDelta": {
+            "type": "number",
+            "title": "Floodriskdelta"
+          },
+          "newFloodAreas": {
+            "items": {
+              "$ref": "#/components/schemas/FloodArea"
+            },
+            "type": "array",
+            "title": "Newfloodareas"
+          },
+          "tempDelta": {
+            "type": "number",
+            "title": "Tempdelta"
+          },
+          "aqiDelta": {
+            "type": "number",
+            "title": "Aqidelta"
+          },
+          "affectedBuildings": {
+            "type": "integer",
+            "title": "Affectedbuildings"
+          },
+          "affectedPopulation": {
+            "type": "integer",
+            "title": "Affectedpopulation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "floodRiskDelta",
+          "newFloodAreas",
+          "tempDelta",
+          "aqiDelta",
+          "affectedBuildings",
+          "affectedPopulation"
+        ],
+        "title": "SimResults"
+      },
+      "SimulationRequest": {
+        "properties": {
+          "cityId": {
+            "type": "string",
+            "title": "Cityid",
+            "default": "hcmc"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/Scenario"
+          }
+        },
+        "type": "object",
+        "title": "SimulationRequest"
+      },
+      "SimulationResult": {
+        "properties": {
+          "simulationId": {
+            "type": "string",
+            "title": "Simulationid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "results": {
+            "$ref": "#/components/schemas/SimResults"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/SimComparison"
+          }
+        },
+        "type": "object",
+        "required": [
+          "simulationId",
+          "status",
+          "results",
+          "comparison"
+        ],
+        "title": "SimulationResult"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WeatherCurrent": {
+        "properties": {
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "feelsLike": {
+            "type": "number",
+            "title": "Feelslike"
+          },
+          "humidity": {
+            "type": "number",
+            "title": "Humidity"
+          },
+          "rainfall": {
+            "type": "number",
+            "title": "Rainfall"
+          },
+          "windSpeed": {
+            "type": "number",
+            "title": "Windspeed"
+          },
+          "windDirection": {
+            "type": "number",
+            "title": "Winddirection"
+          },
+          "condition": {
+            "type": "string",
+            "title": "Condition"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "temperature",
+          "feelsLike",
+          "humidity",
+          "rainfall",
+          "windSpeed",
+          "windDirection",
+          "condition",
+          "timestamp"
+        ],
+        "title": "WeatherCurrent"
+      },
+      "WeatherForecastItem": {
+        "properties": {
+          "hour": {
+            "type": "string",
+            "title": "Hour"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "rainfall": {
+            "type": "number",
+            "title": "Rainfall"
+          },
+          "windSpeed": {
+            "type": "number",
+            "title": "Windspeed"
+          },
+          "stormProbability": {
+            "type": "number",
+            "title": "Stormprobability"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "hour",
+          "temperature",
+          "rainfall",
+          "windSpeed",
+          "stormProbability"
+        ],
+        "title": "WeatherForecastItem"
+      },
+      "WeatherLatest": {
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat",
+            "description": "computed_at of the snapshot, ISO 8601 UTC"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
+          },
+          "current": {
+            "$ref": "#/components/schemas/WeatherCurrent"
+          },
+          "forecast": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherForecastItem"
+            },
+            "type": "array",
+            "title": "Forecast"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "observedAt",
+          "stale",
+          "current",
+          "forecast"
+        ],
+        "title": "WeatherLatest"
+      }
+    }
+  }
+}
