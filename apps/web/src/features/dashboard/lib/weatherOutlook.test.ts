@@ -46,6 +46,16 @@ describe("weatherOutlook (B-007)", () => {
     expect(outlook.rainValue).toBeCloseTo(2 - 5, 5);
   });
 
+  it("B-015: history only minutes deep is not a 24h comparison — falls back to the forecast", () => {
+    const fresh: HistoryEntry<WeatherData>[] = [
+      {
+        computedAt: "2026-09-23T23:30:00Z",
+        result: { current: { ...current, temperature: 30, rainfall: 2 }, forecast: [] },
+      },
+    ];
+    expect(weatherOutlook(current, forecast, fresh).kind).toBe("forecast");
+  });
+
   it("reports 'none' rather than fabricating a number when nothing is available", () => {
     const outlook = weatherOutlook(undefined, [], []);
     expect(outlook).toEqual({ kind: "none", tempDelta: null, rainValue: null });

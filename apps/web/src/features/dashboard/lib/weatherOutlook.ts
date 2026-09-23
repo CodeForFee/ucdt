@@ -8,6 +8,9 @@ export interface WeatherOutlook {
   rainValue: number | null;
 }
 
+/** Hourly snapshots every 15 min: the oldest of a 24 h window lands within the last hour. */
+const MIN_HISTORY_SPAN_H = 23;
+
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }
@@ -27,7 +30,11 @@ export function weatherOutlook(
 ): WeatherOutlook {
   if (current && history && history.length > 0) {
     const past = history[0]?.result?.current;
-    if (past) {
+    // The label says "vs 24 h ago": only true once the oldest snapshot really is that old.
+    // A fresh deployment has minutes of history, not a day (B-015).
+    const spanH =
+      (Date.parse(current.timestamp) - Date.parse(history[0].computedAt)) / 3_600_000;
+    if (past && spanH >= MIN_HISTORY_SPAN_H) {
       return {
         kind: "history",
         tempDelta: round1(current.temperature - past.temperature),

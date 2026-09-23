@@ -67,9 +67,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Both the legacy backend and the new gateway listen on 127.0.0.1:3001.
+      // Both the legacy backend and the new gateway listen on 127.0.0.1:3001;
+      // API_PROXY_TARGET points dev at another one (e.g. gateway on :3002 beside legacy).
       "/api": {
-        target: "http://127.0.0.1:3001",
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:3001",
         changeOrigin: true,
         // /api/stream is a long-lived SSE connection (EventSource). http-proxy
         // already pipes the upstream response without buffering it in memory —
