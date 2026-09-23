@@ -144,16 +144,32 @@ khi chạy, hoặc chỉ set `UCDT_TAG` để rollback image mà giữ nguyên `
   scp deploy@<vps>:/var/backups/ucdt/ucdt-*.dump ./local-backups/
   # hoặc rsync định kỳ từ máy khác / một cron trên VPS đẩy lên nơi lưu trữ ngoài (S3, Backblaze...)
   ```
-- **Restore** (chạy trên VPS, dùng `docker exec`, KHÔNG cần SSH vào container thủ công):
+- **Restore** (chạy trên VPS, dùng `docker` / `docker compose`, KHÔNG cần SSH vào container
+  thủ công):
   ```bash
   infra/backup/restore.sh /var/backups/ucdt/ucdt-20260924T0300Z.dump
   ```
-  Script sẽ cảnh báo rõ ràng, yêu cầu gõ lại đúng tên database để xác nhận, rồi `dropdb` +
-  `createdb` + `pg_restore` vào database đó. **Restore đè lên database đích** — nếu chỉ muốn
-  thử/kiểm tra, truyền tên database khác làm tham số thứ hai:
+  Script sẽ:
+  1. Cảnh báo rõ ràng, yêu cầu gõ lại đúng tên database để xác nhận (bắt buộc, không có cách
+     bỏ qua).
+  2. **Dừng `climate-api`, `climate-worker`, `backup`** (`docker compose stop`, đường dẫn tới
+     `infra/compose.yml`/`infra/compose.prod.yml` tự suy ra từ vị trí của script, chạy được dù
+     bạn đứng ở thư mục nào) — đây là các service duy nhất giữ kết nối tới Postgres, dừng
+     chúng trước để `dropdb` không bị chặn.
+  3. `dropdb --force` (backstop: tự ngắt mọi kết nối còn sót lại, kể cả một phiên `psql` ai đó
+     quên đóng) + `createdb` + `pg_restore --no-owner`.
+  4. **Khởi động lại `climate-api`, `climate-worker`, `backup`** — luôn chạy bước này kể cả khi
+     restore ở bước 3 thất bại giữa chừng (dùng `trap` trên EXIT), để một lần restore lỗi
+     không để stack ở trạng thái "đã tắt mất API".
+
+  **Restore đè lên database đích** — nếu chỉ muốn thử/kiểm tra, truyền tên database khác làm
+  tham số thứ hai (khi đó việc dừng/khởi động lại 3 service ở trên vẫn chạy, vì chúng không
+  biết trước database nào đang bị restore):
   ```bash
   infra/backup/restore.sh /var/backups/ucdt/ucdt-20260924T0300Z.dump ucdt_scratch
   ```
+  `RESTORE_DRY_RUN=1` in ra lệnh `docker compose stop`/`start` thay vì chạy thật — dùng khi
+  muốn kiểm thử `restore.sh` nhắm vào một database phụ mà không đụng tới stack đang chạy thật.
 
 ## 9. Giám sát với Uptime Kuma
 

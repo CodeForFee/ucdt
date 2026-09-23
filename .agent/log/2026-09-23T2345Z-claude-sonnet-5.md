@@ -40,3 +40,29 @@ Branch `feat/T-013-deploy-backup-docs` off `origin/dev`. Scope: `infra/deploy.sh
   beyond the compose service definition.
 - Nothing here was run against a real VPS or GHCR (no SSH, no `docker login` performed) — every
   VPS/GHCR step in DEPLOY.md is written but unproven against a real box, which the user runs.
+
+## Update 2026-09-24T0005Z — PR #37 review round 1 fixes
+
+Two blocking issues from review, both fixed and re-verified:
+
+1. **Exec bit missing on all 4 scripts** (committed `100644`; Docker Desktop on Windows masked
+   this locally by reporting bind-mounted files as executable regardless of git mode). Fixed with
+   `git update-index --chmod=+x`. Re-verified with the reviewer's own reproduction technique —
+   `git write-tree` (to capture the *staged* mode, since `git archive HEAD` alone still shows the
+   pre-commit mode) piped into a bare `alpine` container: `entrypoint.sh` now runs, fails to find
+   `pg_dump` (expected on bare alpine) and logs the failure — no more `Permission denied`/exit 126.
+2. **`restore.sh` couldn't restore over an in-use database** (`dropdb` refuses while
+   `climate-api`/`climate-worker`/`backup` hold connections). Fixed: resolves compose files
+   relative to the script's own path, stops `climate-api climate-worker backup` before the drop,
+   `dropdb --force` as a backstop, restarts those services after via `trap ... EXIT` (covers
+   failure too), kept the typed-name confirmation, added `RESTORE_DRY_RUN=1` for exercising the
+   stop/start path without touching a live stack. Proved the actual fix (force-drop under
+   contention) for real: created `ucdt_restore_test`, held a connection open with a backgrounded
+   `select pg_sleep(60)`, ran `restore.sh` with `RESTORE_DRY_RUN=1` (so `climate-api`/
+   `climate-worker` — part of the user's running stack — were never actually stopped) — it
+   succeeded, the held connection's pid disappeared, `spatial_units` = 63 in the restored scratch
+   DB, and all 6 live containers were confirmed unchanged throughout. Also updated
+   `docs/DEPLOY.md`'s restore section for the new stop → force-drop → restore → restart sequence.
+
+Pushed to `feat/T-013-deploy-backup-docs`, `gh pr update-branch 37` run first (already
+up-to-date). No branches deleted, no force-push, no merge.
