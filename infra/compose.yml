@@ -1,11 +1,22 @@
-# UCDT stack. Wave 0 carries only the stateful services; the app services
-# (climate-api, climate-worker, gateway, caddy+web) are added in T-010.
+# UCDT full stack. Only Caddy publishes ports; everything else talks on the compose network.
 #
-#   docker compose -f infra/compose.yml up -d                 # production-shaped, nothing published
-#   docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d   # dev: ports on 127.0.0.1
+#   docker compose -f infra/compose.yml up -d --build        # whole stack at http://localhost
+#   docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d postgres redis
+#                                                            # dev: just the stateful services on 127.0.0.1
 #
-# mem_limit values are sized for a 2 vCPU / 3.78 GB VPS with headroom.
+# Configuration comes from infra/.env (copy infra/.env.example). mem_limit values are sized
+# for a 2 vCPU / 3.78 GB VPS with headroom.
 name: ucdt
+
+x-climate: &climate
+  image: ucdt/climate:local
+  build:
+    context: ../services/climate
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ucdt}:${POSTGRES_PASSWORD:-ucdt}@postgres:5432/${POSTGRES_DB:-ucdt}
+    REDIS_URL: redis://redis:6379/0
+    IQAIR_API_KEY: ${IQAIR_API_KEY:-}
+    AQICN_TOKEN: ${AQICN_TOKEN:-}
 
 services:
   postgres:
@@ -27,6 +38,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # Cache, rate limit, arq queue and pub/sub — nothing here needs to survive a restart.
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -35,5 +47,85 @@ services:
       retries: 20
     mem_limit: 96m
 
+  # One-shot: brings the schema to head (and seeds the 63 spatial units) before api/worker start.
+  migrate:
+    <<: *climate
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 256m
+
+  climate-api:
+    <<: *climate
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+
+  climate-worker:
+    <<: *climate
+    command: ["arq", "climate.worker.main.WorkerSettings"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    mem_limit: 256m
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: apps/gateway/Dockerfile
+    restart: unless-stopped
+    environment:
+      CLIMATE_URL: http://climate-api:8000
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      climate-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 128m
+
+  # Serves the web build and reverse-proxies /api/* to the gateway (infra/Caddyfile).
+  caddy:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+      args:
+        # Required: apps/web/src/config/env.ts refuses to start without it.
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:?set VITE_MAPBOX_TOKEN in infra/.env}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gateway:
+        condition: service_healthy
+    mem_limit: 128m
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

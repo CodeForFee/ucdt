@@ -1,0 +1,12 @@
+# Build context is the repo root for the web and gateway images (see infra/compose.yml).
+# The climate image builds from services/climate with its own .dockerignore.
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+.git
+.claude
+.agent
+**/.env
+**/.env.*
+!**/.env.example
