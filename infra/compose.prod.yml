@@ -1,0 +1,61 @@
+# Production override: pull built images from GHCR instead of building locally, and add the
+# backup + uptime-monitoring services. Published by T-012 (apps/gateway/Dockerfile, infra/web.Dockerfile,
+# services/climate/Dockerfile) on push to main/dev as :dev, :main, :sha-<short>, and :latest on main.
+#
+# Use together with compose.yml (never alone -- it has no postgres/redis/etc of its own):
+#   docker compose -f infra/compose.yml -f infra/compose.prod.yml pull
+#   docker compose -f infra/compose.yml -f infra/compose.prod.yml up -d --no-build --remove-orphans --wait
+#
+# UCDT_TAG picks the image tag for every ucdt-* image (default: main). Rollback:
+#   UCDT_TAG=sha-abc1234 docker compose -f infra/compose.yml -f infra/compose.prod.yml up -d --no-build --wait
+name: ucdt
+
+x-climate-image: &climate-image
+  image: ghcr.io/codeforfee/ucdt-climate:${UCDT_TAG:-main}
+
+services:
+  migrate:
+    <<: *climate-image
+  climate-api:
+    <<: *climate-image
+  climate-worker:
+    <<: *climate-image
+  gateway:
+    image: ghcr.io/codeforfee/ucdt-gateway:${UCDT_TAG:-main}
+  caddy:
+    image: ghcr.io/codeforfee/ucdt-web:${UCDT_TAG:-main}
+
+  # Daily pg_dump -Fc into a host bind mount, keeps the newest 7. postgres:16-alpine matches
+  # the server major version so pg_dump/pg_restore stay wire-compatible. See infra/backup/.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-ucdt}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-ucdt}
+      PGDATABASE: ${POSTGRES_DB:-ucdt}
+      BACKUP_DIR: /backups
+      KEEP: 7
+    volumes:
+      - ${BACKUP_DIR:-/var/backups/ucdt}:/backups
+      - ./backup:/backup:ro
+    entrypoint: ["/backup/entrypoint.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 64m
+
+  # Uptime dashboard, reachable only via `ssh -L 3100:127.0.0.1:3100 <vps>` -- never exposed
+  # publicly. Add monitors for /health through Caddy and /api/weather (see docs/DEPLOY.md).
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    mem_limit: 200m
+
+volumes:
+  uptime_kuma_data:
