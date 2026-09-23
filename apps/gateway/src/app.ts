@@ -11,7 +11,10 @@ import { createRateLimit } from './rateLimit.ts'
 import type { RedisLike } from './redis.ts'
 
 export interface AppDeps extends ClimateDeps {
+  /** Commands: cache + rate limit. */
   redis: RedisLike
+  /** Pub/sub only — a subscribed Redis connection rejects every other command (B-013). */
+  subscriber: RedisLike
 }
 
 const CACHE_TTL = {
@@ -140,7 +143,7 @@ export function createApp(deps: AppDeps) {
 
       let subscribed = false
       try {
-        await deps.redis.subscribe(SSE_CHANNEL, listener)
+        await deps.subscriber.subscribe(SSE_CHANNEL, listener)
         subscribed = true
       } catch (err) {
         console.error('[stream] redis unavailable, no live events:', err)
@@ -153,7 +156,7 @@ export function createApp(deps: AppDeps) {
       clearInterval(heartbeat)
       if (subscribed) {
         try {
-          await deps.redis.unsubscribe(SSE_CHANNEL, listener)
+          await deps.subscriber.unsubscribe(SSE_CHANNEL, listener)
         } catch (err) {
           console.error('[stream] redis unsubscribe failed:', err)
         }

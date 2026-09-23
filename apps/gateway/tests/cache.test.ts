@@ -12,6 +12,7 @@ describe('GET+200 cache, keyed by full URL', () => {
         return jsonResponse({ tempC: 30 })
       }),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
 
     const first = await app.request('/api/weather?lat=10.7&lng=106.7')
@@ -30,6 +31,7 @@ describe('GET+200 cache, keyed by full URL', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({ tempC: 30 })),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
     await app.request('/api/weather?lat=1&lng=1')
     const res = await app.request('/api/weather?lat=2&lng=2')
@@ -45,6 +47,7 @@ describe('GET+200 cache, keyed by full URL', () => {
         return jsonResponse({ ok: true })
       }),
       redis: createFakeRedis(),
+      subscriber: createFakeRedis(),
     })
     await app.request('/api/simulation', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } })
     await app.request('/api/simulation', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } })
@@ -56,6 +59,7 @@ describe('GET+200 cache, keyed by full URL', () => {
       climateUrl: 'http://climate.internal',
       climateFetch: createFakeClimateFetch(() => jsonResponse({ tempC: 30 })),
       redis: createDownRedis(),
+      subscriber: createDownRedis(),
     })
     const res = await app.request('/api/weather')
     expect(res.status).toBe(200)

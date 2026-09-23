@@ -5,10 +5,17 @@ interface Entry {
   expiresAt: number | null
 }
 
-/** In-memory stand-in for Bun's RedisClient, scoped to what the gateway uses. */
+/**
+ * In-memory stand-in for Bun's RedisClient, scoped to what the gateway uses.
+ * Like real Redis, once it has subscribed it rejects every key command (B-013).
+ */
 export function createFakeRedis(): RedisLike {
   const store = new Map<string, Entry>()
   const subs = new Map<string, Set<(message: string, channel: string) => void>>()
+  let subscriberMode = false
+  const assertCommandMode = (): void => {
+    if (subscriberMode) throw new Error('ERR_REDIS_INVALID_STATE: command in subscriber mode')
+  }
 
   const live = (key: string): Entry | undefined => {
     const e = store.get(key)
@@ -22,22 +29,27 @@ export function createFakeRedis(): RedisLike {
 
   return {
     async get(key) {
+      assertCommandMode()
       return live(key)?.value ?? null
     },
     async setex(key, seconds, value) {
+      assertCommandMode()
       store.set(key, { value, expiresAt: Date.now() + seconds * 1000 })
     },
     async incr(key) {
+      assertCommandMode()
       const e = live(key)
       const next = (e ? Number.parseInt(e.value, 10) : 0) + 1
       store.set(key, { value: String(next), expiresAt: e ? e.expiresAt : null })
       return next
     },
     async expire(key, seconds) {
+      assertCommandMode()
       const e = store.get(key)
       if (e) e.expiresAt = Date.now() + seconds * 1000
     },
     async ttl(key) {
+      assertCommandMode()
       const e = live(key)
       if (!e || e.expiresAt === null) return -1
       return Math.ceil((e.expiresAt - Date.now()) / 1000)
@@ -49,6 +61,7 @@ export function createFakeRedis(): RedisLike {
       return listeners.size
     },
     async subscribe(channel, listener) {
+      subscriberMode = true
       if (!subs.has(channel)) subs.set(channel, new Set())
       subs.get(channel)?.add(listener)
     },
