@@ -13,6 +13,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from climate.config import get_settings
 from climate.db import repo
 from climate.ingest.weather import local_time, transform_forecast
 from climate.pdim import aqi, flood, heat, rules
@@ -22,6 +23,34 @@ MODEL_VERSION = "pdim-s1"
 HAZARDS = ("weather", "aqi", "flood", "heat", "recommend")
 # Which snapshot an alert of each type was raised from.
 ALERT_SNAPSHOT = {"flood": "flood", "aqi": "aqi", "heat": "heat", "storm": "weather", "system": "recommend"}
+
+
+def heat_payload(raw: dict, city: str) -> dict:
+    """Legacy /api/heat served heatController's reshape of getHeatData, not the service output
+    (Hackathon-BE/src/controllers/heat.controller.ts). The other four controllers pass through."""
+    return {
+        "city": city,
+        "timestamp": raw["timestamp"],
+        "avgTemperature": raw["cityAvgTemp"],
+        "maxTemperature": raw["cityMaxEffectiveTemp"],
+        "heatIslandIntensity": raw["uhiEffect"],
+        "hotspots": [
+            {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
+            | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}
+            for h in raw["hotspots"]
+        ],
+        "geojson": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [h["lng"], h["lat"]]},
+                    "properties": {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]},
+                }
+                for h in raw["hotspots"]
+            ],
+        },
+    }
 
 
 async def store_run(
@@ -43,7 +72,7 @@ async def store_run(
         "weather": weather,
         "aqi": aq,
         "flood": fl,
-        "heat": heat.compute_heat(weather["current"], now),
+        "heat": heat_payload(heat.compute_heat(weather["current"], now), get_settings().city_id),
         "recommend": rules.recommendations(weather, fl, aq, now),
     }
     inputs = {

@@ -2,7 +2,7 @@
 agent: claude-opus-5 (subagent, T-006 seam owner)
 session: sub
 started: 2026-09-23T1800Z
-ended: 2026-09-23T1825Z
+ended: 2026-09-23T1830Z
 scope: services/climate/climate/{ingest,worker}/**, services/climate/climate/snapshots.py, services/climate/tests/{ingest,worker}/**, services/climate/Dockerfile, .agent/tasks/T-006-ingest-worker.md
 branch: feat/T-006-ingest-worker
 status: done
@@ -13,6 +13,7 @@ status: done
 - Fixed B-012: current hour matched on HCMC wall-clock via Open-Meteo `utc_offset_seconds`; `forecast_days=2`.
 - `snapshots.store_run`: obs + 5 snapshots (`pdim-s1`) + deduped alerts in the caller's transaction.
 - arq worker `climate.worker.main.WorkerSettings`: cron every 15 min + at startup, publish `ucdt:events` after commit, skip the run on any upstream failure.
+- Heat snapshot now stores heatController's reshape (lead review of T-007 found the raw service shape); other 4 controllers checked, pass-through.
 - Dockerfile (api + worker, non-root). PR #23 into dev.
 
 ## Verified
@@ -22,6 +23,7 @@ status: done
 - Docker image builds, runs as uid 10001, imports the worker.
 
 ## Bugs
+- Own bug, fixed in the PR: heat snapshot stored getHeatData, not the /api/heat controller shape (caught by the lead from T-007's side).
 - B-012 fixed (board entry is the lead's to tick).
 - Not a code bug, env: default `localhost` URLs time out / crawl on Windows (IPv6 first). Worked around with 127.0.0.1 env vars for the real run.
 
@@ -31,6 +33,7 @@ status: done
 - Worker tests commit, so they use their own DB `ucdt_test_worker`.
 
 ## Not done
+- Two pre-fix heat snapshots remain in the dev DB (see task Handoff).
 - `services/climate/.dockerignore` (outside scope) — suggested in the task Handoff.
 
 ## Left-next

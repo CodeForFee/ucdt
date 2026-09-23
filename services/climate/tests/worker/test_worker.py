@@ -81,7 +81,38 @@ async def test_ingest_writes_legacy_payloads_then_publishes(ctx):
     snaps = {r.hazard: r for r in rows}
     assert sorted(snaps) == ["aqi", "flood", "heat", "recommend", "weather"] and len(rows) == 5
     assert {r.model_version for r in rows} == {"pdim-s1"}
-    expected = {**SCENARIO["outputs"], "weather": SCENARIO["inputs"]["weather"]}
+    # /api/<hazard> `data`: services pass through, except heatController's reshape of getHeatData.
+    raw_heat = SCENARIO["outputs"]["heat"]
+    expected = {
+        **SCENARIO["outputs"],
+        "weather": SCENARIO["inputs"]["weather"],
+        "heat": {
+            "city": "hcmc",
+            "timestamp": raw_heat["timestamp"],
+            "avgTemperature": raw_heat["cityAvgTemp"],
+            "maxTemperature": raw_heat["cityMaxEffectiveTemp"],
+            "heatIslandIntensity": raw_heat["uhiEffect"],
+            "hotspots": [
+                {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
+                | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}
+                for h in raw_heat["hotspots"]
+            ],
+            "geojson": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [h["lng"], h["lat"]]},
+                        "properties": {
+                            "temperature": h["effectiveTemperature"],
+                            "intensity": h["urbanDensity"],
+                        },
+                    }
+                    for h in raw_heat["hotspots"]
+                ],
+            },
+        },
+    }
     for h, r in snaps.items():
         assert same(r.result, expected[h]), h
     assert snaps["flood"].inputs == {
