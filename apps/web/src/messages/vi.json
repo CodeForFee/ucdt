@@ -274,8 +274,6 @@
       "understood": "Đã hiểu",
       "floodRiskBefore": "Rủi ro ngập (trước)",
       "affectedAreas": "Khu vực ảnh hưởng",
-      "affectedBuildings": "Tòa nhà bị ảnh hưởng",
-      "affectedPop": "Dân số bị ảnh hưởng",
       "tempDelta": "Biến động nhiệt độ",
       "floodRiskImpact": "Rủi ro ngập (ảnh hưởng)",
       "aqiDelta": "Biến động AQI"
@@ -315,10 +313,6 @@
     "floodRiskFormula": "R_f = 0.45×(mưa/50) + 0.30×địa hình + 0.25×bão hòa đất − 0.15×thoát nước · Ngưỡng Θ: 0.25/0.50/0.75",
     "affectedAreas": "Khu vực ảnh hưởng",
     "affectedAreasDesc": "Số khu vực/phường bị ngập trước → sau kịch bản. Tăng nghĩa là mưa lớn hơn gây ngập thêm nhiều nơi.",
-    "affectedBuildings": "Tòa nhà bị ảnh hưởng",
-    "affectedBuildingsDesc": "Ước tính số tòa nhà nằm trong vùng ngập bằng cách overlay bản đồ ngập với mật độ xây dựng đô thị.",
-    "affectedPop": "Dân số bị ảnh hưởng",
-    "affectedPopDesc": "Ước tính số người sống trong vùng ngập, tính từ mật độ dân số từng quận nhân với diện tích ngập dự kiến.",
     "heatTitle": "Giải thích kết quả nhiệt độ",
     "heatIntro": "Kết quả phân tích hiệu ứng đảo nhiệt đô thị (Urban Heat Island). Nhiệt độ hiệu dụng đã bao gồm ảnh hưởng của mật độ xây dựng, cây xanh và giao thông.",
     "tempDelta": "Biến động nhiệt độ",
@@ -326,17 +320,13 @@
     "tempFormula": "Δ nhiệt = −0.15×Δcây xanh (α) + 3.5×(mật độ−0.8) (UHI)",
     "floodRiskImpact": "Rủi ro ngập (ảnh hưởng)",
     "floodRiskImpactDesc": "Nhiệt độ cao làm tăng bốc hơi và thay đổi chu kỳ mưa, ảnh hưởng gián tiếp đến rủi ro ngập. Hiển thị mức trước → sau.",
-    "heatPop": "Dân số bị ảnh hưởng",
-    "heatPopDesc": "Số người sống trong khu vực chịu tác động của hiệu ứng UHI ở mức cao (nhiệt độ hiệu dụng ≥ 40°C).",
     "aqiTitle": "Giải thích kết quả chất lượng không khí",
     "aqiIntro": "Kết quả mô phỏng tác động của giao thông, cây xanh và mưa lên chỉ số AQI. Giá trị âm là cải thiện chất lượng không khí.",
     "aqiDelta": "Biến động AQI",
     "aqiDeltaDesc": "Mức thay đổi chỉ số AQI khi áp dụng kịch bản. AQI giảm (xanh) nghĩa là không khí sạch hơn. Thang: 0–50 Tốt | 51–100 Trung bình | 101–150 Nhạy cảm | >150 Có hại.",
     "aqiFormula": "AQI mới = (AQI − 0.3×giảm xe (β) − 0.15×Δcây xanh) × (1 − 0.15×mưa thêm (γ_p))",
     "tempDeltaAqi": "Biến động nhiệt độ",
-    "tempDeltaAqiDesc": "Nhiệt độ và AQI có liên hệ: nhiệt độ cao thúc đẩy hình thành ozone mặt đất và tăng AQI. Kịch bản giảm xe và thêm cây đồng thời hạ cả hai chỉ số.",
-    "aqiBuildings": "Tòa nhà bị ảnh hưởng",
-    "aqiBuildingsDesc": "Số tòa nhà nằm trong vùng có AQI cải thiện đáng kể (ΔAQI ≤ −20). Phản ánh quy mô không gian của kịch bản."
+    "tempDeltaAqiDesc": "Nhiệt độ và AQI có liên hệ: nhiệt độ cao thúc đẩy hình thành ozone mặt đất và tăng AQI. Kịch bản giảm xe và thêm cây đồng thời hạ cả hai chỉ số."
   },
   "aqiMap": {
     "windDir": "Hướng gió",

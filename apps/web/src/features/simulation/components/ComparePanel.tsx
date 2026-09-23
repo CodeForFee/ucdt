@@ -26,8 +26,6 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
       items: [
         { label: cp("floodRiskBefore"), desc: cp("floodRiskBeforeDesc"), formula: cp("floodRiskFormula") },
         { label: cp("affectedAreas"), desc: cp("affectedAreasDesc") },
-        { label: cp("affectedBuildings"), desc: cp("affectedBuildingsDesc") },
-        { label: cp("affectedPop"), desc: cp("affectedPopDesc") },
       ],
     },
     heat: {
@@ -36,7 +34,6 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
       items: [
         { label: cp("tempDelta"), desc: cp("tempDeltaDesc"), formula: cp("tempFormula") },
         { label: cp("floodRiskImpact"), desc: cp("floodRiskImpactDesc") },
-        { label: cp("heatPop"), desc: cp("heatPopDesc") },
       ],
     },
     aqi: {
@@ -45,7 +42,6 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
       items: [
         { label: cp("aqiDelta"), desc: cp("aqiDeltaDesc"), formula: cp("aqiFormula") },
         { label: cp("tempDeltaAqi"), desc: cp("tempDeltaAqiDesc") },
-        { label: cp("aqiBuildings"), desc: cp("aqiBuildingsDesc") },
       ],
     },
   };
@@ -169,13 +165,16 @@ interface ComparePanelProps {
 export function ComparePanel({ scenario, result }: ComparePanelProps) {
   const [showInfo, setShowInfo] = useState(false);
   const sr = useTranslations("simulation.results");
-  const cp = useTranslations("comparePanel");
 
   if (!result) return null;
 
   const r = result.results;
   const cmp = result.comparison;
 
+  // B-016: the API still returns affectedPopulation / affectedBuildings (legacy parity), but
+  // they are the Stage-1 heuristic 50k/80k people and 1,200 buildings per affected zone, not
+  // an exposure model. Population exposure is Stage 2 (Decision 2026-09-14), so they are never
+  // rendered as if measured.
   const floodMetrics = [
     {
       label: sr("floodRiskBefore"),
@@ -188,20 +187,6 @@ export function ComparePanel({ scenario, result }: ComparePanelProps) {
       label: sr("affectedAreas"),
       value: cmp ? `${cmp.before.affectedAreas} → ${cmp.after.affectedAreas}` : "—",
       delta: cmp ? cmp.after.affectedAreas - cmp.before.affectedAreas : null,
-      reverseColors: true,
-      unit: "",
-    },
-    {
-      label: sr("affectedBuildings"),
-      value: r ? r.affectedBuildings.toLocaleString() : "—",
-      delta: null,
-      reverseColors: true,
-      unit: "",
-    },
-    {
-      label: sr("affectedPop"),
-      value: r ? r.affectedPopulation.toLocaleString() : "—",
-      delta: null,
       reverseColors: true,
       unit: "",
     },
@@ -222,13 +207,6 @@ export function ComparePanel({ scenario, result }: ComparePanelProps) {
       reverseColors: true,
       unit: "%",
     },
-    {
-      label: cp("heatPop"),
-      value: r ? r.affectedPopulation.toLocaleString() : "—",
-      delta: null,
-      reverseColors: true,
-      unit: "",
-    },
   ];
 
   const aqiMetrics = [
@@ -245,13 +223,6 @@ export function ComparePanel({ scenario, result }: ComparePanelProps) {
       delta: r?.tempDelta ?? null,
       reverseColors: true,
       unit: "°C",
-    },
-    {
-      label: sr("affectedBuildings"),
-      value: r ? r.affectedBuildings.toLocaleString() : "—",
-      delta: null,
-      reverseColors: true,
-      unit: "",
     },
   ];
 
