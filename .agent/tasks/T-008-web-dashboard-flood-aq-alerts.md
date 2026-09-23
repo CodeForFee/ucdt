@@ -4,8 +4,8 @@ title: web: dashboard, flood, air-quality, alerts
 owner: claude-sonnet-5 (subagent)
 scope: apps/web/src/features/{dashboard,flood,air-quality,alerts}/**
 exit: `pnpm -F web build lint test` green; manual run against legacy Hackathon-BE shows every card/page
-phase: done
-blocked:
+phase: blocked
+blocked: needs-decision — `dev` no longer exists on origin (see Handoff); code/tests/build are done, PR not opened
 created: 2026-09-23T1617Z
 sprint: S-001
 issue: 10
@@ -72,3 +72,21 @@ Hoist to shared (not done here — out of scope, small enough to defer):
 - `shared/types/{weather,aqi,flood,heat}.ts` don't declare `observedAt`/`stale` yet — every read of them in my features goes through a local `WithFreshness<T>` intersection type rather than editing shared types (out of scope). Once packages/contracts (T-007) generates real types with these fields, the local casts can be deleted.
 
 Nothing else needed outside scope. No new dependencies added.
+
+**Blocker found at PR-creation time (not caused by this session):** `gh pr create --base dev`
+failed with "No commits between dev and feat/T-008-...". `git ls-remote origin` and
+`gh api repos/CodeForFee/ucdt/branches` confirm the remote now has only two branches, `main`
+and `feat/T-008-web-dashboard-flood-aq-alerts` — `dev` and every other wave-2 feature branch
+(`feat/T-006-ingest-worker`, `feat/T-007-climate-api-contracts`, etc.) are gone. `main`'s tip is
+a merge commit "Dev (#25)" at 2026-09-23T18:30:48Z — `dev` was merged into `main` (PR #25) and
+the branches were evidently cleaned up right around when this session finished its own commit.
+This branch (`feat/T-008-...`) was cut from `origin/dev` before that merge, so it does not yet
+contain whatever else landed in that merge.
+
+I did not delete anything and did not create/merge into `dev` or `main` — this happened outside
+this session. Per the task's own rules ("agents never push or merge to main") I stopped short
+of opening a PR against `main` or recreating `dev` myself; both are decisions for the tech lead/
+user. My commit `56b20bf` is pushed to `feat/T-008-web-dashboard-flood-aq-alerts` on origin and
+ready — someone with the authority to decide the new target branch (recreate `dev` from `main`,
+or explicitly redirect this PR to `main`) needs to say which, then `gh pr create --base <branch>`
+from this same commit finishes the job in one command.
