@@ -1,9 +1,27 @@
-/** Placeholder — T-009 (wave 2) owns the real heat simulation. */
+import { useTranslations } from "use-intl";
+import { HeatMap } from "@/features/simulation/components/heat/HeatMap";
+import { HeatSidebar } from "@/features/simulation/components/heat/HeatSidebar";
+import { useAutoSimulate } from "@/features/simulation/lib/useAutoSimulate";
+import { useSimulationStore } from "@/shared/stores/simulationStore";
+
 export default function HeatSimulationPage() {
+  const ts = useTranslations("simulation");
+  const { data: result, isPending, runNow, reset } = useAutoSimulate("heat");
+  const resetSimulation = useSimulationStore((s) => s.resetSimulation);
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1 p-8 text-center">
-      <h1 className="text-lg font-semibold">Kịch bản Nhiệt độ</h1>
-      <p className="text-sm text-muted-foreground">Trang đang chuyển sang Vite SPA.</p>
+    <div className="relative w-full h-full overflow-hidden">
+      <h1 className="sr-only">{ts("titleHeat")}</h1>
+      <HeatMap result={result} />
+      <HeatSidebar
+        result={result}
+        isPending={isPending}
+        onRun={runNow}
+        onReset={() => {
+          resetSimulation();
+          reset();
+        }}
+      />
     </div>
   );
 }
