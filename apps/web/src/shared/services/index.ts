@@ -6,3 +6,5 @@ export * from "./recommend.service";
 export * from "./alerts.service";
 export * from "./simulation.service";
 export * from "./history.service";
+export * from "./maturity.service";
+export * from "./units.service";

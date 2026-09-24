@@ -1,80 +1,27 @@
-export interface SimulationRequest {
-  cityId: string;
-  scenario: {
-    rainfallIncrease: number;
-    rainfallDurationHours: number;
-    addGreenCoverage: number;
-    trafficReduction: number;
-    // Optional: omitted scenarios are scored against the baseline density, so the UHI
-    // term contributes nothing to the returned tempDelta.
-    urbanDensity?: number;
-  };
-}
+import type { components } from "@ucdt/contracts";
 
+type S = components["schemas"];
+
+/** `POST /api/simulation/run` body. Omitted `urbanDensity` = the served baseline ρ₀. */
+export type SimulationRequest = S["SimulationRequest"];
+export type Scenario = S["Scenario"];
+
+/** Algorithm 2 step 7 (§G): results + `counterfactual` {recommendations, alerts, bandChanges}. */
+export type SimulationResult = S["SimulationResult"];
+export type SimStation = S["SimStation"];
+export type Counterfactual = S["Counterfactual"];
+export type BandChange = S["BandChange"];
+export type SimAlert = S["SimAlert"];
+
+/** UI slider state (not a payload). `greenCoverage` (0–1) and `urbanDensity` (0–1) stay
+ *  undefined until the user moves them: the sliders then sit at the served G₀ / ρ₀ (§C). */
 export interface SimulationParams {
   preset: string;
   rainfallMultiplier: number;
   trafficReduction: number;
-  greenCoverage: number;
+  greenCoverage?: number;
   urbanDensity?: number;
   enable3D: boolean;
   showBuildings: boolean;
   city: string;
-}
-
-// Actual BE response shape
-export interface SimulationResult {
-  simulationId: string;
-  status: string;
-  results: {
-    floodRiskDelta: number;
-    newFloodAreas: SimFloodArea[];
-    tempDelta: number;
-    aqiDelta: number;
-    affectedBuildings: number;
-    affectedPopulation: number;
-  };
-  comparison: {
-    before: { riskScore: number; affectedAreas: number };
-    after: { riskScore: number; affectedAreas: number };
-  };
-  // combined geojson used by FloodExtrusion3D
-  geojson?: {
-    type: "FeatureCollection";
-    features: Array<{
-      type: "Feature";
-      geometry: { type: string; coordinates: number[][][] };
-      properties: {
-        name: string;
-        riskLevel: "low" | "medium" | "high" | "critical";
-        riskScore: number;
-        estimatedDepth: number;
-        simulated?: boolean;
-      };
-    }>;
-  };
-}
-
-export interface SimFloodArea {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  riskLevel: "low" | "medium" | "high" | "critical";
-  riskScore: number;
-  estimatedDepth: number;
-  geojson: {
-    type: "Feature";
-    geometry: { type: string; coordinates: number[][][] };
-    properties: Record<string, unknown>;
-  };
-}
-
-export interface SimulationMetrics {
-  riskScore: number;
-  affectedAreas: number;
-  tempAvg: number;
-  aqiAvg: number;
-  affectedBuildings: number;
-  affectedPopulation: number;
 }

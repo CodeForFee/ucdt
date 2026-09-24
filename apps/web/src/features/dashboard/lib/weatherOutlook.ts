@@ -26,7 +26,8 @@ function round1(v: number): number {
 export function weatherOutlook(
   current: WeatherCurrent | undefined,
   forecast: WeatherForecastItem[] | undefined,
-  history: HistoryEntry<WeatherData>[] | undefined,
+  // A stored snapshot result: only `current` is read (no observedAt/stale envelope there).
+  history: HistoryEntry<Pick<WeatherData, "current">>[] | undefined,
 ): WeatherOutlook {
   if (current && history && history.length > 0) {
     const past = history[0]?.result?.current;

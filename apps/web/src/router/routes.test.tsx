@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IntlProvider } from "use-intl";
@@ -35,6 +35,7 @@ describe("routes", () => {
     ["/flood", "Nguy cơ ngập lụt"],
     ["/air-quality", "Chất lượng không khí"],
     ["/alerts", "Cảnh báo"],
+    ["/recommendations", "Khuyến nghị"],
   ];
 
   it.each(cases)("renders the placeholder for %s inside the layout", async (path, heading) => {
@@ -44,6 +45,23 @@ describe("routes", () => {
     // Proves the page rendered inside AppLayout, not standalone — the Header's nav
     // brand is only mounted by the layout.
     expect(screen.getByRole("link", { name: /Urban Climate DT/i })).toBeInTheDocument();
+  });
+
+  it("the nav carries five tabs, Recommendations included (user decision 2026-09-24)", async () => {
+    renderAt("/recommendations");
+    await screen.findByRole("heading", { name: "Khuyến nghị" }, LAZY);
+    const nav = screen.getByRole("navigation");
+    const tabs = within(nav).getAllByRole("link");
+    expect(tabs.map((a) => a.getAttribute("href"))).toEqual([
+      "/dashboard",
+      "/map",
+      "/simulation",
+      "/flood",
+      "/recommendations",
+    ]);
+    expect(within(nav).getByRole("link", { name: /Khuyến nghị/ }).className).toContain("text-primary"); // active
+    // Alerts moved from the overview into the header bell.
+    expect(screen.getByRole("button", { name: "Mở cảnh báo" })).toBeInTheDocument();
   });
 
   it("redirects / to /dashboard", async () => {

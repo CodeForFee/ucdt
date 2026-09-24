@@ -7,6 +7,8 @@ import { RiskBadge } from "@/shared/components/common/RiskBadge";
 import { useFloodRisk } from "@/shared/hooks/useFloodRisk";
 import { RISK_LEVELS, type RiskLevel } from "@/shared/constants/riskLevels";
 
+const pct = (x: number | undefined) => (x == null ? undefined : `${(x * 100).toFixed(0)}%`);
+
 export function FloodSummaryCard() {
   const { data, isLoading } = useFloodRisk();
   const c = useTranslations("cards");
@@ -49,23 +51,19 @@ export function FloodSummaryCard() {
               <RiskBadge level={(data?.overallRisk ?? "low") as RiskLevel} />
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center mb-3">
-              <div className="bg-muted/30 rounded-lg p-2">
-                <p className="text-xs font-mono font-semibold">{data?.triggers?.currentRainfall?.toFixed(1) ?? "--"}</p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{c("rainfallMM")}</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-2">
-                <p className="text-xs font-mono font-semibold">
-                  {data?.triggers?.soilSaturation != null ? (data.triggers.soilSaturation * 100).toFixed(0) : "--"}%
-                </p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{c("soilSat")}</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-2">
-                <p className="text-xs font-mono font-semibold">
-                  {data?.triggers?.drainageCapacity != null ? (data.triggers.drainageCapacity * 100).toFixed(0) : "--"}%
-                </p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{c("drainage")}</p>
-              </div>
+            {/* The four R_f inputs (city means), each named with its data source (DP3). */}
+            <div className="grid grid-cols-4 gap-2 text-center mb-3">
+              {[
+                { value: data?.triggers?.currentRainfall?.toFixed(1), label: c("rainfallMM") },
+                { value: pct(data?.triggers?.terrainSensitivity), label: c("terrain") },
+                { value: pct(data?.triggers?.imperviousness), label: c("imperviousness") },
+                { value: pct(data?.triggers?.drainageCapacity), label: c("drainage") },
+              ].map((cell) => (
+                <div key={cell.label} className="bg-muted/30 rounded-lg p-2">
+                  <p className="text-xs font-mono font-semibold">{cell.value ?? "--"}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">{cell.label}</p>
+                </div>
+              ))}
             </div>
 
             {(data?.affectedAreas?.length ?? 0) > 0 && (

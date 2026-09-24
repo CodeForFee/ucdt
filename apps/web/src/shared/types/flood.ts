@@ -1,35 +1,11 @@
-// Matches BE FloodResponse exactly
-export interface FloodData {
-  overallRisk: string;
-  riskScore: number;
-  affectedAreas: FloodArea[];
-  triggers: FloodTriggers;
-}
+import type { components } from "@ucdt/contracts";
 
-export interface FloodArea {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  riskLevel: "low" | "medium" | "high" | "critical";
-  riskScore: number;
-  estimatedDepth: number;
-  geojson: FloodGeoJSONFeature;
-}
+type S = components["schemas"];
 
-export interface FloodTriggers {
-  currentRainfall: number;
-  soilSaturation: number;
-  drainageCapacity: number;
-  /** City-aggregate terrain sensitivity T̃ — the second-largest term of R_f. */
-  terrainSensitivity: number;
-}
-
-export interface FloodGeoJSONFeature {
-  type: "Feature";
-  geometry: {
-    type: string;
-    coordinates: number[][][];
-  };
-  properties: Record<string, unknown>;
-}
+/** `GET /api/flood` — generated from the climate OpenAPI (packages/contracts). */
+export type FloodData = S["FloodLatest"];
+export type FloodArea = S["FloodArea"];
+export type FloodTriggers = S["FloodTriggers"];
+/** One served R_f term (§B, B-014): the web renders these and holds no PDIM weight. */
+export type FloodTerm = S["FloodTerm"];
+export type FloodGeoJSONFeature = S["FloodGeoJSONFeature"];

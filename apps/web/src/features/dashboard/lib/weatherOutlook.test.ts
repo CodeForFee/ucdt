@@ -15,8 +15,8 @@ const current: WeatherCurrent = {
 };
 
 const forecast: WeatherForecastItem[] = [
-  { hour: "01:00", temperature: 31, rainfall: 1, stormProbability: 0 },
-  { hour: "02:00", temperature: 32, rainfall: 1.5, stormProbability: 0 },
+  { hour: "01:00", temperature: 31, rainfall: 1, windSpeed: 3, stormProbability: 0 },
+  { hour: "02:00", temperature: 32, rainfall: 1.5, windSpeed: 3, stormProbability: 0 },
 ];
 
 describe("weatherOutlook (B-007)", () => {
@@ -33,10 +33,10 @@ describe("weatherOutlook (B-007)", () => {
   });
 
   it("uses the real 24h delta only once /api/history actually returns data", () => {
-    const past: HistoryEntry<WeatherData>[] = [
+    const past: HistoryEntry<Pick<WeatherData, "current">>[] = [
       {
         computedAt: "2026-09-23T00:00:00Z",
-        result: { current: { ...current, temperature: 27, rainfall: 5 }, forecast: [] },
+        result: { current: { ...current, temperature: 27, rainfall: 5 } },
       },
     ];
 
@@ -47,10 +47,10 @@ describe("weatherOutlook (B-007)", () => {
   });
 
   it("B-015: history only minutes deep is not a 24h comparison — falls back to the forecast", () => {
-    const fresh: HistoryEntry<WeatherData>[] = [
+    const fresh: HistoryEntry<Pick<WeatherData, "current">>[] = [
       {
         computedAt: "2026-09-23T23:30:00Z",
-        result: { current: { ...current, temperature: 30, rainfall: 2 }, forecast: [] },
+        result: { current: { ...current, temperature: 30, rainfall: 2 } },
       },
     ];
     expect(weatherOutlook(current, forecast, fresh).kind).toBe("forecast");

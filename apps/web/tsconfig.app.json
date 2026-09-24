@@ -23,7 +23,10 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // Type-only: the generated API contracts (packages/contracts). `web` does not list
+      // @ucdt/contracts in package.json, so it is reached by path; every import is `import type`.
+      "@ucdt/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
   "include": ["src"]

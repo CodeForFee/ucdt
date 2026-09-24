@@ -43,7 +43,6 @@ export function RiskSummaryBanner() {
               {b("aqiPoor")}
               {aqi?.aqi}
               {b("mainPollutant")}
-              {aqi?.dominantPollutant}
             </li>
           )}
         </ul>

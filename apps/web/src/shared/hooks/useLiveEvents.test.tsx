@@ -34,6 +34,18 @@ describe("useLiveEvents", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["flood"] });
   });
 
+  it("an aqi snapshot also invalidates the maturity evaluation (Algorithm 1 reads AQI history)", () => {
+    const { invalidateSpy } = renderProbe();
+    const source = MockEventSource.instances.at(-1)!;
+
+    source.emit("snapshot.updated", { hazard: "aqi" });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["maturity"] });
+
+    invalidateSpy.mockClear();
+    source.emit("snapshot.updated", { hazard: "flood" });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ["maturity"] });
+  });
+
   it("invalidates alerts on alert.created", () => {
     const { invalidateSpy } = renderProbe();
     const source = MockEventSource.instances.at(-1)!;

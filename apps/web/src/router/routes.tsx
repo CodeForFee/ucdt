@@ -31,6 +31,9 @@ const AQISimulationPage = lazyPage(
 const FloodPage = lazyPage(() => import("@/features/flood/pages/FloodPage"));
 const AirQualityPage = lazyPage(() => import("@/features/air-quality/pages/AirQualityPage"));
 const AlertsPage = lazyPage(() => import("@/features/alerts/pages/AlertsPage"));
+const RecommendationsPage = lazyPage(
+  () => import("@/features/recommendations/pages/RecommendationsPage"),
+);
 
 export const routes: RouteObject[] = [
   {
@@ -52,6 +55,7 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: "flood", element: <FloodPage /> },
+      { path: "recommendations", element: <RecommendationsPage /> },
       { path: "air-quality", element: <AirQualityPage /> },
       { path: "alerts", element: <AlertsPage /> },
       { path: "*", element: <NotFoundPage /> },

@@ -7,7 +7,8 @@
     "flood": "Flood",
     "alerts": "Alerts",
     "appName": "Urban Climate DT",
-    "version": "UCDT v1.0"
+    "version": "UCDT v1.0",
+    "recommendations": "Recommendations"
   },
   "header": {
     "switchTheme": "Toggle theme"
@@ -15,15 +16,7 @@
   "dashboard": {
     "title": "Overview",
     "subtitle": "Monitor weather, air quality and flood risk in real time",
-    "aiRecommend": "Ranked Recommendations",
-    "noRecommend": "No active recommendations",
-    "alertsTitle": "Alerts",
-    "allAlerts": "All",
-    "noAlerts": "No new alerts",
-    "rule": "Rule",
-    "priorityScore": "Priority score",
-    "whyThis": "Why this",
-    "ruleBasedNote": "Rule-based engine. Priority pi(r,i) = S(b) x E(i) x F(a)."
+    "provenance": "Data sources:"
   },
   "cards": {
     "airQuality": "Air Quality",
@@ -39,22 +32,23 @@
     "affectedAreas": " areas affected",
     "detail": "Detail",
     "simulate": "Simulate",
-    "dominant": "Main pollutant",
-    "stations": "Monitoring stations",
+    "dominant": "AQI computed from",
+    "stations": "AQI points (CAMS)",
     "avgTemp": "Average",
     "maxTemp": "Highest",
     "uhiEffect": "UHI effect",
     "hotspot": "Hotspot",
     "overallScore": "Overall risk score",
     "rainfallMM": "mm/h rain",
-    "soilSat": "soil saturation",
-    "drainage": "drainage",
+    "drainage": "drainage (expert)",
     "affectedAreaCount": "Affected areas (",
     "next6hTemp": "peak, next 6 h",
     "next6hRain": "expected, next 6 h",
     "vs24hTemp": "vs 24 h ago",
     "vs24hRain": "vs 24 h ago",
-    "stale": "Stale data"
+    "stale": "Stale data",
+    "imperviousness": "impervious (WorldCover)",
+    "terrain": "terrain (DEM)"
   },
   "risk": {
     "low": "Low",
@@ -71,7 +65,7 @@
     "high": "high",
     "riskScore": " — risk score: ",
     "aqiPoor": "Poor air quality — AQI: ",
-    "mainPollutant": ", main pollutant: "
+    "mainPollutant": " (from PM2.5)"
   },
   "chart": {
     "temp24h": "Temperature 24h (°C)",
@@ -108,7 +102,8 @@
       "trafficClear": "Clear",
       "trafficModerate": "Moderate",
       "trafficCongested": "Congested",
-      "trafficHeavy": "Heavy Traffic"
+      "trafficHeavy": "Heavy Traffic",
+      "observed": "Monitoring station (AirGradient)"
     },
     "popup": {
       "title": "Location info",
@@ -121,16 +116,19 @@
   "airQualityPage": {
     "title": "Air Quality",
     "subtitle": "Real-time AQI and pollution data",
-    "source": "Open-Meteo · PDIM Stage 1",
+    "source": "Open-Meteo (CAMS) · AirGradient · PDIM",
     "currentAqi": "Current AQI",
-    "mainPollutant": "Main pollutant: ",
+    "mainPollutant": "AQI computed from: ",
     "breakdown": "Pollutant breakdown (µg/m³)",
     "measured": "Measured",
     "whoLimit": "WHO limit",
-    "trend7d": "7-day AQI trend",
-    "heatmap": "AQI distribution by hour of week",
-    "stations": "AQI monitoring stations",
-    "aqiLabel": "AQI: "
+    "stations": "Modelled AQI points (CAMS, Open-Meteo)",
+    "aqiLabel": "AQI: ",
+    "observedTitle": "Monitoring stations (AirGradient)",
+    "observedSub": "Measured by the open monitoring network; each station is paired with its nearest CAMS point for validation (Algorithm 1)",
+    "noObserved": "No station reported in the last 2 hours",
+    "nearestPoint": "Nearest CAMS point: {name}",
+    "observedAt": "observed {time}"
   },
   "floodPage": {
     "title": "Flood Risk",
@@ -146,19 +144,24 @@
     "colLevel": "Level",
     "noZones": "No danger zones detected",
     "triggers": "Risk score decomposition R_f",
-    "trigRainfall": "Rainfall",
-    "trigSoil": "Soil saturation",
-    "trigDrainage": "Drainage",
-    "trigTerrain": "Terrain sensitivity",
-    "triggersSub": "The four terms that make up the composite score; they sum to R_f (DP3)",
-    "refBound": "normalised against a {value} mm/h bound",
-    "terrainNote": "city-level default for low-lying terrain",
-    "soilNote": "seasonal proxy, not an observation",
-    "drainageNote": "SUBTRACTIVE term — better drainage means lower risk",
+    "trigRainfall": "Rainfall intensity",
+    "trigDrainage": "Drainage capacity (expert constant)",
+    "trigTerrain": "Terrain sensitivity (DEM)",
+    "triggersSub": "The four server-computed terms; they add up to R_f before the clamp (DP3)",
+    "drainageNote": "SUBTRACTIVE term — no open drainage dataset exists for HCMC, so this is an expert constant",
     "weightIs": "weight {w}",
     "sumLabel": "Sum",
     "clamped": "(clamped to [0, 1])",
-    "screeningNote": "Stage-1 screening output from transparent coefficients, not a hydrological forecast."
+    "screeningNote": "Stage-1 screening output from transparent coefficients, not a hydrological forecast.",
+    "trigImperviousness": "Imperviousness (Sentinel/WorldCover)",
+    "rainfallNote": "Open-Meteo, at the unit's coordinate",
+    "terrainNote": "Copernicus DEM GLO-90: elevation and slope",
+    "imperviousnessNote": "ESA WorldCover 2021 (Sentinel-1/2): built-up share",
+    "normalizedIs": "x̃ = {x}",
+    "decompCity": "Whole city",
+    "decompPick": "Pick a zone in the table to see its own decomposition",
+    "backToCity": "Back to city",
+    "colRain": "Rain (mm/h)"
   },
   "alertsPage": {
     "title": "Alerts",
@@ -171,7 +174,6 @@
     "filterFlood": "Flood",
     "filterAqi": "AQI",
     "empty": "No alerts found",
-    "info": "Info",
     "warning": "Warning",
     "urgent": "Urgent"
   },
@@ -191,7 +193,8 @@
     "sensitive": "Sensitive",
     "unhealthy": "Unhealthy",
     "veryUnhealthy": "Very Unhealthy",
-    "hazardous": "Hazardous"
+    "hazardous": "Hazardous",
+    "observed": "Monitoring station (AirGradient)"
   },
   "landUse": {
     "industrial": "Industrial",
@@ -225,20 +228,21 @@
     "preview": {
       "floodTitle": "Flood risk forecast",
       "heatTitle": "Temperature simulation forecast",
-      "heatBasis": "Mean perceived temperature over {count} cells · T_eff = HI(T, RH) + ρ·3.5 °C · ΔT = −0.15·ΔG + 3.5·(ρ − 0.8)",
+      "heatBasis": "Mean effective temperature of {count} cells · T_eff = HI(T, RH) + ρ·3.5 °C · ΔT = −0.15·ΔG + 3.5·(ρ − ρ₀)",
       "aqiTitle": "AQI simulation forecast",
       "current": "Current",
       "simulated": "Simulated",
       "triggers": "Trigger factors",
       "rainfall": "Rainfall",
-      "drainage": "Drainage capacity",
-      "soilSat": "Soil saturation",
+      "drainage": "Drainage capacity (expert)",
       "districts": "Zones (",
-      "aqiStations": "Monitoring stations (",
+      "aqiStations": "AQI points (",
       "affectedAreas": "Affected areas (",
-      "urbanDensityLabel": "Urban density: "
+      "urbanDensityLabel": "Urban density: ",
+      "imperviousness": "Imperviousness (WorldCover)",
+      "terrain": "Terrain sensitivity (DEM)"
     },
-    "floodDesc": "Simulate flood risk based on rainfall and soil saturation.",
+    "floodDesc": "Simulate flood risk under rainfall and green cover.",
     "heatDesc": "Analyze Urban Heat Island (UHI) effect.",
     "aqiDesc": "Simulate air quality based on traffic and green coverage.",
     "sliders": {
@@ -253,7 +257,10 @@
       "trafficReduction": "Traffic reduction",
       "trafficReductionAqiDesc": "Less traffic → AQI drops ~0.3/1% (β coefficient)",
       "rainWash": "Increase rain (dust wash)",
-      "rainWashDesc": "Rain washout: ×(1 − 0.15×added rain) (γ_p coefficient)"
+      "rainWashDesc": "Rain washout: ×(1 − 0.15×added rain) (γ_p coefficient)",
+      "greenBaseline": "Starts at today's G₀ = {g0}% (ESA WorldCover); ΔG = G − G₀",
+      "densityBaseline": "Starts at ρ₀ = {rho0}: today's built-up share (ESA WorldCover)",
+      "waitingBaseline": "Waiting for the served baseline…"
     },
     "scenarios": {
       "floodLight": "Light rain (+50%)",
@@ -310,15 +317,15 @@
     "floodTitle": "Flood simulation results explained",
     "floodIntro": "The simulation forecasts flood levels based on the rainfall parameters you selected. The metrics below reflect conditions before and after the scenario.",
     "floodRiskBefore": "Flood risk (before)",
-    "floodRiskBeforeDesc": "Overall flood risk score (0–100%) before applying the scenario, based on actual rainfall, soil saturation and current drainage capacity.",
-    "floodRiskFormula": "R_f = 0.45×(rain/50) + 0.30×terrain + 0.25×soil sat. − 0.15×drainage · Θ bands: 0.25/0.50/0.75",
+    "floodRiskBeforeDesc": "Overall flood risk score (0–100%) before the scenario, from observed rainfall, terrain sensitivity (DEM), imperviousness (WorldCover) and drainage capacity.",
+    "floodRiskFormula": "R_f = 0.45×(rain/50) + 0.30×terrain + 0.25×imperviousness − 0.15×drainage · Thresholds Θ: 0.25/0.50/0.75",
     "affectedAreas": "Affected areas",
-    "affectedAreasDesc": "Number of areas/wards flooded before → after scenario. An increase means heavier rain floods more places.",
+    "affectedAreasDesc": "Number of flooded zones before → after the scenario. An increase means heavier rain floods more places.",
     "heatTitle": "Temperature simulation results explained",
     "heatIntro": "Results analyze the Urban Heat Island (UHI) effect. Effective temperature includes effects of building density, greenery and traffic.",
     "tempDelta": "Temperature change",
     "tempDeltaDesc": "Change in effective temperature vs baseline. Negative values (green) are good — the scenario cools the city.",
-    "tempFormula": "ΔTemp = −0.15×Δgreenery (α) + 3.5×(density−0.8) (UHI)",
+    "tempFormula": "ΔT = −0.15×Δgreen (α) + 3.5×(density − ρ₀) (UHI)",
     "floodRiskImpact": "Flood risk (impact)",
     "floodRiskImpactDesc": "High temperatures increase evaporation and alter rain cycles, indirectly affecting flood risk. Shows level before → after.",
     "aqiTitle": "Air quality simulation results explained",
@@ -348,5 +355,104 @@
       "W",
       "NW"
     ]
+  },
+  "bands": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical",
+    "moderate": "Moderate",
+    "extreme": "Extreme",
+    "good": "Good",
+    "unhealthy_sensitive": "Unhealthy for sensitive groups",
+    "unhealthy": "Unhealthy",
+    "very_unhealthy": "Very unhealthy",
+    "hazardous": "Hazardous",
+    "none": "None"
+  },
+  "maturity": {
+    "title": "Model maturity (Algorithm 1)",
+    "subtitle": "Stage S1 → S2 → S3 per hazard, re-evaluated on stored data",
+    "active": "Active",
+    "eligible": "Met",
+    "notEligible": "Not met",
+    "noCriteria": "Published coefficients (default)",
+    "s1Mae": "S1 holdout MAE",
+    "s2Fit": "S2 estimates (95% CI)",
+    "s2Mae": "S2 holdout MAE",
+    "promoted": "promoted to S2",
+    "notPromoted": "margin δ not reached",
+    "fitSize": "n train {train} · n holdout {holdout}",
+    "footer": "δ = {delta} AQI · W = {w} days · evaluated {at}",
+    "hazard": {
+      "flood": "Flood",
+      "heat": "Heat",
+      "aqi": "Air quality"
+    },
+    "criteria": {
+      "inundationSeries": "Observed inundation / gauge series",
+      "lstSeries": "Land-surface temperature series (Landsat LST)",
+      "consecutiveHourPairs": "Consecutive station–point hour pairs",
+      "spanDays": "Days spanned",
+      "archiveMonths": "Months of archived data"
+    }
+  },
+  "scenarioRec": {
+    "title": "Recommendations for this scenario",
+    "topK": "Top {shown} of {fired} fired (rule, unit) pairs",
+    "noRecs": "No rule fires in this scenario",
+    "bandChanges": "Band changes per unit",
+    "noBandChanges": "No unit changes band",
+    "alerts": "Alerts that would fire",
+    "noAlerts": "No new alert",
+    "stations": "AQI per point (before → after)",
+    "hazard": {
+      "flood": "Flood",
+      "heat": "Heat",
+      "aqi": "AQI"
+    },
+    "severity": {
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "recInputs": {
+    "riskScore": "R_f",
+    "rainfall": "P (mm/h, Open-Meteo)",
+    "aqi": "AQI",
+    "effectiveTemperature": "T_eff (°C)",
+    "severityBand": "Band",
+    "exposureE": "E(i) — built-up share (WorldCover)",
+    "feasibilityFa": "F(a)"
+  },
+  "unitKind": {
+    "flood_zone": "Flood zone",
+    "heat_cell": "Heat cell",
+    "aqi_point": "AQI point",
+    "city": "City"
+  },
+  "recommendations": {
+    "title": "Recommendations",
+    "subtitle": "The full list ranked by π(r, i): unit, rule, priority score and the inputs the rule fired on",
+    "listTitle": "Ranked Recommendations",
+    "noRecommend": "No active recommendations",
+    "rule": "Rule",
+    "priorityScore": "Priority score",
+    "ruleBasedNote": "Rule-based engine. Priority pi(r,i) = S(b) x E(i) x F(a).",
+    "firedCount": "Top {shown} of {fired} fired (rule, unit) pairs",
+    "whyThis": "Why this"
+  },
+  "alertsBell": {
+    "open": "Open alerts",
+    "title": "Per-unit alerts",
+    "unread": "{count} unread",
+    "empty": "No active alert",
+    "markRead": "Mark read",
+    "readAll": "Mark all read",
+    "all": "All",
+    "severity": {
+      "warning": "Warning",
+      "critical": "Critical"
+    }
   }
 }

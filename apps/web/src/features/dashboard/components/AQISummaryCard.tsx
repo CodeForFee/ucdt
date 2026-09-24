@@ -34,7 +34,7 @@ export function AQISummaryCard() {
             <div className="flex-1 space-y-2">
               <div>
                 <p className="text-xs text-muted-foreground">{c("dominant")}</p>
-                <p className="text-sm font-semibold">{data?.dominantPollutant ?? "PM2.5"}</p>
+                <p className="text-sm font-semibold">PM2.5</p>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span className="text-muted-foreground">PM2.5</span>
