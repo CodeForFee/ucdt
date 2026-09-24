@@ -60,10 +60,11 @@ nav tab (5 tabs), alerts move from the overview into a header bell dropdown.
   alertsBell; info-modal text no longer says "bão hòa đất", "phường" or ρ − 0.8.
 
 ## Review
-- `infra/web.Dockerfile` copies only `apps/web`; `pnpm -F web build` runs `tsc -b`, which now
-  needs `packages/contracts`. The image build (skipped today: no VITE_MAPBOX_TOKEN secret) needs
-  `COPY packages/contracts packages/contracts` — outside my scope. Adding `@ucdt/contracts` to
-  web's package.json would be the cleaner fix (lead decision).
+- **PR CI: `web-image` fails** (required web/climate/gateway pass). The Mapbox secret is set now,
+  so the image job runs; `infra/web.Dockerfile` copies only `apps/web`, and `tsc -b` in
+  `pnpm -F web build` cannot resolve `@ucdt/contracts` (TS7006 implicit any). Fix outside my
+  scope: `COPY packages/contracts packages/contracts` before the build step (or make
+  `@ucdt/contracts` a web dependency — still needs the COPY). Lead decision.
 - API gap: `Alert` carries no `unitId`/`unitName` (SimAlert does); the bell parses the §F id and
   joins `/api/units`. A field on `Alert` would remove the parse.
 - The heat-cell list and the city AQI marker still add the served ΔT / ΔAQI to the served
@@ -102,6 +103,7 @@ nav: /dashboard,/map,/simulation,/flood,/recommendations
 Map tiles and Mapbox layers (map page + simulator maps) NOT checked: no real Mapbox token.
 
 ## Handoff
-- PR into dev; see Review for the Dockerfile line, the Alert unitId gap and the nav Decision.
+- PR #63 into dev; see Review for the Dockerfile line (web-image red until then), the Alert
+  unitId gap and the nav Decision.
 - Live alert list was empty during the check, so the bell's populated state is covered by unit
   tests only.
