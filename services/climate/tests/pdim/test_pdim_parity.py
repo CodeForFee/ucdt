@@ -13,7 +13,7 @@ import pytest
 
 from climate.pdim import aqi, flood, geo, heat, risk, rules, simulation
 from climate.pdim.constants import DEFAULT_CITY, get_aqi_category
-from climate.spatial.units import AQI_POINTS
+from climate.spatial.units import AQI_POINTS, LEGACY_HEAT_NAMES
 
 FIXTURE = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
 SCENARIOS = {s["id"]: s for s in FIXTURE["scenarios"]}
@@ -103,7 +103,11 @@ def test_flood(scenario):
 
 def test_heat(scenario):
     s, now, weather, _, _ = scenario
-    assert_same(heat.compute_heat(weather["current"], now), s["outputs"]["heat"], "heat")
+    got = heat.compute_heat(weather["current"], now)
+    # S-002 §A.1 renamed 12 cells; the fixture keeps the legacy names, so compare via the id's old name.
+    for h in got["hotspots"]:
+        h["name"] = LEGACY_HEAT_NAMES.get(h["id"], h["name"])
+    assert_same(got, s["outputs"]["heat"], "heat")
 
 
 def test_aqi(scenario):

@@ -1,0 +1,768 @@
+{
+  "floodToAqi": {
+    "gz-bc-binh-hung": "station-q8",
+    "gz-bc-ql50": "station-binhchanh",
+    "gz-bt-ung-van-khiem": "station-binhthanh",
+    "gz-bt-xvnt": "station-binhthanh",
+    "gz-govap-nguyen-oanh": "station-govap",
+    "gz-hm-dong-thanh": "station-hocmon",
+    "gz-nb-hiep-phuoc": "station-nhabe",
+    "gz-nb-phuoc-kien": "station-nhabe",
+    "gz-q11-lac-long": "station-q11",
+    "gz-q12-ha-lan": "station-q12",
+    "gz-q6-binh-tien": "station-q6",
+    "gz-q6-hau-giang": "station-q6",
+    "gz-q8-kinh-doi": "station-q8",
+    "gz-q8-rach-ong": "station-q8",
+    "gz-tanbinh-tc": "station-tanbinh",
+    "gz-tanphu-tl": "station-tanphu",
+    "gz-td-an-phu": "station-thuduc-an",
+    "gz-td-tam-binh": "station-thuduc-lt"
+  },
+  "provenance": {
+    "commune": {
+      "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+      "dataset": "OpenStreetMap, Overpass base 2026-09-22 / 2026-09-24",
+      "licence": "ODbL 1.0",
+      "method": {
+        "admin_level": "6",
+        "note": "2025 commune-level unit (Resolution 1685/NQ-UBTVQH15); context only, never scored",
+        "query": "is_in(lat,lng) → relation boundary=administrative"
+      },
+      "retrieved": "2026-09-24",
+      "source": "OpenStreetMap via Overpass API",
+      "url": "https://overpass-api.de/api/interpreter"
+    },
+    "elevation": {
+      "attribution": "© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under COPERNICUS by the European Union and ESA",
+      "dataset": "Copernicus DEM GLO-90 (90 m), served by Open-Meteo",
+      "licence": "Open-Meteo API data: CC BY 4.0",
+      "method": {
+        "coordinateRounding": 6,
+        "earthRadius_m": 6371008.8,
+        "elevation": "z(i) at the unit coordinate",
+        "slope": "s = 100·max(|z_E − z_W|, |z_N − z_S|)/1000",
+        "stencilSpacing_m": 500.0
+      },
+      "retrieved": "2026-09-24",
+      "source": "Open-Meteo Elevation API",
+      "url": "https://api.open-meteo.com/v1/elevation"
+    },
+    "floodToAqi": {
+      "earthRadius_m": 6371008.8,
+      "method": "flood zone → nearest AQI point by haversine (ties: smaller id)"
+    },
+    "landCover": {
+      "attribution": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021)",
+      "dataset": "ESA WorldCover 2021 v200",
+      "doi": "10.5281/zenodo.7254221",
+      "licence": "CC BY 4.0",
+      "method": {
+        "classGroups": {
+          "builtUp": [
+            50
+          ],
+          "green": [
+            10,
+            20,
+            30,
+            90,
+            95
+          ],
+          "water": [
+            80
+          ]
+        },
+        "denominator": "all valid pixels in the window (nodata 0 excluded)",
+        "rounding": 6,
+        "window": "square centred on the unit, snapped to the 10 m pixel grid",
+        "window_m": 2000.0
+      },
+      "retrieved": "2026-09-24",
+      "source": "ESA WorldCover 10 m 2021 v200 (Sentinel-1/2), tile N09E105",
+      "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_N09E105_Map.tif"
+    },
+    "roadDensity": {
+      "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+      "dataset": "OpenStreetMap, Overpass base 2026-09-22 / 2026-09-24",
+      "licence": "ODbL 1.0",
+      "method": {
+        "appliesTo": "aqi_point",
+        "highway": [
+          "motorway",
+          "trunk",
+          "primary",
+          "secondary"
+        ],
+        "radius_m": 1000.0,
+        "rounding": 3,
+        "rule": "ways within radius split into node-to-node segments; a segment counts with its full haversine length when its midpoint (coordinate mean) lies within radius; v = counted km / (π·1² km²)",
+        "units": "km/km²"
+      },
+      "retrieved": "2026-09-24",
+      "source": "OpenStreetMap via Overpass API",
+      "url": "https://overpass-api.de/api/interpreter"
+    }
+  },
+  "referenceBounds": {
+    "elevation_m": 10,
+    "rainfall_mm_h": 50,
+    "slope_pct": 2
+  },
+  "schemaVersion": 1,
+  "units": {
+    "binhchanh": {
+      "builtUp": 0.225105,
+      "commune": "Xã Hưng Long",
+      "commune_osm_id": 7462678,
+      "elevation_m": 3.0,
+      "green": 0.387332,
+      "kind": "heat_cell",
+      "slope_pct": 0.1,
+      "water": 0.03226
+    },
+    "binhtan": {
+      "builtUp": 0.733312,
+      "commune": "Phường An Lạc",
+      "commune_osm_id": 6915821,
+      "elevation_m": 3.0,
+      "green": 0.230976,
+      "kind": "heat_cell",
+      "slope_pct": 0.9,
+      "water": 0.0008
+    },
+    "binhthanh": {
+      "builtUp": 0.79072,
+      "commune": "Phường Bình Thạnh",
+      "commune_osm_id": 19260954,
+      "elevation_m": 8.0,
+      "green": 0.12218,
+      "kind": "heat_cell",
+      "slope_pct": 0.0,
+      "water": 0.078704
+    },
+    "cangio": {
+      "builtUp": 0.1721,
+      "commune": "Xã Cần Giờ",
+      "commune_osm_id": 7468177,
+      "elevation_m": 4.0,
+      "green": 0.585046,
+      "kind": "heat_cell",
+      "slope_pct": 0.2,
+      "water": 0.134132
+    },
+    "cuchi": {
+      "builtUp": 0.128051,
+      "commune": "Xã Tân An Hội",
+      "commune_osm_id": 7629221,
+      "elevation_m": 9.0,
+      "green": 0.830072,
+      "kind": "heat_cell",
+      "slope_pct": 0.5,
+      "water": 0.001284
+    },
+    "govap": {
+      "builtUp": 0.922243,
+      "commune": "Phường Thông Tây Hội",
+      "commune_osm_id": 19261096,
+      "elevation_m": 17.0,
+      "green": 0.060354,
+      "kind": "heat_cell",
+      "slope_pct": 0.3,
+      "water": 0.009343
+    },
+    "gz-bc-binh-hung": {
+      "builtUp": 0.100652,
+      "commune": "Xã Nhà Bè",
+      "commune_osm_id": 7650792,
+      "elevation_m": 0.0,
+      "green": 0.361848,
+      "kind": "flood_zone",
+      "slope_pct": 0.1,
+      "water": 0.341898
+    },
+    "gz-bc-ql50": {
+      "builtUp": 0.284259,
+      "commune": "Xã Bình Hưng",
+      "commune_osm_id": 7462675,
+      "elevation_m": 4.0,
+      "green": 0.508944,
+      "kind": "flood_zone",
+      "slope_pct": 0.2,
+      "water": 0.01795
+    },
+    "gz-bt-ung-van-khiem": {
+      "builtUp": 0.90968,
+      "commune": "Phường Bình Thạnh",
+      "commune_osm_id": 19260954,
+      "elevation_m": 7.0,
+      "green": 0.076978,
+      "kind": "flood_zone",
+      "slope_pct": 0.4,
+      "water": 0.003851
+    },
+    "gz-bt-xvnt": {
+      "builtUp": 0.828388,
+      "commune": "Phường Thạnh Mỹ Tây",
+      "commune_osm_id": 19260956,
+      "elevation_m": 12.0,
+      "green": 0.076978,
+      "kind": "flood_zone",
+      "slope_pct": 0.4,
+      "water": 0.090067
+    },
+    "gz-govap-nguyen-oanh": {
+      "builtUp": 0.819844,
+      "commune": "Phường Thông Tây Hội",
+      "commune_osm_id": 19261096,
+      "elevation_m": 15.0,
+      "green": 0.162458,
+      "kind": "flood_zone",
+      "slope_pct": 0.4,
+      "water": 0.010248
+    },
+    "gz-hm-dong-thanh": {
+      "builtUp": 0.314184,
+      "commune": "Xã Đông Thạnh",
+      "commune_osm_id": 7638095,
+      "elevation_m": 3.0,
+      "green": 0.63388,
+      "kind": "flood_zone",
+      "slope_pct": 0.1,
+      "water": 0.004609
+    },
+    "gz-nb-hiep-phuoc": {
+      "builtUp": 0.103472,
+      "commune": "Xã Hiệp Phước",
+      "commune_osm_id": 7650793,
+      "elevation_m": 3.0,
+      "green": 0.794802,
+      "kind": "flood_zone",
+      "slope_pct": 0.2,
+      "water": 0.023464
+    },
+    "gz-nb-phuoc-kien": {
+      "builtUp": 0.530871,
+      "commune": "Xã Nhà Bè",
+      "commune_osm_id": 7650792,
+      "elevation_m": 6.0,
+      "green": 0.363552,
+      "kind": "flood_zone",
+      "slope_pct": 0.6,
+      "water": 0.078451
+    },
+    "gz-q11-lac-long": {
+      "builtUp": 0.928556,
+      "commune": "Phường Bình Thới",
+      "commune_osm_id": 19260759,
+      "elevation_m": 8.0,
+      "green": 0.058944,
+      "kind": "flood_zone",
+      "slope_pct": 0.7,
+      "water": 0.010795
+    },
+    "gz-q12-ha-lan": {
+      "builtUp": 0.61412,
+      "commune": "Phường Thới An",
+      "commune_osm_id": 6941014,
+      "elevation_m": 4.0,
+      "green": 0.300947,
+      "kind": "flood_zone",
+      "slope_pct": 0.3,
+      "water": 0.030324
+    },
+    "gz-q6-binh-tien": {
+      "builtUp": 0.949642,
+      "commune": "Phường Phú Lâm",
+      "commune_osm_id": 19260734,
+      "elevation_m": 7.0,
+      "green": 0.049137,
+      "kind": "flood_zone",
+      "slope_pct": 0.2,
+      "water": 0.000105
+    },
+    "gz-q6-hau-giang": {
+      "builtUp": 0.941667,
+      "commune": "Phường Bình Phú",
+      "commune_osm_id": 19260733,
+      "elevation_m": 7.0,
+      "green": 0.039268,
+      "kind": "flood_zone",
+      "slope_pct": 0.6,
+      "water": 0.017298
+    },
+    "gz-q8-kinh-doi": {
+      "builtUp": 0.279609,
+      "commune": "Xã Bình Hưng",
+      "commune_osm_id": 7462675,
+      "elevation_m": 3.0,
+      "green": 0.474895,
+      "kind": "flood_zone",
+      "slope_pct": 0.1,
+      "water": 0.15686
+    },
+    "gz-q8-rach-ong": {
+      "builtUp": 0.563678,
+      "commune": "Xã Bình Hưng",
+      "commune_osm_id": 7462675,
+      "elevation_m": 6.0,
+      "green": 0.389141,
+      "kind": "flood_zone",
+      "slope_pct": 0.3,
+      "water": 0.025737
+    },
+    "gz-tanbinh-tc": {
+      "builtUp": 0.850926,
+      "commune": "Phường Bảy Hiền",
+      "commune_osm_id": 19261236,
+      "elevation_m": 13.0,
+      "green": 0.121402,
+      "kind": "flood_zone",
+      "slope_pct": 0.7,
+      "water": 0.002083
+    },
+    "gz-tanphu-tl": {
+      "builtUp": 0.885753,
+      "commune": "Phường Phú Thọ Hòa",
+      "commune_osm_id": 6890890,
+      "elevation_m": 10.0,
+      "green": 0.09415,
+      "kind": "flood_zone",
+      "slope_pct": 0.2,
+      "water": 0.015173
+    },
+    "gz-td-an-phu": {
+      "builtUp": 0.419676,
+      "commune": "Phường An Khánh",
+      "commune_osm_id": 7351897,
+      "elevation_m": 0.0,
+      "green": 0.343561,
+      "kind": "flood_zone",
+      "slope_pct": 0.7,
+      "water": 0.163384
+    },
+    "gz-td-tam-binh": {
+      "builtUp": 0.888405,
+      "commune": "Phường Thủ Đức",
+      "commune_osm_id": 7138136,
+      "elevation_m": 20.0,
+      "green": 0.109175,
+      "kind": "flood_zone",
+      "slope_pct": 1.7,
+      "water": 0.0
+    },
+    "hocmon": {
+      "builtUp": 0.737332,
+      "commune": "Xã Hóc Môn",
+      "commune_osm_id": 7638093,
+      "elevation_m": 9.0,
+      "green": 0.234617,
+      "kind": "heat_cell",
+      "slope_pct": 0.4,
+      "water": 0.0
+    },
+    "nhabe": {
+      "builtUp": 0.530871,
+      "commune": "Xã Nhà Bè",
+      "commune_osm_id": 7650792,
+      "elevation_m": 6.0,
+      "green": 0.363552,
+      "kind": "heat_cell",
+      "slope_pct": 0.6,
+      "water": 0.078451
+    },
+    "phunhuan": {
+      "builtUp": 0.928809,
+      "commune": "Phường Cầu Kiệu",
+      "commune_osm_id": 19261675,
+      "elevation_m": 14.0,
+      "green": 0.045939,
+      "kind": "heat_cell",
+      "slope_pct": 0.1,
+      "water": 0.023232
+    },
+    "q1": {
+      "builtUp": 0.725231,
+      "commune": "Phường Sài Gòn",
+      "commune_osm_id": 19260504,
+      "elevation_m": 12.0,
+      "green": 0.152125,
+      "kind": "heat_cell",
+      "slope_pct": 0.1,
+      "water": 0.114057
+    },
+    "q10": {
+      "builtUp": 0.93771,
+      "commune": "Phường Hòa Hưng",
+      "commune_osm_id": 19260769,
+      "elevation_m": 11.0,
+      "green": 0.061364,
+      "kind": "heat_cell",
+      "slope_pct": 0.5,
+      "water": 0.0
+    },
+    "q11": {
+      "builtUp": 0.920265,
+      "commune": "Phường Phú Thọ",
+      "commune_osm_id": 19260761,
+      "elevation_m": 12.0,
+      "green": 0.072854,
+      "kind": "heat_cell",
+      "slope_pct": 0.7,
+      "water": 0.000673
+    },
+    "q12": {
+      "builtUp": 0.675968,
+      "commune": "Phường Thới An",
+      "commune_osm_id": 6941014,
+      "elevation_m": 6.0,
+      "green": 0.235059,
+      "kind": "heat_cell",
+      "slope_pct": 0.3,
+      "water": 0.03891
+    },
+    "q3": {
+      "builtUp": 0.835332,
+      "commune": "Phường Xuân Hòa",
+      "commune_osm_id": 19260546,
+      "elevation_m": 12.0,
+      "green": 0.155324,
+      "kind": "heat_cell",
+      "slope_pct": 0.2,
+      "water": 0.00827
+    },
+    "q4": {
+      "builtUp": 0.834912,
+      "commune": "Phường Khánh Hội",
+      "commune_osm_id": 19260589,
+      "elevation_m": 7.0,
+      "green": 0.041625,
+      "kind": "heat_cell",
+      "slope_pct": 0.3,
+      "water": 0.119992
+    },
+    "q5": {
+      "builtUp": 0.8875,
+      "commune": "Phường Chợ Quán",
+      "commune_osm_id": 19260683,
+      "elevation_m": 9.0,
+      "green": 0.03529,
+      "kind": "heat_cell",
+      "slope_pct": 0.2,
+      "water": 0.07561
+    },
+    "q6": {
+      "builtUp": 0.954314,
+      "commune": "Phường Phú Lâm",
+      "commune_osm_id": 19260734,
+      "elevation_m": 9.0,
+      "green": 0.042024,
+      "kind": "heat_cell",
+      "slope_pct": 0.1,
+      "water": 0.002378
+    },
+    "q7": {
+      "builtUp": 0.668329,
+      "commune": "Phường Tân Mỹ",
+      "commune_osm_id": 2766953,
+      "elevation_m": 4.0,
+      "green": 0.251347,
+      "kind": "heat_cell",
+      "slope_pct": 0.4,
+      "water": 0.045223
+    },
+    "q8": {
+      "builtUp": 0.48529,
+      "commune": "Xã Bình Hưng",
+      "commune_osm_id": 7462675,
+      "elevation_m": 4.0,
+      "green": 0.418582,
+      "kind": "heat_cell",
+      "slope_pct": 0.4,
+      "water": 0.060943
+    },
+    "station-binhchanh": {
+      "builtUp": 0.225105,
+      "commune": "Xã Hưng Long",
+      "commune_osm_id": 7462678,
+      "elevation_m": 3.0,
+      "green": 0.387332,
+      "kind": "aqi_point",
+      "roadDensity": 0.0,
+      "slope_pct": 0.1,
+      "water": 0.03226
+    },
+    "station-binhtan": {
+      "builtUp": 0.733312,
+      "commune": "Phường An Lạc",
+      "commune_osm_id": 6915821,
+      "elevation_m": 3.0,
+      "green": 0.230976,
+      "kind": "aqi_point",
+      "roadDensity": 3.24,
+      "slope_pct": 0.9,
+      "water": 0.0008
+    },
+    "station-binhthanh": {
+      "builtUp": 0.79072,
+      "commune": "Phường Bình Thạnh",
+      "commune_osm_id": 19260954,
+      "elevation_m": 8.0,
+      "green": 0.12218,
+      "kind": "aqi_point",
+      "roadDensity": 2.913,
+      "slope_pct": 0.0,
+      "water": 0.078704
+    },
+    "station-cangio": {
+      "builtUp": 0.1721,
+      "commune": "Xã Cần Giờ",
+      "commune_osm_id": 7468177,
+      "elevation_m": 4.0,
+      "green": 0.585046,
+      "kind": "aqi_point",
+      "roadDensity": 1.16,
+      "slope_pct": 0.2,
+      "water": 0.134132
+    },
+    "station-cuchi": {
+      "builtUp": 0.128051,
+      "commune": "Xã Tân An Hội",
+      "commune_osm_id": 7629221,
+      "elevation_m": 9.0,
+      "green": 0.830072,
+      "kind": "aqi_point",
+      "roadDensity": 0.0,
+      "slope_pct": 0.5,
+      "water": 0.001284
+    },
+    "station-govap": {
+      "builtUp": 0.922243,
+      "commune": "Phường Thông Tây Hội",
+      "commune_osm_id": 19261096,
+      "elevation_m": 17.0,
+      "green": 0.060354,
+      "kind": "aqi_point",
+      "roadDensity": 2.375,
+      "slope_pct": 0.3,
+      "water": 0.009343
+    },
+    "station-hocmon": {
+      "builtUp": 0.737332,
+      "commune": "Xã Hóc Môn",
+      "commune_osm_id": 7638093,
+      "elevation_m": 9.0,
+      "green": 0.234617,
+      "kind": "aqi_point",
+      "roadDensity": 1.512,
+      "slope_pct": 0.4,
+      "water": 0.0
+    },
+    "station-nhabe": {
+      "builtUp": 0.530871,
+      "commune": "Xã Nhà Bè",
+      "commune_osm_id": 7650792,
+      "elevation_m": 6.0,
+      "green": 0.363552,
+      "kind": "aqi_point",
+      "roadDensity": 1.521,
+      "slope_pct": 0.6,
+      "water": 0.078451
+    },
+    "station-phunhuan": {
+      "builtUp": 0.928809,
+      "commune": "Phường Cầu Kiệu",
+      "commune_osm_id": 19261675,
+      "elevation_m": 14.0,
+      "green": 0.045939,
+      "kind": "aqi_point",
+      "roadDensity": 3.385,
+      "slope_pct": 0.1,
+      "water": 0.023232
+    },
+    "station-q1": {
+      "builtUp": 0.725231,
+      "commune": "Phường Sài Gòn",
+      "commune_osm_id": 19260504,
+      "elevation_m": 12.0,
+      "green": 0.152125,
+      "kind": "aqi_point",
+      "roadDensity": 7.642,
+      "slope_pct": 0.1,
+      "water": 0.114057
+    },
+    "station-q10": {
+      "builtUp": 0.93771,
+      "commune": "Phường Hòa Hưng",
+      "commune_osm_id": 19260769,
+      "elevation_m": 11.0,
+      "green": 0.061364,
+      "kind": "aqi_point",
+      "roadDensity": 3.505,
+      "slope_pct": 0.5,
+      "water": 0.0
+    },
+    "station-q11": {
+      "builtUp": 0.920265,
+      "commune": "Phường Phú Thọ",
+      "commune_osm_id": 19260761,
+      "elevation_m": 12.0,
+      "green": 0.072854,
+      "kind": "aqi_point",
+      "roadDensity": 5.715,
+      "slope_pct": 0.7,
+      "water": 0.000673
+    },
+    "station-q12": {
+      "builtUp": 0.675968,
+      "commune": "Phường Thới An",
+      "commune_osm_id": 6941014,
+      "elevation_m": 6.0,
+      "green": 0.235059,
+      "kind": "aqi_point",
+      "roadDensity": 3.388,
+      "slope_pct": 0.3,
+      "water": 0.03891
+    },
+    "station-q3": {
+      "builtUp": 0.835332,
+      "commune": "Phường Xuân Hòa",
+      "commune_osm_id": 19260546,
+      "elevation_m": 12.0,
+      "green": 0.155324,
+      "kind": "aqi_point",
+      "roadDensity": 6.905,
+      "slope_pct": 0.2,
+      "water": 0.00827
+    },
+    "station-q4": {
+      "builtUp": 0.834912,
+      "commune": "Phường Khánh Hội",
+      "commune_osm_id": 19260589,
+      "elevation_m": 7.0,
+      "green": 0.041625,
+      "kind": "aqi_point",
+      "roadDensity": 5.424,
+      "slope_pct": 0.3,
+      "water": 0.119992
+    },
+    "station-q5": {
+      "builtUp": 0.8875,
+      "commune": "Phường Chợ Quán",
+      "commune_osm_id": 19260683,
+      "elevation_m": 9.0,
+      "green": 0.03529,
+      "kind": "aqi_point",
+      "roadDensity": 10.251,
+      "slope_pct": 0.2,
+      "water": 0.07561
+    },
+    "station-q6": {
+      "builtUp": 0.954314,
+      "commune": "Phường Phú Lâm",
+      "commune_osm_id": 19260734,
+      "elevation_m": 9.0,
+      "green": 0.042024,
+      "kind": "aqi_point",
+      "roadDensity": 5.171,
+      "slope_pct": 0.1,
+      "water": 0.002378
+    },
+    "station-q7": {
+      "builtUp": 0.668329,
+      "commune": "Phường Tân Mỹ",
+      "commune_osm_id": 2766953,
+      "elevation_m": 4.0,
+      "green": 0.251347,
+      "kind": "aqi_point",
+      "roadDensity": 6.556,
+      "slope_pct": 0.4,
+      "water": 0.045223
+    },
+    "station-q8": {
+      "builtUp": 0.48529,
+      "commune": "Xã Bình Hưng",
+      "commune_osm_id": 7462675,
+      "elevation_m": 4.0,
+      "green": 0.418582,
+      "kind": "aqi_point",
+      "roadDensity": 3.329,
+      "slope_pct": 0.4,
+      "water": 0.060943
+    },
+    "station-tanbinh": {
+      "builtUp": 0.914794,
+      "commune": "Phường Bảy Hiền",
+      "commune_osm_id": 19261236,
+      "elevation_m": 12.0,
+      "green": 0.073927,
+      "kind": "aqi_point",
+      "roadDensity": 5.751,
+      "slope_pct": 0.9,
+      "water": 0.002083
+    },
+    "station-tanphu": {
+      "builtUp": 0.980577,
+      "commune": "Phường Phú Thọ Hòa",
+      "commune_osm_id": 6890890,
+      "elevation_m": 11.0,
+      "green": 0.018519,
+      "kind": "aqi_point",
+      "roadDensity": 0.0,
+      "slope_pct": 0.3,
+      "water": 0.000737
+    },
+    "station-thuduc-an": {
+      "builtUp": 0.448464,
+      "commune": "Phường Bình Quới",
+      "commune_osm_id": 19260957,
+      "elevation_m": 2.0,
+      "green": 0.329125,
+      "kind": "aqi_point",
+      "roadDensity": 2.0,
+      "slope_pct": 0.6,
+      "water": 0.164731
+    },
+    "station-thuduc-lt": {
+      "builtUp": 0.629945,
+      "commune": "Phường Linh Xuân",
+      "commune_osm_id": 8427050,
+      "elevation_m": 35.0,
+      "green": 0.352946,
+      "kind": "aqi_point",
+      "roadDensity": 3.809,
+      "slope_pct": 1.8,
+      "water": 0.002757
+    },
+    "tanbinh": {
+      "builtUp": 0.914794,
+      "commune": "Phường Bảy Hiền",
+      "commune_osm_id": 19261236,
+      "elevation_m": 12.0,
+      "green": 0.073927,
+      "kind": "heat_cell",
+      "slope_pct": 0.9,
+      "water": 0.002083
+    },
+    "tanphu": {
+      "builtUp": 0.980577,
+      "commune": "Phường Phú Thọ Hòa",
+      "commune_osm_id": 6890890,
+      "elevation_m": 11.0,
+      "green": 0.018519,
+      "kind": "heat_cell",
+      "slope_pct": 0.3,
+      "water": 0.000737
+    },
+    "thuduc": {
+      "builtUp": 0.588005,
+      "commune": "Phường Linh Xuân",
+      "commune_osm_id": 8427050,
+      "elevation_m": 9.0,
+      "green": 0.374095,
+      "kind": "heat_cell",
+      "slope_pct": 0.5,
+      "water": 0.004693
+    }
+  }
+}
