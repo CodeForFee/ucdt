@@ -24,12 +24,12 @@ export type StyleKey = keyof typeof MAP_STYLES;
  * Previously setStyle ran before React had unmounted the children, so
  * removeLayer/removeSource interleaved with the style swap and corrupted internal state.
  */
-export function useSimMap() {
+export function useSimMap(initialStyle: StyleKey = "dark") {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
-  const [styleKey, setStyleKeyState] = useState<StyleKey>("dark");
-  const styleKeyRef = useRef<StyleKey>("dark");
+  const [styleKey, setStyleKeyState] = useState<StyleKey>(initialStyle);
+  const styleKeyRef = useRef<StyleKey>(initialStyle);
   const { selectedCity } = useCityStore();
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function useSimMap() {
       // synchronously here — leave map null forever rather than crash the route.
       m = new mapboxgl.Map({
         container: containerRef.current,
-        style: MAP_STYLES.dark,
+        style: MAP_STYLES[initialStyle],
         center: [selectedCity.lng, selectedCity.lat],
         zoom: 13,
         pitch: 0,

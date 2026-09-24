@@ -843,6 +843,17 @@
             "type": "number",
             "title": "Heatislandintensity"
           },
+          "avgEffectiveTemperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avgeffectivetemperature"
+          },
           "hotspots": {
             "items": {
               "$ref": "#/components/schemas/HeatHotspot"

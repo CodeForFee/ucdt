@@ -34,6 +34,9 @@ def heat_payload(raw: dict, city: str) -> dict:
         "avgTemperature": raw["cityAvgTemp"],
         "maxTemperature": raw["cityMaxEffectiveTemp"],
         "heatIslandIntensity": raw["uhiEffect"],
+        # Not in legacy heatController (an additive field; legacy keys unchanged): the mean
+        # T_eff of the 22 cells, the baseline the heat what-if's ΔT applies to (B-020).
+        "avgEffectiveTemperature": heat.mean_effective_temp(raw["hotspots"]),
         "hotspots": [
             {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
             | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}

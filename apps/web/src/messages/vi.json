@@ -225,6 +225,7 @@
     "preview": {
       "floodTitle": "Dự báo rủi ro ngập",
       "heatTitle": "Dự báo nhiệt độ mô phỏng",
+      "heatBasis": "Nhiệt độ cảm nhận trung bình {count} ô · T_eff = HI(T, RH) + ρ·3,5 °C · ΔT = −0,15·ΔG + 3,5·(ρ − 0,8)",
       "aqiTitle": "Dự báo AQI mô phỏng",
       "current": "Hiện tại",
       "simulated": "Mô phỏng",

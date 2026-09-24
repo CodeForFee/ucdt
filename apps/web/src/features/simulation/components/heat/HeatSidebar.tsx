@@ -28,10 +28,14 @@ function HeatSimPreview({ result, onFocus }: { result?: SimulationResult; onFocu
   const { data } = useHeatMap();
   const tr = useTranslations("risk");
   const sp = useTranslations("simulation.preview");
-  if (!data?.hotspots?.length) return null;
+  // B-020 / manuscript §4.2: ΔT perturbs the effective temperature T_eff = HI(T, RH) + ρ·3.5 °C,
+  // so the baseline is the served mean T_eff of the cells (the same quantity as the zone list
+  // below) — never the air temperature `avgTemperature`. Snapshots older than the field lack
+  // it; the card waits for the next worker run rather than falling back to the wrong quantity.
+  if (!data?.hotspots?.length || data.avgEffectiveTemperature == null) return null;
 
   const delta = result?.results?.tempDelta ?? 0;
-  const avgBase = data.avgTemperature;
+  const avgBase = data.avgEffectiveTemperature;
   const avgSim = Math.round((avgBase + delta) * 10) / 10;
   const avgDelta = Math.round(delta * 10) / 10;
 
@@ -40,6 +44,8 @@ function HeatSimPreview({ result, onFocus }: { result?: SimulationResult; onFocu
       <div className="px-3 py-2 bg-muted/40 border-b border-border">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{sp("heatTitle")}</p>
       </div>
+
+      <p className="px-4 pt-2 text-[11px] text-muted-foreground">{sp("heatBasis", { count: data.hotspots.length })}</p>
 
       {/* Same layout as the AQI preview: circles and connector on one centre line. */}
       <div className="flex items-start gap-3 px-4 py-3">

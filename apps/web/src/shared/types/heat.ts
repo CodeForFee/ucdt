@@ -4,6 +4,9 @@ export interface HeatData {
   avgTemperature: number;
   maxTemperature: number;
   heatIslandIntensity: number;
+  /** Mean effective temperature T_eff over the heat cells — the heat what-if baseline (B-020).
+   *  Absent on snapshots written before the field existed. */
+  avgEffectiveTemperature?: number | null;
   hotspots: HeatHotspot[];
   geojson: {
     type: "FeatureCollection";
