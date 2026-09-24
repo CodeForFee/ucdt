@@ -22,9 +22,10 @@
       "use-intl",
       "Tailwind v4 + shadcn",
       "Mapbox GL",
-      "Caddy (pending T-010)"
+      "Caddy",
+      "GitHub Actions + GHCR"
     ],
-    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001. State at wave-3 gate: the full stack runs from one compose file behind Caddy (worker -> Postgres -> climate API -> gateway -> web, SSE live; the legacy Hackathon-FE also runs against it). Not yet: CI completion + GHCR and deploy/backup (T-012, T-013)."
+    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001 (all 13 tasks merged into dev). The full stack runs from one compose file behind Caddy (worker -> Postgres -> climate API -> gateway -> web, SSE live); CI builds and pushes GHCR images, and compose.prod.yml + infra/deploy.sh deploy them on a VPS with daily backups. Open: B-014 (web copy of flood weights), B-017 (info-modal text), the VITE_MAPBOX_TOKEN repo secret."
   },
   "nodes": [
     {
@@ -118,7 +119,7 @@
       "type": "file",
       "name": "climate.yml",
       "filePath": ".github/workflows/climate.yml",
-      "summary": "CI for services/climate: PostGIS service container, uv sync --locked, ruff check + format, pytest. Deliberately NO path filter — a required check skipped by a filter would block unrelated PRs.",
+      "summary": "CI for services/climate: PostGIS service container, uv sync --locked (cached), ruff check + format, pytest, then the CONTRACTS DRIFT CHECK — dump the climate OpenAPI, `pnpm -F @ucdt/contracts gen`, `git diff --exit-code -- packages/contracts` (a schema change without regenerated contracts fails here). Deliberately NO path filter — a required check skipped by a filter would block unrelated PRs. Concurrency cancels superseded runs.",
       "tags": [
         "ci"
       ],
@@ -129,7 +130,7 @@
       "type": "file",
       "name": "gateway.yml",
       "filePath": ".github/workflows/gateway.yml",
-      "summary": "CI for apps/gateway: bun test + tsc.",
+      "summary": "CI for apps/gateway: bun test + tsc. Concurrency per ref, timeout-minutes.",
       "tags": [
         "ci"
       ],
@@ -140,7 +141,7 @@
       "type": "file",
       "name": "web.yml",
       "filePath": ".github/workflows/web.yml",
-      "summary": "CI for apps/web: lint, vitest, vite build with a placeholder VITE_MAPBOX_TOKEN (env.ts throws without one).",
+      "summary": "CI for apps/web: lint, vitest, vite build with a placeholder VITE_MAPBOX_TOKEN (env.ts throws without one). routes.test waits up to 4 s for lazy route chunks (a cold runner once took 1.1 s, #34).",
       "tags": [
         "ci"
       ],
@@ -751,7 +752,7 @@
       "type": "directory",
       "name": "simulation",
       "filePath": "apps/web/src/features/simulation",
-      "summary": "Heat/flood/AQI what-if pages. No local PDIM: sliders debounce (150 ms) POST /api/simulation and render TanStack mutation state; zustand holds slider state only. SimHeatLayer shows only the backend tempDelta (B-006); urbanDensity is sent (B-004). The affected-population figure it shows is a legacy heuristic (B-016).",
+      "summary": "Heat/flood/AQI what-if pages. No local PDIM: sliders debounce (150 ms) POST /api/simulation and render TanStack mutation state; zustand holds slider state only. SimHeatLayer shows only the backend tempDelta (B-006); urbanDensity is sent (B-004). The affected-population figure it shows is a legacy heuristic (B-016). ComparePanel never renders affectedPopulation / affectedBuildings: the API still sends them for legacy parity, but they are the Stage-1 heuristic (50k/80k people, 1,200 buildings per zone), not an exposure model (B-016, user decision).",
       "tags": [
         "web",
         "features",
@@ -953,6 +954,93 @@
         "generated"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "file:.github/workflows/images.yml",
+      "type": "file",
+      "name": "images.yml",
+      "filePath": ".github/workflows/images.yml",
+      "summary": "Builds the three GHCR images on every PR (build only) and pushes them on push to dev/main: ghcr.io/codeforfee/ucdt-climate (services/climate), ucdt-gateway (apps/gateway/Dockerfile, root context), ucdt-web (infra/web.Dockerfile). Tags: branch name, sha-<short>, latest on main only — the contract compose.prod.yml pulls. Job ids are *-image so they never collide with the required climate/gateway/web checks. web-image SKIPS with a ::warning:: while the VITE_MAPBOX_TOKEN repo secret is empty (never builds with a placeholder).",
+      "tags": [
+        "ci",
+        "images",
+        "ghcr"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/compose.prod.yml",
+      "type": "file",
+      "name": "compose.prod.yml",
+      "filePath": "infra/compose.prod.yml",
+      "summary": "Production override, always used together with compose.yml: swaps every app service to ghcr.io/codeforfee/ucdt-*:${UCDT_TAG:-main} (rollback = UCDT_TAG=sha-xxxx), adds `backup` (postgres:16-alpine, daily pg_dump -Fc into ${BACKUP_DIR:-/var/backups/ucdt}, keep 7) and `uptime-kuma` published ONLY on 127.0.0.1:3100 (reach it over an SSH tunnel). LANDMINE: compose.yml still interpolates VITE_MAPBOX_TOKEN as a required build arg, so infra/.env on the VPS needs it even though prod never builds.",
+      "tags": [
+        "infra",
+        "deploy",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/deploy.sh",
+      "type": "file",
+      "name": "deploy.sh",
+      "filePath": "infra/deploy.sh",
+      "summary": "VPS deploy, run from the repo root by the user (agents never SSH): refuses without infra/.env, git pull --ff-only, compose pull, up -d --no-build --remove-orphans --wait, ps, image prune. UCDT_TAG selects the image tag for rollback.",
+      "tags": [
+        "infra",
+        "deploy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/entrypoint.sh",
+      "type": "file",
+      "name": "entrypoint.sh",
+      "filePath": "infra/backup/entrypoint.sh",
+      "summary": "Entrypoint of the backup service: runs backup.sh immediately, then every 24 h; a failed run is logged and retried, never crashes the container. LANDMINE: every script here must be committed 100755 — a Windows checkout silently commits 100644, Docker Desktop hides it, and on Linux the service crash-loops with exit 126 (caught in PR #37). Use `git update-index --chmod=+x`.",
+      "tags": [
+        "infra",
+        "backup",
+        "landmine"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/backup.sh",
+      "type": "file",
+      "name": "backup.sh",
+      "filePath": "infra/backup/backup.sh",
+      "summary": "POSIX sh: one pg_dump -Fc of $PGDATABASE into $BACKUP_DIR/<db>-<UTC ts>.dump, logged to stdout and backup.log, then prunes to the newest $KEEP (7). A failed dump is deleted, not kept half-written.",
+      "tags": [
+        "infra",
+        "backup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/restore.sh",
+      "type": "file",
+      "name": "restore.sh",
+      "filePath": "infra/backup/restore.sh",
+      "summary": "Host-side restore of a dump into the running postgres container: typed-name confirmation, stops climate-api/climate-worker/backup, dropdb --force, createdb, pg_restore, and restarts those services from an EXIT trap (also on failure). RESTORE_DRY_RUN=1 prints the stop/start instead of running them. Proven against a held connection into a scratch DB.",
+      "tags": [
+        "infra",
+        "backup"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:docs/DEPLOY.md",
+      "type": "file",
+      "name": "DEPLOY.md",
+      "filePath": "docs/DEPLOY.md",
+      "summary": "Vietnamese VPS runbook: Docker install, hardening checklist (sudo user + SSH key, PermitRootLogin/PasswordAuthentication no, ufw 22/80/443, unattended-upgrades, fail2ban), private clone, docker login ghcr.io (PAT read:packages), infra/.env, first deploy / update / rollback, backup copy-off + restore, Uptime Kuma via ssh -L 3100, troubleshooting. Written, not yet run on a real VPS.",
+      "tags": [
+        "docs",
+        "deploy"
+      ],
+      "complexity": "moderate"
     }
   ],
   "edges": [
@@ -1568,13 +1656,76 @@
       "type": "proxies",
       "weight": 0.9,
       "description": "/api/* incl. SSE"
+    },
+    {
+      "source": "file:.github/workflows/images.yml",
+      "target": "file:services/climate/Dockerfile",
+      "type": "builds",
+      "weight": 0.8,
+      "description": "builds + pushes ucdt-climate"
+    },
+    {
+      "source": "file:.github/workflows/images.yml",
+      "target": "file:infra/web.Dockerfile",
+      "type": "builds",
+      "weight": 0.8,
+      "description": "builds + pushes ucdt-web (needs the VITE_MAPBOX_TOKEN secret)"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:infra/compose.yml",
+      "type": "configures",
+      "weight": 0.9,
+      "description": "override: GHCR images + backup + uptime-kuma"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:.github/workflows/images.yml",
+      "type": "reads",
+      "weight": 0.6,
+      "description": "pulls the image names/tags that workflow publishes"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:infra/backup/entrypoint.sh",
+      "type": "runs",
+      "weight": 0.7,
+      "description": "backup service entrypoint"
+    },
+    {
+      "source": "file:infra/backup/entrypoint.sh",
+      "target": "file:infra/backup/backup.sh",
+      "type": "runs",
+      "weight": 0.8,
+      "description": "every 24 h"
+    },
+    {
+      "source": "file:infra/deploy.sh",
+      "target": "file:infra/compose.prod.yml",
+      "type": "runs",
+      "weight": 0.8,
+      "description": "compose pull + up -d --no-build"
+    },
+    {
+      "source": "file:infra/backup/restore.sh",
+      "target": "file:infra/compose.prod.yml",
+      "type": "calls",
+      "weight": 0.5,
+      "description": "stops/starts api, worker, backup around the restore"
+    },
+    {
+      "source": "file:docs/DEPLOY.md",
+      "target": "file:infra/deploy.sh",
+      "type": "configures",
+      "weight": 0.4,
+      "description": "documents the deploy/rollback procedure"
     }
   ],
   "layers": [
     {
       "id": "infra",
-      "name": "Infrastructure and CI",
-      "description": "Full-stack compose behind Caddy, the web image, env template, GitHub Actions per service, and the one-shot parity generator.",
+      "name": "Infrastructure, CI and deploy",
+      "description": "Full-stack compose behind Caddy, the production override (GHCR images, daily backups, Uptime Kuma), the VPS deploy/restore scripts and runbook, the web image, env template, GitHub Actions (per-service required checks + GHCR images), and the one-shot parity generator.",
       "nodeIds": [
         "file:package.json",
         "file:infra/compose.yml",
@@ -1586,7 +1737,14 @@
         "file:.github/workflows/climate.yml",
         "file:.github/workflows/gateway.yml",
         "file:.github/workflows/web.yml",
-        "file:tools/gen-parity.ts"
+        "file:tools/gen-parity.ts",
+        "file:.github/workflows/images.yml",
+        "file:infra/compose.prod.yml",
+        "file:infra/deploy.sh",
+        "file:infra/backup/entrypoint.sh",
+        "file:infra/backup/backup.sh",
+        "file:infra/backup/restore.sh",
+        "file:docs/DEPLOY.md"
       ]
     },
     {
@@ -1797,11 +1955,13 @@
     {
       "order": 9,
       "title": "Run it",
-      "description": "Whole stack: `docker compose -f infra/compose.yml up -d --build` -> http://localhost. Dev loop: compose.dev.yml for postgres + redis on loopback, then uvicorn / arq --burst / bun / vite (API_PROXY_TARGET if :3001 is taken).",
+      "description": "Whole stack: `docker compose -f infra/compose.yml up -d --build` -> http://localhost. Dev loop: compose.dev.yml for postgres + redis on loopback, then uvicorn / arq --burst / bun / vite (API_PROXY_TARGET if :3001 is taken). Production: push to dev/main publishes GHCR images; on the VPS `infra/deploy.sh` pulls them (docs/DEPLOY.md).",
       "nodeIds": [
         "file:infra/compose.yml",
         "file:infra/Caddyfile",
-        "file:infra/compose.dev.yml"
+        "file:infra/compose.dev.yml",
+        "file:infra/compose.prod.yml",
+        "file:infra/deploy.sh"
       ]
     }
   ]

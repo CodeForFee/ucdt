@@ -9,13 +9,15 @@
 | claude subagents (Agent tool) | repo, shell, git worktree, gh | opus = strong, sonnet = cheap | sprint seams; each on its own branch + PR |
 
 ## Now (claims)
-- whole repo — claude-opus-5 (tech lead, sprint S-001), since 2026-09-23T1617Z; session 1b6751ff from 2026-09-23T1740Z. Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
+*(No active claims — sprint S-001 closed 2026-09-24 by claude-opus-5, session 77343ae4. Whoever opens the next sprint claims its scope here.)* Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
 
 **Git flow (user decision 2026-09-23):** one GitHub issue per task → branch `feat/T-NNN-<slug>` → PR **into `dev`** → tech lead reviews + squash-merges into `dev`, then closes the issue. **`main` belongs to the user** — agents never push or merge to main. `.agent/` lives in the repo (moved from the workspace root 2026-09-23); seam owners commit their task file + log inside their own PR, the lead commits board updates in the wave-gate PR.
 
-**`dev` after a promotion (2026-09-23):** the user promotes by squash-merging `dev` → `main`, and the repo has "Automatically delete head branches" ON, so `dev` disappears after each promotion (#25). The lead re-creates it as `dev = main` (`git push origin origin/main:refs/heads/dev`) and rebases open feature branches with `git rebase --onto origin/dev <old dev tip>`, pushing to a NEW branch name (no force-push). Until the user turns that setting off, check `git ls-remote --heads origin dev` before opening PRs.
+**`dev` after a promotion (2026-09-23):** the user promotes by squash-merging `dev` → `main`, and the repo has "Automatically delete head branches" ON, so `dev` disappears after each promotion (#25). The lead re-creates it as `dev = main` (`git push origin origin/main:refs/heads/dev`) and rebases open feature branches with `git rebase --onto origin/dev <old dev tip>`, pushing to a NEW branch name (no force-push). **The setting was turned OFF 2026-09-24 (user decision)**, so a promotion no longer deletes `dev`; still check `git ls-remote --heads origin dev` before opening PRs.
 
 **Branches are never deleted** (user rule 2026-09-23): merge with `gh pr merge --squash`, no `--delete-branch`, no `git push --delete`.
+
+**Merge only on the unpiped exit status of `gh pr checks <n> --watch`** (2026-09-24): `gh pr checks … | tail && gh pr merge` merged #33 with `web` red, because the pipe's exit status is tail's. Capture `rc=$?` from the unpiped command and merge only on 0.
 
 **Lost:** the three legacy logs (2026-08-19T0900Z-antigravity, 2026-09-14T0730Z/0750Z-claude-opus-5) vanished from the old workspace-root `.agent/log/` during this session before the move — not deleted by any command run here, not in the Recycle Bin. Their substance survives in Bugs, Decisions and handoffs below.
 
@@ -33,10 +35,10 @@
 | T-008 | #10 | web: dashboard, flood, air-quality, alerts | 2 | claude-sonnet-5 (sub) | done |
 | T-009 | #11 | web: map + simulation | 2 | claude-sonnet-5 (sub) | done |
 | T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | done |
-| T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | plan |
-| T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | plan |
+| T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | done |
+| T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | done |
 
-**Chờ người dùng:** `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
+**Chờ người dùng:** (1) `gh secret set VITE_MAPBOX_TOKEN -R CodeForFee/ucdt` — until then the ucdt-web image is not published (the permission gate blocked the lead from reading the token file). (2) `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
 
 ## Bugs
 - [ ] B-017 Simulation info-modal text asserts mechanisms the Stage-1 model does not implement (`apps/web/src/messages/{vi,en}.json` `comparePanel`): `floodRiskImpactDesc` says heat changes flood risk via evaporation/rain cycles (the heat scenario moves R_f only through green cover → drainage); `heatIntro` says effective temperature includes traffic (no traffic term in ΔT, PDIM 4.2(ii)); `tempDeltaAqiDesc` says temperature drives ozone/AQI (no temperature term in the AQI what-if). Found 2026-09-24 claude-opus-5 while fixing B-016. Text-only fix; not yet scheduled.
@@ -58,6 +60,9 @@
 - [x] B-003 Verify full sync of PDIM S1 formulas between BE & FE (`constants.ts` vs `pdim.ts`) — fixed 2026-08-19 antigravity (log 2026-08-19T0900Z-antigravity)
 
 ## Decisions
+- 2026-09-24 (S-001 W4) Image contract: `images.yml` publishes ghcr.io/codeforfee/ucdt-{climate,gateway,web} tagged `<branch>` (dev/main), `sha-<short>`, and `latest` on main; PRs build without pushing. Production runs `infra/compose.yml` + `infra/compose.prod.yml` (images pinned by `UCDT_TAG`, default `main`; rollback = `UCDT_TAG=sha-…`) via `infra/deploy.sh` — the VPS never builds. The web image bakes the Mapbox token at build time, so it is only published once the `VITE_MAPBOX_TOKEN` repo secret exists (the job skips with a warning, never builds with a placeholder).
+- 2026-09-24 (S-001 W4) `packages/contracts` is enforced, not advisory: the `climate` CI job regenerates it from the climate OpenAPI and fails on any diff.
+- 2026-09-24 Shell scripts are committed 100755 (`git update-index --chmod=+x`); a Windows checkout otherwise commits 100644 and Docker Desktop hides it until Linux fails with exit 126 (PR #37).
 - 2026-09-23 (S-001 W2) Snapshot contract between worker and API: every run writes five `risk_snapshots` (hazard ∈ weather, aqi, flood, heat, recommend), `result` = exactly the legacy Hackathon-BE `/api/<hazard>` `data` payload (heat in heatController's reshaped form), `model_version` = `pdim-s1`, `inputs` = what the models consumed. `/v1/<hazard>/latest` adds `observedAt` + `stale` (> 45 min) and returns 503 before the first snapshot. A failed upstream fetch writes nothing.
 - 2026-09-23 (S-001 W2) Each DB test suite owns its database (`ucdt_test` tests/db, `ucdt_test_api`, `ucdt_test_worker`): tests/db downgrades its DB to base, so a shared one races across parallel worktrees.
 - 2026-09-23 (S-001 W1) Python `services/climate` is the ONLY owner of PDIM coefficients and formulas; `apps/web` has no `pdim.ts` and never recomputes a served value. The gateway (Bun + Hono) never touches the DB and never computes a domain value — it forwards, envelopes, caches, rate-limits and relays SSE. Parity with the legacy TS backend is proven by `tests/pdim/test_pdim_parity.py` against `parity.json` (1e-9).
@@ -85,6 +90,6 @@
 - A real public Mapbox token lives in the legacy `Hackathon-FE/.env` (`NEXT_PUBLIC_MAPBOX_TOKEN`); copy it into `infra/.env` / `apps/web/.env.local` (both gitignored). Map layers verified with it at the W3 gate.
 
 ## Last 3 handoffs
+- 2026-09-23T1636Z-claude-opus-5-77343ae4 (cont. 2026-09-24) — done: wave 4 closed, sprint S-001 closed. T-012 #36 (drift check + GHCR images; first push ucdt-climate/gateway :dev, web skipped — no secret), T-013 #37 (compose.prod, deploy.sh, backup/restore, Uptime Kuma, DEPLOY.md; two review rounds: exec bits, live-DB restore). B-016 fixed (#33); flaky routes.test fixed (#35) after #33 was merged with red CI (lead error, rule added). Auto-delete branches OFF. Gate W4 green on dev 9cd795b. Map refreshed (82 nodes). NEXT: user sets the Mapbox secret, promotes dev → main, then deploys per docs/DEPLOY.md; open B-014, B-017.
 - 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 3 closed. T-010 full-stack compose + Caddy: 7 services healthy, all pages at http://localhost, SSE live through Caddy, legacy Hackathon-FE runs against the new stack, ≈ 213 MiB total. NEXT: user approves wave 4 (T-012 CI + GHCR, T-013 deploy/backup/docs).
 - 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 2 closed. T-006 #23, T-007 #24, T-008 #27, T-009 #29 merged into dev (T-008/T-009 rebased by the lead after `dev` was auto-deleted by #25 and re-created). Gate W2: all suites green; worker → API → gateway → web verified end to end incl. SSE. Fixed B-015; opened B-014 (#26), B-016 (user decision). NEXT: user approves wave 3 (T-010 compose + Caddy).
-- 2026-09-23T1740Z-claude-opus-5-1b6751ff — done: wave 1 closed. T-005 committed from the dead subagent's worktree (PR #19); found + fixed B-013 (PR #21); gate W1 green on dev; T-011 map written (56 nodes). Merged-branch deletion was blocked by the permission gate — left for the user. NEXT: user approves wave 2 (T-006..T-009).
