@@ -181,6 +181,20 @@ describe('alerts + history', () => {
   })
 })
 
+describe('units', () => {
+  test('GET /api/units -> GET /v1/units, enveloped and cached', async () => {
+    let calls = 0
+    const app = appWith((url) => {
+      calls++
+      expect(url.pathname).toBe('/v1/units')
+      return jsonResponse([{ id: 'gz-x', kind: 'flood_zone' }])
+    })
+    expect((await (await app.request('/api/units')).json()).data).toEqual([{ id: 'gz-x', kind: 'flood_zone' }])
+    expect((await app.request('/api/units')).headers.get('X-Cache')).toBe('HIT')
+    expect(calls).toBe(1)
+  })
+})
+
 describe('maturity', () => {
   test('GET /api/maturity -> GET /v1/maturity, enveloped and cached', async () => {
     let calls = 0

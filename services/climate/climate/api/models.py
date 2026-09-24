@@ -442,6 +442,19 @@ class HazardMaturity(BaseModel):
     s2: S2Fit | None = Field(description="S2 fit when eligible and fitted")
 
 
+class UnitRow(BaseModel):
+    """One spatial unit and its 2025 commune (spec §A.3 mapping table). Data/API only: the web
+    never renders `commune`."""
+
+    id: str
+    kind: Literal["flood_zone", "heat_cell", "aqi_point"]
+    name: str
+    lat: float
+    lng: float
+    commune: str | None
+    communeOsmId: int | None
+
+
 class MaturityResponse(BaseModel):
     evaluatedAt: str
     windowDays: int
