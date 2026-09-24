@@ -373,6 +373,7 @@
   "maturity": {
     "title": "Model maturity (Algorithm 1)",
     "subtitle": "Stage S1 → S2 → S3 per hazard, re-evaluated on stored data",
+    "purpose": "Each hazard runs on published coefficients (S1) until enough local observations exist to self-calibrate (S2) or train a dedicated model (S3); if the data no longer supports a stage, the model demotes back to S1 instead of degrading silently.",
     "active": "Active",
     "eligible": "Met",
     "notEligible": "Not met",
@@ -395,6 +396,23 @@
       "consecutiveHourPairs": "Consecutive station–point hour pairs",
       "spanDays": "Days spanned",
       "archiveMonths": "Months of archived data"
+    },
+    "formula": {
+      "flood": {
+        "S1": "R_f = 0.45·P̃ + 0.30·T̃ + 0.25·Ĩ − 0.15·D̃ (fixed coefficients, Table 6)",
+        "S2": "re-fits w₁–w₄ on an observed inundation-depth series",
+        "S3": "trained on archived data, no fixed formula"
+      },
+      "heat": {
+        "S1": "T_eff = HI(T, RH) + 3.5·ρ (fixed coefficients, Table 6)",
+        "S2": "re-fits α, u on a land-surface temperature series (Landsat LST)",
+        "S3": "trained on archived data, no fixed formula"
+      },
+      "aqi": {
+        "S1": "AQI(t+1) = AQI(t)·(1 − 0.05·W̃)·(1 − 0.15·P̃) (fixed coefficients, Table 6)",
+        "S2": "γ_w, γ_p re-estimated by OLS regression on local observations (below)",
+        "S3": "trained on archived data, no fixed formula"
+      }
     }
   },
   "scenarioRec": {

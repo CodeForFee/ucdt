@@ -373,6 +373,7 @@
   "maturity": {
     "title": "Độ trưởng thành mô hình (Thuật toán 1)",
     "subtitle": "Giai đoạn S1 → S2 → S3 theo từng hiểm họa, đánh giá lại trên dữ liệu đã lưu",
+    "purpose": "Mỗi hiểm họa chạy trên hệ số công bố sẵn (S1) cho đến khi đủ dữ liệu quan trắc địa phương để tự hiệu chỉnh (S2) hoặc huấn luyện riêng (S3); nếu dữ liệu không còn đủ, mô hình tự hạ về S1 thay vì âm thầm sai lệch.",
     "active": "Đang dùng",
     "eligible": "Đạt",
     "notEligible": "Chưa đạt",
@@ -395,6 +396,23 @@
       "consecutiveHourPairs": "Cặp giờ liên tiếp trạm–điểm",
       "spanDays": "Số ngày bao phủ",
       "archiveMonths": "Số tháng dữ liệu lưu trữ"
+    },
+    "formula": {
+      "flood": {
+        "S1": "R_f = 0,45·P̃ + 0,30·T̃ + 0,25·Ĩ − 0,15·D̃ (hệ số cố định, Bảng 6)",
+        "S2": "hiệu chỉnh lại w₁–w₄ trên chuỗi độ sâu ngập quan trắc",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      },
+      "heat": {
+        "S1": "T_eff = HI(T, RH) + 3,5·ρ (hệ số cố định, Bảng 6)",
+        "S2": "hiệu chỉnh lại α, u trên chuỗi nhiệt độ bề mặt (Landsat LST)",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      },
+      "aqi": {
+        "S1": "AQI(t+1) = AQI(t)·(1 − 0,05·W̃)·(1 − 0,15·P̃) (hệ số cố định, Bảng 6)",
+        "S2": "γ_w, γ_p ước lượng lại bằng hồi quy OLS trên quan trắc địa phương (xem bên dưới)",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      }
     }
   },
   "scenarioRec": {
