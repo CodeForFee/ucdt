@@ -125,9 +125,10 @@ def test_api_surface_names_carry_no_admin_label():
     """Every name that reaches a payload comes from the toponym tables."""
     now = datetime.fromisoformat("2026-09-23T10:00:00Z")
     raw = aqi.raw_from_open_meteo({"pm2_5": 30})
+    cur = {"temperature": 33, "humidity": 70}
     payloads = [
-        flood.compute_flood(80, 9)["affectedAreas"],
-        heat.compute_heat({"temperature": 33, "humidity": 70}, now)["hotspots"],
+        flood.compute_flood({z["id"]: 80 for z in FLOOD_ZONES}, 80)["affectedAreas"],
+        heat.compute_heat({c["id"]: cur for c in HEAT_CELLS}, cur, now)["hotspots"],
         aqi.compute_aqi(raw, [raw] * len(AQI_POINTS), [], now)["stations"],
     ]
     names = [row["name"] for rows in payloads for row in rows]

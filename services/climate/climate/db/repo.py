@@ -92,6 +92,37 @@ async def history(session: AsyncSession, hazard: str, since: datetime) -> list[d
     return [dict(r) for r in rows.mappings()]
 
 
+async def snapshot_inputs(
+    session: AsyncSession, hazard: str, since: datetime, keys: Iterable[str]
+) -> list[dict]:
+    """[{computed_at, <key>: inputs[key] (None when absent)}] for snapshots since `since`, oldest
+    first — only the named top-level keys of `inputs` leave the DB (Algorithm 1 history)."""
+    keys = list(keys)
+    rows = await session.execute(
+        sa.select(risk_snapshots.c.computed_at, *(risk_snapshots.c.inputs[k].label(k) for k in keys))
+        .where(risk_snapshots.c.hazard == hazard, risk_snapshots.c.computed_at >= since)
+        .order_by(risk_snapshots.c.computed_at, risk_snapshots.c.id)
+    )
+    return [dict(r) for r in rows.mappings()]
+
+
+async def oldest_snapshot_at(session: AsyncSession) -> datetime | None:
+    return await session.scalar(sa.select(sa.func.min(risk_snapshots.c.computed_at)))
+
+
+async def station_readings(session: AsyncSession, since: datetime, source: str = "airgradient") -> list[dict]:
+    """Distinct (location_id, fetched_at, aqi) observations of one source since `since`, oldest
+    first. A reading re-fetched by a later run is stored twice with the same observation time;
+    DISTINCT counts it once."""
+    rows = await session.execute(
+        sa.select(aqi_obs.c.location_id, aqi_obs.c.fetched_at, aqi_obs.c.aqi)
+        .distinct()
+        .where(aqi_obs.c.source == source, aqi_obs.c.fetched_at >= since, aqi_obs.c.aqi.is_not(None))
+        .order_by(aqi_obs.c.fetched_at, aqi_obs.c.location_id, aqi_obs.c.aqi)
+    )
+    return [dict(r) for r in rows.mappings()]
+
+
 async def insert_alerts(session: AsyncSession, rows: Iterable[Mapping[str, Any]]) -> list[str]:
     """Insert alerts (keys: id, rule_id, type, severity, title, message, created_at, expires_at,
     optional snapshot_id). Ids already present are skipped; returns only the newly inserted ids."""
