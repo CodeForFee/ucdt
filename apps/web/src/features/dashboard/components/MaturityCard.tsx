@@ -23,6 +23,8 @@ function Gamma({ label, g }: { label: string; g: GammaEstimate }) {
 function HazardRow({ h }: { h: HazardMaturity }) {
   const t = useTranslations("maturity");
   const criterion = (name: string) => (t.has(`criteria.${name}`) ? t(`criteria.${name}`) : name);
+  const formula = (s: (typeof STAGES)[number]) =>
+    t.has(`formula.${h.hazard}.${s}`) ? t(`formula.${h.hazard}.${s}`) : null;
 
   return (
     <li className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3" data-testid={`maturity-${h.hazard}`}>
@@ -54,6 +56,7 @@ function HazardRow({ h }: { h: HazardMaturity }) {
                 </span>
                 {stage.criteria.length === 0 && <span className="text-muted-foreground">· {t("noCriteria")}</span>}
               </div>
+              {formula(s) && <p className="ml-7 font-mono text-foreground/80">{formula(s)}</p>}
               {stage.criteria.map((c) => (
                 <div key={c.name} className="ml-7 space-y-0.5">
                   <div className="flex justify-between gap-2">
@@ -143,6 +146,7 @@ export function MaturityCard() {
           {t("title")}
         </CardTitle>
         <p className="text-[11px] text-muted-foreground">{t("subtitle")}</p>
+        <p className="text-[11px] text-muted-foreground">{t("purpose")}</p>
       </CardHeader>
       <CardContent className="flex-1">
         {isLoading && <LoadingSkeleton count={3} variant="list" />}
