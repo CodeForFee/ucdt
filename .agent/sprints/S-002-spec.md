@@ -48,12 +48,16 @@ Gò Vấp, Bình Tân, Thủ Đức, Bình Chánh, Hóc Môn, Nhà Bè, Cần Gi
 - **Commune** (2025 commune-level unit containing the point, admin_level 6 after Resolution
   1685/NQ-UBTVQH15): name + OSM relation id. Context only (shown as secondary text, e.g.
   "Bến Nghé · Phường Sài Gòn"); never a unit name, never used for scoring.
-- **Road density** v(i) [km/km²]: total length of OSM ways with highway ∈ {motorway, trunk,
-  primary, secondary} within 1 km of the unit, divided by π·1² km². Computed for AQI points.
+- **Road density** v(i) [km/km²]: OSM ways with highway ∈ {motorway, trunk, primary, secondary}
+  fetched within 1 km of the unit; each way is split into its node-to-node segments and a
+  segment counts (with its full haversine length) when its midpoint lies within 1 km of the
+  unit. v(i) = counted length / (π·1² km²). Computed for AQI points.
 
 ### A.4 Mapping tables (in derived.json)
 - flood zone → nearest AQI point (haversine) — pairs the two supports for R-COMB-01.
-- open-network station → nearest AQI point — pairs observations with the CAMS estimate for §H.
+- open-network station → nearest AQI point (haversine) — pairs observations with the CAMS
+  estimate for §H. Stations are dynamic, so this table is computed at ingest time with the same
+  rule, not stored in derived.json.
 Supports are linked only through these tables; they are never read as one homogeneous grid.
 
 ## B. Spatio-temporal harmonisation and composite flood risk
@@ -163,7 +167,9 @@ S2 parameters and MAE when fitted, evaluatedAt.
    AQICN only as optional fallbacks when their keys are set.
 3. **Open monitoring network**: AirGradient public API (no key), every location inside the
    HCMC bbox lat 10.3–11.2, lng 106.3–107.1; PM2.5 (`pm02`, µg/m³) → US AQI; stored in aqi_obs
-   with location_id `ag:<locationId>`, source `airgradient`.
+   with location_id `ag:<locationId>`, source `airgradient`. A reading older than 2 h is dropped.
+   Station names come from third parties: a name that matches the §A.1 guard is replaced by
+   `Trạm AirGradient <locationId>`.
 Static layers (§A) are not fetched at runtime.
 
 ## J. Presentation
