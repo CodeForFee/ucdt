@@ -85,6 +85,10 @@ critical. A zone is reported when R_f(i) ≥ 0.15. Screening depth = R_f(i) × 0
 City level: P̃ from the city-centre rainfall; T̃, Ĩ, D̃ = means over the 18 zones.
 `triggers` carries all four terms (B-011) under keys currentRainfall, terrainSensitivity,
 imperviousness, drainageCapacity (the legacy soil-saturation proxy is removed).
+`decomposition` (city level and per zone) serves the terms ready to render, so the web never
+holds a PDIM weight (B-014): [{key ∈ rainfall, terrain, imperviousness, drainage, weight,
+normalized (x̃), contribution (= weight·x̃, drainage negative)}]; Σ contribution = R_f before the
+clamp.
 
 ## C. Heat
 Per cell i: T(i), RH(i) from the unit's own weather; ρ(i) = builtUp(i) (replaces the
