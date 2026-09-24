@@ -4,10 +4,13 @@ Units are named by coordinate-anchored TOPONYMS, never by administrative units:
 Resolution 1685/NQ-UBTVQH15 (2025) abolished the district tier in HCMC. `id` keeps
 the historic slug as an internal key only (never displayed). Ported verbatim from
 Hackathon-BE (constants.ts HCMC_FLOOD_ZONES, heat.service.ts HCMC_HEAT_CELLS,
-aqi.service.ts HCMC_AQI_POINTS).
+aqi.service.ts HCMC_AQI_POINTS); S-002 §A.1 renamed the 12 heat cells that carried former
+district names to the toponym of the AQI point at the same coordinates (ids unchanged).
 
-localDrain, terrain and urbanDensity are EXPERT-JUDGEMENT constants, not
-measurements — pending Stage-2 calibration.
+localDrain, terrain and urbanDensity are EXPERT-JUDGEMENT constants, not measurements.
+localDrain is still live, as D̃ (no open drainage dataset exists for HCMC, spec §B).
+terrain and urbanDensity are used ONLY by the legacy-parity tests (catalogue.legacy_catalogue);
+the model reads the measured static layers in derived.json instead (spec §A.2, §B, §C).
 """
 
 from typing import Final
@@ -164,7 +167,8 @@ FLOOD_ZONES: Final = (
     },
 )
 
-# 22 heat cells. urbanDensity (0–1) pending Stage-2 calibration against Landsat/Sentinel LST/NDVI.
+# 22 heat cells. urbanDensity (0–1) is the legacy expert constant, kept for the parity tests only;
+# ρ(i) = builtUp(i) from WorldCover replaces it (spec §C).
 HEAT_CELLS: Final = (
     # Central core — very high density
     {"id": "q1", "name": "Bến Nghé", "lat": 10.7769, "lng": 106.7009, "urbanDensity": 0.97},
@@ -176,22 +180,22 @@ HEAT_CELLS: Final = (
     {"id": "q10", "name": "Ba Tháng Hai", "lat": 10.7750, "lng": 106.6680, "urbanDensity": 0.87},
     {"id": "q11", "name": "Lạc Long Quân", "lat": 10.7630, "lng": 106.6530, "urbanDensity": 0.85},
     # Inner ring — high density
-    {"id": "binhthanh", "name": "Bình Thạnh", "lat": 10.8120, "lng": 106.7120, "urbanDensity": 0.84},
-    {"id": "phunhuan", "name": "Phú Nhuận", "lat": 10.7990, "lng": 106.6810, "urbanDensity": 0.89},
-    {"id": "tanbinh", "name": "Tân Bình", "lat": 10.8020, "lng": 106.6520, "urbanDensity": 0.82},
-    {"id": "tanphu", "name": "Tân Phú", "lat": 10.7900, "lng": 106.6280, "urbanDensity": 0.79},
-    {"id": "govap", "name": "Gò Vấp", "lat": 10.8380, "lng": 106.6650, "urbanDensity": 0.77},
+    {"id": "binhthanh", "name": "Đinh Bộ Lĩnh", "lat": 10.8120, "lng": 106.7120, "urbanDensity": 0.84},
+    {"id": "phunhuan", "name": "Phan Xích Long", "lat": 10.7990, "lng": 106.6810, "urbanDensity": 0.89},
+    {"id": "tanbinh", "name": "Lê Văn Sỹ", "lat": 10.8020, "lng": 106.6520, "urbanDensity": 0.82},
+    {"id": "tanphu", "name": "Lũy Bán Bích", "lat": 10.7900, "lng": 106.6280, "urbanDensity": 0.79},
+    {"id": "govap", "name": "Nguyễn Oanh", "lat": 10.8380, "lng": 106.6650, "urbanDensity": 0.77},
     {"id": "q7", "name": "Phú Mỹ Hưng", "lat": 10.7333, "lng": 106.7167, "urbanDensity": 0.72},
-    {"id": "binhtan", "name": "Bình Tân", "lat": 10.7450, "lng": 106.6050, "urbanDensity": 0.74},
+    {"id": "binhtan", "name": "An Lạc", "lat": 10.7450, "lng": 106.6050, "urbanDensity": 0.74},
     {"id": "q12", "name": "Thạnh Xuân", "lat": 10.8630, "lng": 106.6580, "urbanDensity": 0.67},
     # East urban area
-    {"id": "thuduc", "name": "Thủ Đức", "lat": 10.8700, "lng": 106.7800, "urbanDensity": 0.63},
+    {"id": "thuduc", "name": "Linh Trung", "lat": 10.8700, "lng": 106.7800, "urbanDensity": 0.63},
     # Fringe — lower density
-    {"id": "binhchanh", "name": "Bình Chánh", "lat": 10.6800, "lng": 106.6200, "urbanDensity": 0.42},
-    {"id": "hocmon", "name": "Hóc Môn", "lat": 10.8890, "lng": 106.5950, "urbanDensity": 0.45},
-    {"id": "nhabe", "name": "Nhà Bè", "lat": 10.6980, "lng": 106.7380, "urbanDensity": 0.35},
-    {"id": "cangio", "name": "Cần Giờ", "lat": 10.4120, "lng": 106.9520, "urbanDensity": 0.12},
-    {"id": "cuchi", "name": "Củ Chi", "lat": 11.0050, "lng": 106.5000, "urbanDensity": 0.28},
+    {"id": "binhchanh", "name": "Nguyễn Văn Linh", "lat": 10.6800, "lng": 106.6200, "urbanDensity": 0.42},
+    {"id": "hocmon", "name": "Quang Trung", "lat": 10.8890, "lng": 106.5950, "urbanDensity": 0.45},
+    {"id": "nhabe", "name": "Phước Kiển", "lat": 10.6980, "lng": 106.7380, "urbanDensity": 0.35},
+    {"id": "cangio", "name": "Cần Thạnh", "lat": 10.4120, "lng": 106.9520, "urbanDensity": 0.12},
+    {"id": "cuchi", "name": "Tây Bắc", "lat": 11.0050, "lng": 106.5000, "urbanDensity": 0.28},
 )
 
 # 23 AQI reference points. NOT physical monitoring stations: every value is sampled
@@ -228,3 +232,21 @@ ALL_UNITS: Final = (
     *({"kind": "heat_cell", **c} for c in HEAT_CELLS),
     *({"kind": "aqi_point", **p} for p in AQI_POINTS),
 )
+
+# Former names of the 12 heat cells renamed by S-002 §A.1. Exists ONLY for the legacy-parity
+# fixture (tests/fixtures/parity.json keeps the legacy TS backend's names) and migration 002's
+# downgrade; never display these.
+LEGACY_HEAT_NAMES: Final = {
+    "binhthanh": "Bình Thạnh",
+    "phunhuan": "Phú Nhuận",
+    "tanbinh": "Tân Bình",
+    "tanphu": "Tân Phú",
+    "govap": "Gò Vấp",
+    "binhtan": "Bình Tân",
+    "thuduc": "Thủ Đức",
+    "binhchanh": "Bình Chánh",
+    "hocmon": "Hóc Môn",
+    "nhabe": "Nhà Bè",
+    "cangio": "Cần Giờ",
+    "cuchi": "Củ Chi",
+}
