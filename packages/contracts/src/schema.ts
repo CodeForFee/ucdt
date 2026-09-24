@@ -96,7 +96,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Alerts */
+        /**
+         * List Alerts
+         * @description Active per-unit alerts (§F), newest first, critical before warning within a run. Rows of the
+         *     pre-S-002 types (the dropped always-on `system` / `info` alert) are not served.
+         */
         get: operations["list_alerts"];
         put?: never;
         post?: never;
@@ -134,9 +138,30 @@ export interface paths {
         put?: never;
         /**
          * Simulate
-         * @description Live what-if against the latest weather/flood/aqi snapshots (what legacy runSimulation fetched).
+         * @description What-if (§G, Algorithm 2 step 7): scoring, alerts and ℛ re-run on the counterfactual state
+         *     built from the latest flood, heat and aqi snapshots.
          */
         post: operations["simulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/maturity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Maturity
+         * @description Algorithm 1 evaluated now on the stored history (§H line 8).
+         */
+        get: operations["maturity"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -205,6 +230,11 @@ export interface components {
              * @description true when the snapshot is older than STALE_AFTER_MINUTES
              */
             stale: boolean;
+            /**
+             * Modelversion
+             * @description model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)
+             */
+            modelVersion: string;
             /** Aqi */
             aqi: number;
             /** Category */
@@ -222,10 +252,15 @@ export interface components {
              * @enum {string}
              */
             trend: "increasing" | "decreasing" | "stable";
-            /** Forecast24H */
+            /**
+             * Forecast24H
+             * @description uses the fitted γ while S2 is active (§H)
+             */
             forecast24h: components["schemas"]["AQIForecastItem"][];
             /** Stations */
             stations: components["schemas"]["AQIStation"][];
+            /** Observedstations */
+            observedStations: components["schemas"]["ObservedStation"][];
         } & {
             [key: string]: unknown;
         };
@@ -246,18 +281,21 @@ export interface components {
         };
         /** Alert */
         Alert: {
-            /** Id */
+            /**
+             * Id
+             * @description <hazard>:<unitId>:<warning|critical>:<YYYY-MM-DDTHH local>
+             */
             id: string;
             /**
              * Severity
              * @enum {string}
              */
-            severity: "info" | "warning" | "critical";
+            severity: "warning" | "critical";
             /**
              * Type
              * @enum {string}
              */
-            type: "flood" | "aqi" | "heat" | "storm" | "system";
+            type: "flood" | "storm" | "aqi" | "heat";
             /** Title */
             title: string;
             /** Message */
@@ -278,6 +316,60 @@ export interface components {
             /** Totalcount */
             totalCount: number;
         };
+        /** BandChange */
+        BandChange: {
+            /** Unitid */
+            unitId: string;
+            /** Name */
+            name: string;
+            /** Before */
+            before: string;
+            /** After */
+            after: string;
+        };
+        /** BandChanges */
+        BandChanges: {
+            /**
+             * Flood
+             * @description bands low / medium / high / critical
+             */
+            flood: components["schemas"]["BandChange"][];
+            /**
+             * Heat
+             * @description bands low / moderate / high / extreme
+             */
+            heat: components["schemas"]["BandChange"][];
+            /**
+             * Aqi
+             * @description AQI level codes good … hazardous
+             */
+            aqi: components["schemas"]["BandChange"][];
+        };
+        /**
+         * Counterfactual
+         * @description Algorithm 2 steps 3–6 re-run on the counterfactual state (§G).
+         */
+        Counterfactual: {
+            /**
+             * Recommendations
+             * @description top k, same shape as /v1/recommend
+             */
+            recommendations: components["schemas"]["Recommendation"][];
+            /** Firedcount */
+            firedCount: number;
+            /** Alerts */
+            alerts: components["schemas"]["SimAlert"][];
+            bandChanges: components["schemas"]["BandChanges"];
+        };
+        /** Criterion */
+        Criterion: {
+            /** Name */
+            name: string;
+            /** Current */
+            current: number;
+            /** Required */
+            required: number;
+        };
         /** FloodArea */
         FloodArea: {
             /** Id */
@@ -297,6 +389,16 @@ export interface components {
             riskScore: number;
             /** Estimateddepth */
             estimatedDepth: number;
+            /**
+             * Rainfall
+             * @description P(i), mm/h at the zone's own coordinate
+             */
+            rainfall: number;
+            /**
+             * Decomposition
+             * @description Σ contribution = R_f(i) before the clamp
+             */
+            decomposition: components["schemas"]["FloodTerm"][];
             geojson: components["schemas"]["FloodGeoJSONFeature"];
         } & {
             [key: string]: unknown;
@@ -328,6 +430,11 @@ export interface components {
              * @description true when the snapshot is older than STALE_AFTER_MINUTES
              */
             stale: boolean;
+            /**
+             * Modelversion
+             * @description model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)
+             */
+            modelVersion: string;
             /** Overallrisk */
             overallRisk: string;
             /** Riskscore */
@@ -335,26 +442,137 @@ export interface components {
             /** Affectedareas */
             affectedAreas: components["schemas"]["FloodArea"][];
             triggers: components["schemas"]["FloodTriggers"];
+            /**
+             * Decomposition
+             * @description city level; Σ contribution = R_f before the clamp
+             */
+            decomposition: components["schemas"]["FloodTerm"][];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * FloodTerm
+         * @description One R_f term ready to render (§B, B-014): the web holds no PDIM weight.
+         */
+        FloodTerm: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "rainfall" | "terrain" | "imperviousness" | "drainage";
+            /**
+             * Weight
+             * @description w_i > 0
+             */
+            weight: number;
+            /**
+             * Normalized
+             * @description x̃_i in [0, 1]
+             */
+            normalized: number;
+            /**
+             * Contribution
+             * @description w_i·x̃_i; negative for drainage
+             */
+            contribution: number;
         } & {
             [key: string]: unknown;
         };
         /** FloodTriggers */
         FloodTriggers: {
-            /** Currentrainfall */
+            /**
+             * Currentrainfall
+             * @description city-centre P, mm/h
+             */
             currentRainfall: number;
-            /** Soilsaturation */
-            soilSaturation: number;
-            /** Drainagecapacity */
-            drainageCapacity: number;
-            /** Terrainsensitivity */
+            /**
+             * Terrainsensitivity
+             * @description mean T̃ over the 18 zones
+             */
             terrainSensitivity: number;
+            /**
+             * Imperviousness
+             * @description mean Ĩ over the 18 zones
+             */
+            imperviousness: number;
+            /**
+             * Drainagecapacity
+             * @description mean D̃ over the 18 zones
+             */
+            drainageCapacity: number;
         } & {
             [key: string]: unknown;
+        };
+        /** GammaEstimate */
+        GammaEstimate: {
+            /**
+             * Value
+             * @description estimate clamped to [0, 1]
+             */
+            value: number;
+            /**
+             * Estimate
+             * @description OLS estimate, unclamped
+             */
+            estimate: number;
+            /** Se */
+            se: number;
+            /**
+             * Ci95
+             * @description [lo, hi] around the unclamped estimate
+             */
+            ci95: number[];
+        };
+        /** GammaEstimates */
+        GammaEstimates: {
+            gammaWind: components["schemas"]["GammaEstimate"];
+            gammaRain: components["schemas"]["GammaEstimate"];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HazardMaturity */
+        HazardMaturity: {
+            /**
+             * Hazard
+             * @enum {string}
+             */
+            hazard: "flood" | "heat" | "aqi";
+            /**
+             * Active
+             * @enum {string}
+             */
+            active: "S1" | "S2" | "S3";
+            /** Modelversion */
+            modelVersion: string;
+            stages: components["schemas"]["Stages"];
+            /**
+             * S1Maeholdout
+             * @description S1 one-step holdout MAE where V exists
+             */
+            s1MaeHoldout: number | null;
+            /** @description S2 fit when eligible and fitted */
+            s2: components["schemas"]["S2Fit"] | null;
+        };
+        /**
+         * HeatBaselines
+         * @description What-if reference state (§C); the heat sliders start here.
+         */
+        HeatBaselines: {
+            /**
+             * Density
+             * @description ρ₀ = mean builtUp over the 22 cells, 0–1
+             */
+            density: number;
+            /**
+             * Greenpct
+             * @description G₀ = mean green cover over the 22 cells, %
+             */
+            greenPct: number;
+        } & {
+            [key: string]: unknown;
         };
         /** HeatFeature */
         HeatFeature: {
@@ -418,18 +636,33 @@ export interface components {
              * @description true when the snapshot is older than STALE_AFTER_MINUTES
              */
             stale: boolean;
+            /**
+             * Modelversion
+             * @description model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)
+             */
+            modelVersion: string;
             /** City */
             city: string;
             /** Timestamp */
             timestamp: string;
-            /** Avgtemperature */
+            /**
+             * Avgtemperature
+             * @description city-centre AIR temperature, °C
+             */
             avgTemperature: number;
-            /** Maxtemperature */
+            /**
+             * Maxtemperature
+             * @description max T_eff(i), °C
+             */
             maxTemperature: number;
             /** Heatislandintensity */
             heatIslandIntensity: number;
-            /** Avgeffectivetemperature */
-            avgEffectiveTemperature?: number | null;
+            /**
+             * Avgeffectivetemperature
+             * @description mean T_eff(i), the heat what-if baseline (B-020)
+             */
+            avgEffectiveTemperature: number;
+            baselines: components["schemas"]["HeatBaselines"];
             /** Hotspots */
             hotspots: components["schemas"]["HeatHotspot"][];
             geojson: components["schemas"]["HeatGeoJSON"];
@@ -461,6 +694,55 @@ export interface components {
              */
             marked: number;
         };
+        /** MaturityResponse */
+        MaturityResponse: {
+            /** Evaluatedat */
+            evaluatedAt: string;
+            /** Windowdays */
+            windowDays: number;
+            /** Deltaaqi */
+            deltaAqi: number;
+            /** Hazards */
+            hazards: components["schemas"]["HazardMaturity"][];
+        };
+        /**
+         * ObservedStation
+         * @description Open monitoring network station (§I.3), served apart from the CAMS points; feeds §H.
+         */
+        ObservedStation: {
+            /**
+             * Id
+             * @description ag:<locationId>
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /**
+             * Aqi
+             * @description US AQI from the station's PM2.5
+             */
+            aqi: number;
+            /**
+             * Pm25
+             * @description µg/m³
+             */
+            pm25: number;
+            /** Observedat */
+            observedAt: string;
+            /** Source */
+            source: string;
+            /**
+             * Nearestpointid
+             * @description nearest AQI point (§A.4)
+             */
+            nearestPointId: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** PointGeometry */
         PointGeometry: {
             /** Type */
@@ -491,8 +773,21 @@ export interface components {
              * @description true when the snapshot is older than STALE_AFTER_MINUTES
              */
             stale: boolean;
-            /** Recommendations */
+            /**
+             * Modelversion
+             * @description model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)
+             */
+            modelVersion: string;
+            /**
+             * Recommendations
+             * @description top k = 10 by π desc
+             */
             recommendations: components["schemas"]["Recommendation"][];
+            /**
+             * Firedcount
+             * @description all fired (r, i), before the top-k cut
+             */
+            firedCount: number;
             /** Summary */
             summary: string;
             /**
@@ -505,11 +800,34 @@ export interface components {
         };
         /** Recommendation */
         Recommendation: {
-            /** Id */
+            /**
+             * Id
+             * @description <ruleId>:<unitId>
+             */
             id: string;
             /** Ruleid */
             ruleId: string;
-            /** Priorityscore */
+            /** Unitid */
+            unitId: string;
+            /**
+             * Unitname
+             * @description toponym
+             */
+            unitName: string;
+            /**
+             * Unitkind
+             * @enum {string}
+             */
+            unitKind: "flood_zone" | "heat_cell" | "aqi_point" | "city";
+            /**
+             * Commune
+             * @description official 2025 commune containing the unit (§A.3): data/API only, never rendered
+             */
+            commune: string | null;
+            /**
+             * Priorityscore
+             * @description π(r, i) = S(b)·E(i)·F(a)
+             */
             priorityScore: number;
             /**
              * Priority
@@ -529,12 +847,53 @@ export interface components {
             actionItems: string[];
             /** Timestamp */
             timestamp: string;
-            /** Inputs */
-            inputs: {
-                [key: string]: unknown;
-            };
+            inputs: components["schemas"]["RecommendationInputs"];
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * RecommendationInputs
+         * @description The unit's value(s) the rule fired on (flood: riskScore, rainfall; R-COMB-01: riskScore, aqi,
+         *     aqiPointId; AQI: aqi; heat: effectiveTemperature) + the π(r, i) factors. R-NORM-00 carries only
+         *     severityBand "none".
+         */
+        RecommendationInputs: {
+            /** Severityband */
+            severityBand: string;
+            /**
+             * Exposuree
+             * @description E(i) = clamp(builtUp(i), 0.1, 1)
+             */
+            exposureE?: number | null;
+            /**
+             * Feasibilityfa
+             * @description F(a)
+             */
+            feasibilityFa?: number | null;
+            /** Riskscore */
+            riskScore?: number | null;
+            /** Rainfall */
+            rainfall?: number | null;
+            /** Aqi */
+            aqi?: number | null;
+            /** Aqipointid */
+            aqiPointId?: string | null;
+            /** Effectivetemperature */
+            effectiveTemperature?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** S2Fit */
+        S2Fit: {
+            estimates: components["schemas"]["GammaEstimates"];
+            /** Maeholdout */
+            maeHoldout: number | null;
+            /** Ntrain */
+            nTrain: number;
+            /** Nholdout */
+            nHoldout: number;
+            /** Promoted */
+            promoted: boolean;
         };
         /**
          * Scenario
@@ -568,6 +927,36 @@ export interface components {
              */
             urbanDensity?: number | null;
         };
+        /**
+         * SimAlert
+         * @description An alert that WOULD fire on the counterfactual state (returned, never persisted).
+         */
+        SimAlert: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "flood" | "storm" | "aqi" | "heat";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "warning" | "critical";
+            /** Unitid */
+            unitId: string;
+            /** Unitname */
+            unitName: string;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /** Createdat */
+            createdAt: string;
+            /** Expiresat */
+            expiresAt: string;
+        };
         /** SimComparison */
         SimComparison: {
             before: components["schemas"]["SimComparisonSide"];
@@ -590,10 +979,24 @@ export interface components {
             tempDelta: number;
             /** Aqidelta */
             aqiDelta: number;
-            /** Affectedbuildings */
-            affectedBuildings: number;
-            /** Affectedpopulation */
-            affectedPopulation: number;
+            /**
+             * Stations
+             * @description per AQI point: AQI_sim(i) (§D)
+             */
+            stations: components["schemas"]["SimStation"][];
+        };
+        /** SimStation */
+        SimStation: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Before */
+            before: number;
+            /** After */
+            after: number;
+            /** Delta */
+            delta: number;
         };
         /** SimulationRequest */
         SimulationRequest: {
@@ -612,6 +1015,22 @@ export interface components {
             status: string;
             results: components["schemas"]["SimResults"];
             comparison: components["schemas"]["SimComparison"];
+            counterfactual: components["schemas"]["Counterfactual"];
+        };
+        /** Stage */
+        Stage: {
+            /** Eligible */
+            eligible: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Criteria */
+            criteria: components["schemas"]["Criterion"][];
+        };
+        /** Stages */
+        Stages: {
+            S1: components["schemas"]["Stage"];
+            S2: components["schemas"]["Stage"];
+            S3: components["schemas"]["Stage"];
         };
         /** ValidationError */
         ValidationError: {
@@ -674,6 +1093,11 @@ export interface components {
              * @description true when the snapshot is older than STALE_AFTER_MINUTES
              */
             stale: boolean;
+            /**
+             * Modelversion
+             * @description model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)
+             */
+            modelVersion: string;
             current: components["schemas"]["WeatherCurrent"];
             /** Forecast */
             forecast: components["schemas"]["WeatherForecastItem"][];
@@ -707,7 +1131,7 @@ export interface operations {
                     "application/json": components["schemas"]["WeatherLatest"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -734,7 +1158,7 @@ export interface operations {
                     "application/json": components["schemas"]["AQILatest"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -761,7 +1185,7 @@ export interface operations {
                     "application/json": components["schemas"]["FloodLatest"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -788,7 +1212,7 @@ export interface operations {
                     "application/json": components["schemas"]["HeatLatest"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -815,7 +1239,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecommendLatest"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -908,12 +1332,32 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description no snapshot yet */
+            /** @description no snapshot yet, or none in the current (S-002) shape */
             503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    maturity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaturityResponse"];
+                };
             };
         };
     };
