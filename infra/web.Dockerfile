@@ -6,6 +6,7 @@ WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --filter web...
+COPY packages/contracts packages/contracts
 COPY apps/web apps/web
 # VITE_* are baked into the bundle — public values, never secrets (see infra/.env.example).
 ARG VITE_MAPBOX_TOKEN
