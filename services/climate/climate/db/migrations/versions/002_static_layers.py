@@ -1,16 +1,15 @@
-"""Toponym renames (spec §A.1) + static layers (spec §A.2–§A.3) merged into spatial_units.props.
+"""Toponym renames of the 12 heat cells that carried former district names (spec §A.1).
+
+The static layers (spec §A.2–§A.4) are NOT copied into the DB: runtime reads the committed
+climate/spatial/derived.json through climate.spatial.catalogue, one source of truth.
 
 Revision ID: 002
 Revises: 001
 Create Date: 2026-09-24
 """
 
-import json
-
 import sqlalchemy as sa
 from alembic import op
-
-from climate.spatial.catalogue import DERIVED_PATH
 
 revision = "002"
 down_revision = "001"
@@ -32,25 +31,12 @@ RENAMES = {  # id: (legacy name, toponym)
     "cangio": ("Cần Giờ", "Cần Thạnh"),
     "cuchi": ("Củ Chi", "Tây Bắc"),
 }
-# The derived.json keys this revision adds to props; downgrade removes exactly these.
-KEYS = ["builtUp", "commune", "commune_osm_id", "elevation_m", "green", "roadDensity", "slope_pct", "water"]
-
 RENAME = sa.text("UPDATE spatial_units SET name = :name WHERE id = :id")
 
 
 def upgrade() -> None:
-    # ponytail: like 001 reading units.py, this reads the live derived.json, so re-deriving
-    # changes what a fresh `upgrade 002` merges. Add a 003 when derived.json is re-derived.
-    units = json.loads(DERIVED_PATH.read_text(encoding="utf-8"))["units"]
-    conn = op.get_bind()
-    conn.execute(RENAME, [{"id": i, "name": new} for i, (_, new) in RENAMES.items()])
-    conn.execute(
-        sa.text("UPDATE spatial_units SET props = props || CAST(:props AS jsonb) WHERE id = :id"),
-        [{"id": i, "props": json.dumps({k: row[k] for k in KEYS if k in row})} for i, row in units.items()],
-    )
+    op.get_bind().execute(RENAME, [{"id": i, "name": new} for i, (_, new) in RENAMES.items()])
 
 
 def downgrade() -> None:
-    conn = op.get_bind()
-    conn.execute(RENAME, [{"id": i, "name": old} for i, (old, _) in RENAMES.items()])
-    conn.execute(sa.text("UPDATE spatial_units SET props = props - CAST(:keys AS text[])"), {"keys": KEYS})
+    op.get_bind().execute(RENAME, [{"id": i, "name": old} for i, (old, _) in RENAMES.items()])

@@ -9,8 +9,9 @@ district names to the toponym of the AQI point at the same coordinates (ids unch
 
 localDrain, terrain and urbanDensity are EXPERT-JUDGEMENT constants, not measurements.
 localDrain is still live, as D̃ (no open drainage dataset exists for HCMC, spec §B).
-terrain and urbanDensity are used ONLY by the legacy-parity tests (catalogue.legacy_catalogue);
-the model reads the measured static layers in derived.json instead (spec §A.2, §B, §C).
+terrain and urbanDensity are superseded by the measured static layers in derived.json (spec
+§A.2, §B, §C; read through climate.spatial.catalogue); once the processing layer switches over
+(T-103) they stay only for the legacy-parity tests (catalogue.legacy_catalogue).
 """
 
 from typing import Final
@@ -167,8 +168,8 @@ FLOOD_ZONES: Final = (
     },
 )
 
-# 22 heat cells. urbanDensity (0–1) is the legacy expert constant, kept for the parity tests only;
-# ρ(i) = builtUp(i) from WorldCover replaces it (spec §C).
+# 22 heat cells. urbanDensity (0–1) is the legacy expert constant; ρ(i) = builtUp(i) from
+# WorldCover replaces it (spec §C, T-103).
 HEAT_CELLS: Final = (
     # Central core — very high density
     {"id": "q1", "name": "Bến Nghé", "lat": 10.7769, "lng": 106.7009, "urbanDensity": 0.97},
@@ -232,21 +233,3 @@ ALL_UNITS: Final = (
     *({"kind": "heat_cell", **c} for c in HEAT_CELLS),
     *({"kind": "aqi_point", **p} for p in AQI_POINTS),
 )
-
-# Former names of the 12 heat cells renamed by S-002 §A.1. Exists ONLY for the legacy-parity
-# fixture (tests/fixtures/parity.json keeps the legacy TS backend's names) and migration 002's
-# downgrade; never display these.
-LEGACY_HEAT_NAMES: Final = {
-    "binhthanh": "Bình Thạnh",
-    "phunhuan": "Phú Nhuận",
-    "tanbinh": "Tân Bình",
-    "tanphu": "Tân Phú",
-    "govap": "Gò Vấp",
-    "binhtan": "Bình Tân",
-    "thuduc": "Thủ Đức",
-    "binhchanh": "Bình Chánh",
-    "hocmon": "Hóc Môn",
-    "nhabe": "Nhà Bè",
-    "cangio": "Cần Giờ",
-    "cuchi": "Củ Chi",
-}

@@ -109,7 +109,9 @@ def load_catalogue(path: Path = DERIVED_PATH) -> Catalogue:
     data = _read(path)
     d = data["units"]
     return Catalogue(
-        flood_zones=tuple(FloodZone(**_base(z, d[z["id"]]), local_drain=z["localDrain"]) for z in FLOOD_ZONES),
+        flood_zones=tuple(
+            FloodZone(**_base(z, d[z["id"]]), local_drain=z["localDrain"]) for z in FLOOD_ZONES
+        ),
         heat_cells=tuple(HeatCell(**_base(c, d[c["id"]])) for c in HEAT_CELLS),
         aqi_points=tuple(
             AqiPoint(**_base(p, d[p["id"]]), road_density=d[p["id"]]["roadDensity"]) for p in AQI_POINTS
@@ -154,5 +156,7 @@ def legacy_catalogue() -> Catalogue:
         aqi_points=tuple(AqiPoint(**base(p), road_density=1.0) for p in AQI_POINTS),
         flood_to_aqi=derived.flood_to_aqi,
         reference_bounds=derived.reference_bounds,
-        provenance=_freeze({"source": "legacy expert constants (units.py localDrain, terrain, urbanDensity)"}),
+        provenance=_freeze(
+            {"source": "legacy expert constants (units.py localDrain, terrain, urbanDensity)"}
+        ),
     )

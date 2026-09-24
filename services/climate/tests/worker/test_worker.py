@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from climate.ingest import air, weather
 from climate.snapshots import ALERT_SNAPSHOT, HAZARDS
+from climate.spatial.units import HEAT_CELLS
 from climate.worker import main
 
 
@@ -25,6 +26,7 @@ def expected_mean_teff(raw_heat: dict) -> float:
 FIXTURE = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
 SCENARIO = next(s for s in FIXTURE["scenarios"] if s["id"] == "flood-plus-smog")
 NOW = datetime.fromisoformat(SCENARIO["now"])
+HEAT_NAMES = {c["id"]: c["name"] for c in HEAT_CELLS}  # S-002 §A.1; parity.json keeps legacy names
 
 
 def same(a, b):
@@ -104,7 +106,7 @@ async def test_ingest_writes_legacy_payloads_then_publishes(ctx):
             "heatIslandIntensity": raw_heat["uhiEffect"],
             "avgEffectiveTemperature": expected_mean_teff(raw_heat),
             "hotspots": [
-                {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
+                {"id": h["id"], "name": HEAT_NAMES[h["id"]], "lat": h["lat"], "lng": h["lng"]}
                 | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}
                 for h in raw_heat["hotspots"]
             ],
