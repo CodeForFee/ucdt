@@ -25,8 +25,8 @@ const DEFAULT_PARAMS: SimulationParams = {
   preset: "baseline",
   rainfallMultiplier: 1.0,
   trafficReduction: 0,
-  greenCoverage: 0.3,
-  urbanDensity: 0.8,
+  // greenCoverage / urbanDensity stay unset: the sliders sit at the SERVED G₀ / ρ₀ (§C)
+  // until moved, never at a hard-coded 30 % / 0.8.
   enable3D: true,
   showBuildings: true,
   city: "hcmc",

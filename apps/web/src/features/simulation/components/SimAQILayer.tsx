@@ -99,10 +99,10 @@ export function SimAQILayer({ map, result }: SimAQILayerProps) {
   const popupsRef = useRef<mapboxgl.Popup[]>([]);
   const tAqi = useTranslations("aqi");
 
-  // The backend's aqiDelta is a single city-aggregate number (Section 4.2 doesn't score
-  // per-station what-ifs). Broadcasting it to every marker is the DP3-safe simplification
-  // for a station-level heatmap; swap for a per-station API field if Stage 2 adds one.
+  // City marker: the served city-level aqiDelta. Point markers: the served per-point
+  // AQI_sim(i) from results.stations (§D) — never the city delta broadcast to every point.
   const aqiDelta = result?.results?.aqiDelta ?? null;
+  const simStations = result?.results?.stations;
 
   useEffect(() => {
     if (!map || !data) return;
@@ -112,14 +112,25 @@ export function SimAQILayer({ map, result }: SimAQILayerProps) {
     markersRef.current = [];
     popupsRef.current = [];
 
-    const points: Array<{ name: string; lat: number; lng: number; aqi: number; isCity?: boolean }> = [
-      { name: "TP. Hồ Chí Minh (Trung tâm)", lat: 10.7769, lng: 106.7009, aqi: data.aqi, isCity: true },
-      ...(data.stations ?? []).map((s) => ({ name: s.name, lat: s.lat, lng: s.lng, aqi: s.aqi })),
+    const simById = new Map((simStations ?? []).map((s) => [s.id, s]));
+    const points: Array<{ name: string; lat: number; lng: number; aqi: number; sim: number | null; isCity?: boolean }> = [
+      {
+        name: "TP. Hồ Chí Minh (Trung tâm)",
+        lat: 10.7769,
+        lng: 106.7009,
+        aqi: data.aqi,
+        sim: aqiDelta !== null ? Math.max(0, Math.round(data.aqi + aqiDelta)) : null,
+        isCity: true,
+      },
+      ...(data.stations ?? []).map((s) => {
+        const served = simById.get(s.id);
+        return { name: s.name, lat: s.lat, lng: s.lng, aqi: served?.before ?? s.aqi, sim: served?.after ?? null };
+      }),
     ];
 
     for (const point of points) {
       const base = point.aqi;
-      const simVal = aqiDelta !== null ? Math.max(0, Math.round(base + aqiDelta)) : null;
+      const simVal = point.sim;
 
       const isCity = !!point.isCity;
       const el = buildMarkerEl(base, simVal, isCity);
@@ -176,7 +187,7 @@ export function SimAQILayer({ map, result }: SimAQILayerProps) {
       markersRef.current = [];
       popupsRef.current = [];
     };
-  }, [map, data, aqiDelta, tAqi]);
+  }, [map, data, aqiDelta, simStations, tAqi]);
 
   return null;
 }

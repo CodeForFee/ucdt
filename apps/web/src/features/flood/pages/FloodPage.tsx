@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslations } from "use-intl";
 import { Droplets, MapPin, ArrowUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,18 +8,15 @@ import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import type { RiskLevel } from "@/shared/constants/riskLevels";
-import type { FloodData } from "@/shared/types/flood";
 import { RiskDecomposition } from "@/features/flood/components/RiskDecomposition";
-
-/** New climate-service `/latest` payloads may carry these; the legacy backend never
- *  sends them, so every read below is optional. */
-type WithFreshness<T> = T & { observedAt?: string; stale?: boolean };
 
 export default function FloodPage() {
   const { data, isLoading, isError, refetch } = useFloodRisk();
   const fp = useTranslations("floodPage");
   const c = useTranslations("cards");
-  const fresh = data as WithFreshness<FloodData> | undefined;
+  // null = the city-level decomposition; otherwise the id of the zone picked in the table.
+  const [zoneId, setZoneId] = useState<string | null>(null);
+  const zone = data?.affectedAreas.find((a) => a.id === zoneId);
 
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
@@ -29,7 +27,7 @@ export default function FloodPage() {
         </div>
         <div className="flex items-center gap-1.5">
           <DataSourceTag source={fp("source")} />
-          {fresh?.stale && (
+          {data?.stale && (
             <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
               {c("stale")}
             </span>
@@ -80,6 +78,7 @@ export default function FloodPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 text-muted-foreground font-medium">{fp("colArea")}</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">{fp("colRain")}</th>
                       <th className="text-right py-2 text-muted-foreground font-medium">{fp("colDepth")}</th>
                       <th className="text-right py-2 text-muted-foreground font-medium">{fp("colScore")}</th>
                       <th className="text-center py-2 text-muted-foreground font-medium">{fp("colLevel")}</th>
@@ -87,13 +86,19 @@ export default function FloodPage() {
                   </thead>
                   <tbody>
                     {data.affectedAreas.map((area) => (
-                      <tr key={area.id} className="border-b border-border/30 hover:bg-muted/20">
+                      <tr
+                        key={area.id}
+                        onClick={() => setZoneId(area.id)}
+                        aria-selected={area.id === zoneId}
+                        className={`border-b border-border/30 cursor-pointer hover:bg-muted/20 ${area.id === zoneId ? "bg-muted/30" : ""}`}
+                      >
                         <td className="py-2.5">
                           <div className="flex items-center gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                             {area.name}
                           </div>
                         </td>
+                        <td className="py-2.5 text-right font-mono text-muted-foreground">{area.rainfall.toFixed(1)}</td>
                         <td className="py-2.5 text-right font-mono">
                           <span className="flex items-center justify-end gap-1">
                             <ArrowUp className="h-3 w-3" />
@@ -110,7 +115,7 @@ export default function FloodPage() {
                     ))}
                     {data.affectedAreas.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">
+                        <td colSpan={5} className="py-6 text-center text-muted-foreground text-sm">
                           {fp("noZones")}
                         </td>
                       </tr>
@@ -125,9 +130,23 @@ export default function FloodPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">{fp("triggers")}</CardTitle>
               <p className="text-xs text-muted-foreground">{fp("triggersSub")}</p>
+              <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                <span className="font-medium">{zone ? zone.name : fp("decompCity")}</span>
+                {zone ? (
+                  <button type="button" onClick={() => setZoneId(null)} className="text-muted-foreground hover:text-foreground">
+                    {fp("backToCity")}
+                  </button>
+                ) : (
+                  <span className="text-muted-foreground">{fp("decompPick")}</span>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {data.triggers && <RiskDecomposition triggers={data.triggers} score={data.riskScore} />}
+              {zone ? (
+                <RiskDecomposition terms={zone.decomposition} score={zone.riskScore} rainfall={zone.rainfall} />
+              ) : (
+                <RiskDecomposition terms={data.decomposition} score={data.riskScore} rainfall={data.triggers.currentRainfall} />
+              )}
             </CardContent>
           </Card>
 

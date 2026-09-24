@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { RainfallSlider } from "../RainfallSlider";
 import { ComparePanel } from "../ComparePanel";
+import { ScenarioRecommendations } from "../ScenarioRecommendations";
+import { GreenCoverageSlider } from "../shared/BaselineSliders";
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useFloodRisk } from "@/shared/hooks/useFloodRisk";
@@ -126,9 +128,7 @@ function FloodSimPreview({ result }: { result?: SimulationResult }) {
   const baseLbl = riskLabel(baseScore, tr);
   const simLbl = riskLabel(simScore, tr);
 
-  const rainfall = data.triggers?.currentRainfall ?? 0;
-  const drainage = data.triggers?.drainageCapacity ?? 0;
-  const soil = data.triggers?.soilSaturation ?? 0;
+  const { currentRainfall: rainfall, terrainSensitivity: terrain, imperviousness, drainageCapacity: drainage } = data.triggers;
 
   return (
     <div className="rounded-xl border border-border bg-muted/20 overflow-hidden shadow-inner">
@@ -188,8 +188,9 @@ function FloodSimPreview({ result }: { result?: SimulationResult }) {
         <div className="grid grid-cols-1 gap-2">
           {[
             { icon: <Droplets className="h-3 w-3" />, label: sp("rainfall"), value: rainfall.toFixed(1), unit: "mm/h", color: "text-blue-400" },
-            { icon: <span className="text-[8px] text-green-500">G</span>, label: sp("drainage"), value: Math.round(drainage * 100), unit: "%", color: "text-green-400" },
-            { icon: <span className="text-[8px] text-orange-500">S</span>, label: sp("soilSat"), value: Math.round(soil * 100), unit: "%", color: "text-orange-400" },
+            { icon: <span className="text-[8px] text-amber-500">T</span>, label: sp("terrain"), value: Math.round(terrain * 100), unit: "%", color: "text-amber-400" },
+            { icon: <span className="text-[8px] text-orange-500">I</span>, label: sp("imperviousness"), value: Math.round(imperviousness * 100), unit: "%", color: "text-orange-400" },
+            { icon: <span className="text-[8px] text-green-500">D</span>, label: sp("drainage"), value: Math.round(drainage * 100), unit: "%", color: "text-green-400" },
           ].map((item) => (
             <div key={item.label} className="flex items-center justify-between group">
               <div className="flex items-center gap-2">
@@ -229,6 +230,7 @@ export function FloodSidebar({ result, isPending, onRun, onReset }: FloodSidebar
         <p className="text-xs text-muted-foreground">{ts("floodDesc")}</p>
 
         <FloodSimPreview result={result} />
+        <ScenarioRecommendations result={result} />
 
         <RainfallSlider
           label={sl("rainfall")}
@@ -240,24 +242,16 @@ export function FloodSidebar({ result, isPending, onRun, onReset }: FloodSidebar
           onChange={(v) => setParams({ rainfallMultiplier: v / 100 })}
           description={sl("rainfallDesc")}
         />
-        <RainfallSlider
-          label={sl("greenCoverage")}
-          value={Math.round(params.greenCoverage * 100)}
-          min={0}
-          max={80}
-          step={5}
-          unit="%"
-          onChange={(v) => setParams({ greenCoverage: v / 100 })}
-          description={sl("greenCoverageFloodDesc")}
-        />
+        <GreenCoverageSlider description={sl("greenCoverageFloodDesc")} />
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{ts("quickScenario")}</label>
           <div className="grid grid-cols-1 gap-1.5">
             {[
-              { label: sc("floodLight"), rf: 1.5, gc: 0.3 },
-              { label: sc("floodHeavy"), rf: 2.5, gc: 0.3 },
-              { label: sc("floodExtreme"), rf: 3.0, gc: 0.3 },
+              // gc undefined = green cover left at the served G₀
+              { label: sc("floodLight"), rf: 1.5, gc: undefined },
+              { label: sc("floodHeavy"), rf: 2.5, gc: undefined },
+              { label: sc("floodExtreme"), rf: 3.0, gc: undefined },
               { label: sc("floodGreen"), rf: 1.0, gc: 0.6 },
               { label: sc("floodGreenHeavy"), rf: 2.0, gc: 0.6 },
             ].map((p) => (

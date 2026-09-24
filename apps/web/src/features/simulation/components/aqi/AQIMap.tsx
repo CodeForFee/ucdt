@@ -7,6 +7,7 @@ import { MapControls } from "../shared/MapControls";
 import { MapBootOverlay } from "@/shared/components/map/MapBootOverlay";
 import { useFocusPoint } from "../shared/useFocusPoint";
 import { SimAQILayer } from "../SimAQILayer";
+import { ObservedStationsLayer } from "../ObservedStationsLayer";
 import { WindParticleLayer } from "../WindParticleLayer";
 import { AQILegend } from "../AQILegend";
 import type { SimulationResult } from "@/shared/types/simulation";
@@ -120,6 +121,7 @@ export function AQIMap({ result }: AQIMapProps) {
         <>
           <WindParticleLayer map={map} />
           {result && <SimAQILayer map={map} result={result} />}
+          <ObservedStationsLayer map={map} />
         </>
       )}
 

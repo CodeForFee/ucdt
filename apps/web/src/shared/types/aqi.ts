@@ -1,40 +1,11 @@
-export interface AQIData {
-  aqi: number;
-  category: string;
-  pm25: number;
-  pm10: number;
-  o3: number;
-  no2: number;
-  trend: "increasing" | "decreasing" | "stable";
-  forecast24h: AQIForecastItem[];
-  stations: AQIStation[];
-  // optional fields from the air-quality detail page
-  dominantPollutant?: string;
-  trend7d?: AQITrendPoint[];
-  hourlyPattern?: HourlyAQIPattern[];
-}
+import type { components } from "@ucdt/contracts";
 
-export interface AQIForecastItem {
-  hour: string;
-  aqi: number;
-}
+type S = components["schemas"];
 
-export interface AQIStation {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  aqi: number;
-  category?: string;
-}
-
-export interface AQITrendPoint {
-  date: string;
-  aqi: number;
-}
-
-export interface HourlyAQIPattern {
-  hour: number;
-  day: string;
-  aqi: number;
-}
+/** `GET /api/aqi` — generated from the climate OpenAPI (packages/contracts). */
+export type AQIData = S["AQILatest"];
+export type AQIForecastItem = S["AQIForecastItem"];
+/** A CAMS-gridded AQI point (one of the 23 units). */
+export type AQIStation = S["AQIStation"];
+/** An open-monitoring-network station (AirGradient, §I.3) — observed, not modelled. */
+export type ObservedStation = S["ObservedStation"];

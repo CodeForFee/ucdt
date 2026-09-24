@@ -1,10 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, LayoutDashboard, Map, FlaskConical, Droplets } from "lucide-react";
+import { Activity, LayoutDashboard, Map, FlaskConical, Droplets, ListChecks } from "lucide-react";
 import { useTranslations } from "use-intl";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLocaleStore } from "@/shared/stores/localeStore";
 import { ThemeToggle } from "./ThemeToggle";
+import { AlertsBell } from "./AlertsBell";
 
 export function Header() {
   const t = useTranslations("nav");
@@ -12,14 +13,15 @@ export function Header() {
   const { pathname } = useLocation();
   const [currentTime, setCurrentTime] = useState("");
 
-  // Air quality and alerts already live on the dashboard (AQISummaryCard /
-  // AlertsSummaryCard) so they don't get their own tab — BOARD Decision 2026-09-14.
-  // Their detail pages stay reachable by URL.
+  // Five tabs (user decision 2026-09-24, T-105; replaces the 4-tab Decision of 2026-09-14):
+  // ranked recommendations get their own tab, alerts live in the header bell. Air quality
+  // and alerts keep detail pages reachable by URL.
   const NAV_ITEMS = [
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { href: "/map", label: t("map"), icon: Map },
     { href: "/simulation", label: t("simulation"), icon: FlaskConical },
     { href: "/flood", label: t("flood"), icon: Droplets },
+    { href: "/recommendations", label: t("recommendations"), icon: ListChecks },
   ];
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export function Header() {
           </button>
         </div>
 
+        <AlertsBell />
         <ThemeToggle />
       </div>
     </header>

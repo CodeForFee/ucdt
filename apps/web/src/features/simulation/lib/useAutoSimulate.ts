@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSimulation } from "@/shared/hooks/useSimulation";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
+import { useHeatMap } from "@/shared/hooks/useHeatMap";
 import { useCityStore } from "@/shared/stores/cityStore";
 import type { SimulationRequest, SimulationResult } from "@/shared/types/simulation";
 import { buildScenarioRequest, type ScenarioKind } from "./scenarioRequest";
@@ -24,12 +25,14 @@ const DEBOUNCE_MS = 150;
 export function useAutoSimulate(scenario: ScenarioKind) {
   const params = useSimulationStore((s) => s.params);
   const cityId = useCityStore((s) => s.selectedCity.id);
+  // ΔG is measured against the served G₀ (heat baselines, §C) — every scenario's green lever.
+  const baselines = useHeatMap().data?.baselines;
   const simulation = useSimulation();
   const { mutate } = simulation;
   const [settled, setSettled] = useState<SimulationResult | undefined>(undefined);
   const seq = useRef(0);
 
-  const request = buildScenarioRequest(scenario, cityId, params);
+  const request = buildScenarioRequest(scenario, cityId, params, baselines);
   const requestKey = JSON.stringify(request);
 
   const run = (body: SimulationRequest) => {

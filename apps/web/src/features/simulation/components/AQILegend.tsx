@@ -25,6 +25,10 @@ export function AQILegend() {
             <span className="inline-block w-3 h-3 rounded-full border-2 border-yellow-400 bg-gray-400" />
             {al("simulated")}
           </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-full border-2 border-dashed border-slate-900 bg-white" />
+            {al("observed")}
+          </span>
         </div>
       </div>
 

@@ -18,17 +18,15 @@ const TYPE_ICONS: Record<Alert["type"], React.ComponentType<{ className?: string
   aqi: Wind,
   heat: Thermometer,
   storm: AlertTriangle,
-  system: Bell,
 };
 
+// Per-unit alerts (§F): warning / critical only — the legacy "system" info alert is gone.
 const SEVERITY_STYLES: Record<Alert["severity"], string> = {
-  info: "border-l-blue-500 bg-blue-500/5",
   warning: "border-l-yellow-500 bg-yellow-500/5",
   critical: "border-l-red-500 bg-red-500/5",
 };
 
 const SEVERITY_BADGE: Record<Alert["severity"], string> = {
-  info: "bg-blue-500/20 text-blue-400",
   warning: "bg-yellow-500/20 text-yellow-400",
   critical: "bg-red-500/20 text-red-400",
 };
@@ -39,7 +37,6 @@ function AlertCard({ alert }: { alert: Alert }) {
   const ap = useTranslations("alertsPage");
 
   const SEVERITY_LABELS: Record<Alert["severity"], string> = {
-    info: ap("info"),
     warning: ap("warning"),
     critical: ap("urgent"),
   };
