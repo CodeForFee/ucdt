@@ -13,7 +13,9 @@ interface HeatMapProps {
 
 export function HeatMap({ result }: HeatMapProps) {
   const ts = useTranslations("simulation");
-  const { containerRef, map, styleKey, setStyleKey, resetView, reset3DView } = useSimMap();
+  // Manuscript (heat what-if module): its sliders sit "trên nền bản đồ vệ tinh" (on the
+  // satellite basemap) — land cover is what the density/green levers act on.
+  const { containerRef, map, styleKey, setStyleKey, resetView, reset3DView } = useSimMap("satellite");
   useFocusPoint(map);
 
   return (

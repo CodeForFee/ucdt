@@ -225,6 +225,7 @@
     "preview": {
       "floodTitle": "Flood risk forecast",
       "heatTitle": "Temperature simulation forecast",
+      "heatBasis": "Mean perceived temperature over {count} cells · T_eff = HI(T, RH) + ρ·3.5 °C · ΔT = −0.15·ΔG + 3.5·(ρ − 0.8)",
       "aqiTitle": "AQI simulation forecast",
       "current": "Current",
       "simulated": "Simulated",

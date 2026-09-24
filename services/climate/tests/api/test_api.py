@@ -11,6 +11,16 @@ import pytest
 from climate.db import repo
 from climate.pdim.simulation import run_simulation
 
+
+def expected_mean_teff(raw_heat: dict) -> float:
+    """Independent of climate.pdim.heat: mean of the served 1-decimal cell T_eff, rounded
+    to 1 decimal like JS Math.round (floor(x + 0.5))."""
+    import math
+
+    temps = [h["effectiveTemperature"] for h in raw_heat["hotspots"]]
+    return math.floor(sum(temps) / len(temps) * 10 + 0.5) / 10
+
+
 FIXTURE = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
 SCENARIO = next(s for s in FIXTURE["scenarios"] if s["id"] == "rainy-extreme")
 
@@ -23,6 +33,7 @@ def heat_controller_shape(raw: dict) -> dict:
         "avgTemperature": raw["cityAvgTemp"],
         "maxTemperature": raw["cityMaxEffectiveTemp"],
         "heatIslandIntensity": raw["uhiEffect"],
+        "avgEffectiveTemperature": expected_mean_teff(raw),
         "hotspots": [
             {k: h[k] for k in ("id", "name", "lat", "lng")}
             | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}

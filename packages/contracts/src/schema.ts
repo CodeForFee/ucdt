@@ -428,6 +428,8 @@ export interface components {
             maxTemperature: number;
             /** Heatislandintensity */
             heatIslandIntensity: number;
+            /** Avgeffectivetemperature */
+            avgEffectiveTemperature?: number | null;
             /** Hotspots */
             hotspots: components["schemas"]["HeatHotspot"][];
             geojson: components["schemas"]["HeatGeoJSON"];

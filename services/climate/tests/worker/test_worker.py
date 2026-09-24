@@ -12,6 +12,16 @@ from climate.ingest import air, weather
 from climate.snapshots import ALERT_SNAPSHOT, HAZARDS
 from climate.worker import main
 
+
+def expected_mean_teff(raw_heat: dict) -> float:
+    """Independent of climate.pdim.heat: mean of the served 1-decimal cell T_eff, rounded
+    to 1 decimal like JS Math.round (floor(x + 0.5))."""
+    import math
+
+    temps = [h["effectiveTemperature"] for h in raw_heat["hotspots"]]
+    return math.floor(sum(temps) / len(temps) * 10 + 0.5) / 10
+
+
 FIXTURE = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
 SCENARIO = next(s for s in FIXTURE["scenarios"] if s["id"] == "flood-plus-smog")
 NOW = datetime.fromisoformat(SCENARIO["now"])
@@ -92,6 +102,7 @@ async def test_ingest_writes_legacy_payloads_then_publishes(ctx):
             "avgTemperature": raw_heat["cityAvgTemp"],
             "maxTemperature": raw_heat["cityMaxEffectiveTemp"],
             "heatIslandIntensity": raw_heat["uhiEffect"],
+            "avgEffectiveTemperature": expected_mean_teff(raw_heat),
             "hotspots": [
                 {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
                 | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}

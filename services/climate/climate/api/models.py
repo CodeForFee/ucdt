@@ -149,6 +149,9 @@ class HeatData(Out):
     avgTemperature: float
     maxTemperature: float
     heatIslandIntensity: float
+    # Mean effective temperature T_eff over the 22 heat cells — the baseline of the heat
+    # what-if (B-020). Optional only because snapshots written before it existed lack it.
+    avgEffectiveTemperature: float | None = None
     hotspots: list[HeatHotspot]
     geojson: HeatGeoJSON
 
