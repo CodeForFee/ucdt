@@ -6,13 +6,15 @@ alert ids are counters/timestamps, so they are compared by shape only.
 import json
 import math
 import re
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from climate.pdim import aqi, flood, geo, heat, risk, rules, simulation
+from climate.pdim import aqi, flood, geo, heat, risk, simulation
 from climate.pdim.constants import DEFAULT_CITY, get_aqi_category
+from climate.spatial.catalogue import legacy_catalogue, load_catalogue
 from climate.spatial.units import AQI_POINTS, HEAT_CELLS
 
 FIXTURE = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
@@ -74,6 +76,12 @@ def test_validate_scenario():
 
 
 # ── scenarios ────────────────────────────────────────────────────────────────
+# S-002 changed the flood model (per-zone P(i); Ĩ = WorldCover builtUp replaces the soil-saturation
+# proxy; city T̃/Ĩ/D̃ = zone means), the rule base (per unit, E(i) = builtUp) and the alerts (per-unit
+# band rises), so flood / recommend / alerts are tested against hand-computed values in
+# test_pdim_invariants.py, not here. The R_f formula itself keeps parity via the floodRiskScore grid.
+# Heat and AQI formulas are unchanged: with the LEGACY catalogue (ρ = urbanDensity) and every unit
+# on the city weather they reproduce the legacy payloads exactly.
 def _inputs(s):
     now = datetime.fromisoformat(s["now"])
     weather = s["inputs"]["weather"]
@@ -85,9 +93,8 @@ def _inputs(s):
 
     city = raw(DEFAULT_CITY["lat"], DEFAULT_CITY["lng"])
     stations = [raw(p["lat"], p["lng"]) for p in AQI_POINTS]
-    fl = flood.compute_flood(weather["current"]["rainfall"], s["month"])
     aq_out = aqi.compute_aqi(city, stations, weather["forecast"], now)
-    return now, weather, fl, aq_out
+    return now, weather, aq_out
 
 
 @pytest.fixture(params=sorted(SCENARIOS), ids=str)
@@ -96,43 +103,57 @@ def scenario(request):
     return s, *_inputs(s)
 
 
-def test_flood(scenario):
-    s, _, _, fl, _ = scenario
-    assert_same(fl, s["outputs"]["flood"], "flood")
+def heat_controller_shape(raw: dict) -> dict:
+    """Legacy heatController's reshape of heat.service output (what /api/heat served)."""
+    names = {c["id"]: c["name"] for c in HEAT_CELLS}  # S-002 §A.1 renames; parity.json keeps legacy names
+    temps = [h["effectiveTemperature"] for h in raw["hotspots"]]
+    return {
+        "city": "hcmc",
+        "timestamp": raw["timestamp"],
+        "avgTemperature": raw["cityAvgTemp"],
+        "maxTemperature": raw["cityMaxEffectiveTemp"],
+        "heatIslandIntensity": raw["uhiEffect"],
+        "avgEffectiveTemperature": math.floor(sum(temps) / len(temps) * 10 + 0.5) / 10,
+        "hotspots": [
+            {"id": h["id"], "name": names[h["id"]], "lat": h["lat"], "lng": h["lng"]}
+            | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}
+            for h in raw["hotspots"]
+        ],
+        "geojson": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [h["lng"], h["lat"]]},
+                    "properties": {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]},
+                }
+                for h in raw["hotspots"]
+            ],
+        },
+    }
 
 
 def test_heat(scenario):
-    s, now, weather, _, _ = scenario
-    want = s["outputs"]["heat"]
-    # S-002 §A.1 renamed 12 cells; parity.json keeps the legacy names, so expect units.py's by id.
-    names = {c["id"]: c["name"] for c in HEAT_CELLS}
-    want = want | {"hotspots": [h | {"name": names[h["id"]]} for h in want["hotspots"]]}
-    assert_same(heat.compute_heat(weather["current"], now), want, "heat")
+    s, now, weather, _ = scenario
+    cur = weather["current"]
+    legacy = legacy_catalogue()
+    # The legacy model had no green layer (NaN); G₀ is an S-002 addition, so give it a value.
+    cat = replace(legacy, heat_cells=tuple(replace(c, green=0.0) for c in legacy.heat_cells))
+    got = heat.compute_heat({c["id"]: cur for c in HEAT_CELLS}, cur, now, cat)
+    assert got.pop("baselines")["density"] == round(legacy.mean_built_up_heat, 3)  # S-002 addition
+    assert_same(got, heat_controller_shape(s["outputs"]["heat"]), "heat")
 
 
 def test_aqi(scenario):
-    s, _, _, _, aq = scenario
+    s, _, _, aq = scenario
+    assert aq.pop("observedStations") == []  # S-002 addition (§D), empty without open-network readings
     assert_same(aq, s["outputs"]["aqi"], "aqi")
 
 
-def test_recommend(scenario):
-    s, now, weather, fl, aq = scenario
-    assert_same(rules.recommendations(weather, fl, aq, now), s["outputs"]["recommend"], "recommend")
-
-
-def test_alerts_first_call(scenario):
-    s, now, weather, fl, aq = scenario
-    alerts = rules.new_alerts(weather, fl, aq, now, active=[])
-    got = {
-        "alerts": sorted(alerts, key=lambda a: a["createdAt"], reverse=True),
-        "unreadCount": sum(not a["isRead"] for a in alerts),
-        "totalCount": len(alerts),
-    }
-    assert_same(got, s["outputs"]["alertsFirstCall"], "alerts", shape_ids=True)
-
-
-def test_simulations(scenario):
-    s, now, weather, fl, aq = scenario
+def test_legacy_simulations(scenario):
+    """The S-001 what-if /v1/simulation still serves until T-104 switches it to run_counterfactual."""
+    s, now, weather, aq = scenario
+    fl = s["outputs"]["flood"]
     for i, sim in enumerate(s["outputs"]["simulations"]):
         sc = sim["request"]["scenario"]
         assert simulation.validate_scenario(sc) is None
@@ -141,6 +162,33 @@ def test_simulations(scenario):
         )
         assert_same(got, sim["result"], f"simulations[{i}]")
         assert got["simulationId"] == sim["result"]["simulationId"]  # counter = call order in a fresh process
+
+
+def test_counterfactual_keeps_city_aqi_and_green_temp_parity(scenario):
+    """§G kept two city-level formulas: ΔAQI (ṽ = 1, γ_p washout on the added rain) and, when the
+    density slider is untouched, ΔT = −α·ΔG. Everything else is per unit (test_pdim_invariants)."""
+    s, now, weather, aq = scenario
+    cur = weather["current"]
+    cat = load_catalogue()
+    zones = {z.id: cur["rainfall"] for z in cat.flood_zones}
+    points = {u: {"rainfall": cur["rainfall"]} for u in [*(p.id for p in cat.aqi_points), "city"]}
+    snaps = {
+        "flood": {
+            "inputs": {"rainfall": zones, "cityRainfall": cur["rainfall"]},
+            "result": flood.compute_flood(zones, cur["rainfall"], cat),
+        },
+        "heat": {
+            "inputs": {},
+            "result": heat.compute_heat({c.id: cur for c in cat.heat_cells}, cur, now, cat),
+        },
+        "aqi": {"inputs": {"pointWeather": points}, "result": aq},
+    }
+    for sim in s["outputs"]["simulations"]:
+        sc = sim["request"]["scenario"]
+        got = simulation.run_counterfactual(sc, snaps, now, cat)["results"]
+        assert_same(got["aqiDelta"], sim["result"]["results"]["aqiDelta"], "aqiDelta")
+        if sc.get("urbanDensity") is None:
+            assert_same(got["tempDelta"], sim["result"]["results"]["tempDelta"], "tempDelta")
 
 
 # ── JS parity helpers ────────────────────────────────────────────────────────

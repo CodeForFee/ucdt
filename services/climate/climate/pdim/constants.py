@@ -55,6 +55,13 @@ PDIM_S1: Final = {
 # what-if assumes this reference shower instead.
 DRY_DAY_REFERENCE_RAIN_MM_H: Final = 20
 
+# Asia/Ho_Chi_Minh is UTC+7 all year (no DST): alert ids carry the local hour (spec §F).
+LOCAL_UTC_OFFSET_H: Final = 7
+
+# Spec §B: a zone is reported when R_f(i) >= 0.15. §E: top-k of the ranked (r, i) pairs.
+FLOOD_REPORT_MIN_SCORE: Final = 0.15
+RECOMMEND_TOP_K: Final = 10
+
 DEFAULT_CITY: Final = {
     "id": "hcmc",
     "name": "TP. Hồ Chí Minh",

@@ -154,3 +154,26 @@ async def test_mark_alerts_read(session):
     assert await repo.mark_alerts_read(session, ["r1", "r3"], T0 + H) == 1  # r1 already read
     read = {a["id"]: a["read_at"] for a in await repo.list_active_alerts(session, T0)}
     assert read == {"r1": T0, "r2": T0, "r3": T0 + H}
+
+
+async def test_algorithm1_history_reads(session):
+    assert await repo.oldest_snapshot_at(session) is None
+    await repo.insert_snapshot(session, "aqi", T0 + H, "pdim-s1", {"pointWeather": {"p": 1}, "x": 9}, {})
+    await repo.insert_snapshot(session, "aqi", T0, "pdim-s1", {"legacy": True}, {})
+    await repo.insert_snapshot(session, "flood", T0 - H, "pdim-s1", {"pointWeather": {}}, {})
+    rows = await repo.snapshot_inputs(session, "aqi", T0, ("pointWeather", "stationMap"))
+    assert rows == [
+        {"computed_at": T0, "pointWeather": None, "stationMap": None},
+        {"computed_at": T0 + H, "pointWeather": {"p": 1}, "stationMap": None},
+    ]
+    assert await repo.oldest_snapshot_at(session) == T0 - H
+
+    for loc, at, aqi, src in [
+        ("ag:1", T0, 80, "airgradient"),
+        ("ag:1", T0, 80, "airgradient"),  # the same reading re-fetched by the next run
+        ("ag:1", T0 + H, None, "airgradient"),
+        ("ag:2", T0 - H, 70, "airgradient"),  # before `since`
+        ("station-q1", T0, 60, "openmeteo"),
+    ]:
+        await repo.insert_aqi_obs(session, loc, at, aqi=aqi, source=src)
+    assert await repo.station_readings(session, T0) == [{"location_id": "ag:1", "fetched_at": T0, "aqi": 80}]

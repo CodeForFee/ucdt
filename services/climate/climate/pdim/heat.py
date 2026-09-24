@@ -1,10 +1,18 @@
-"""Heat / UHI hotspots, ported from Hackathon-BE/src/services/heat.service.ts getHeatData."""
+"""Heat / UHI per cell (spec §C): T_eff(i) = HI_Rothfusz(T(i), RH(i)) + 3.5 °C·ρ(i), ρ(i) = builtUp(i).
 
+Returns the served payload directly (legacy heatController's reshape of getHeatData, plus the
+what-if baselines ρ₀ and G₀)."""
+
+from collections.abc import Mapping
 from datetime import datetime
 
 from climate.pdim.constants import PDIM_S1
-from climate.pdim.risk import effective_temp, heat_index, js_iso, js_round
-from climate.spatial.units import HEAT_CELLS
+from climate.pdim.risk import effective_temp, js_iso, js_round
+from climate.spatial.catalogue import Catalogue, load_catalogue
+
+
+def _r1(x: float) -> float:
+    return js_round(x * 10) / 10
 
 
 def heat_risk_level(effective_temp_c: float) -> str:
@@ -17,49 +25,68 @@ def heat_risk_level(effective_temp_c: float) -> str:
     return "low"
 
 
-def compute_heat(weather_current: dict, now: datetime) -> dict:
-    """HeatResponse from WeatherCurrent (`temperature` °C, `humidity` %)."""
-    temperature = weather_current["temperature"]
-    humidity = weather_current["humidity"]
-    feels_like = js_round(heat_index(temperature, humidity) * 10) / 10
-    hotspots = []
-    for cell in HEAT_CELLS:
-        eff = effective_temp(temperature, humidity, cell["urbanDensity"])
-        hotspots.append(
-            {
-                "id": cell["id"],
-                "name": cell["name"],
-                "lat": cell["lat"],
-                "lng": cell["lng"],
-                "temperature": temperature,
-                "feelsLike": feels_like,
-                "effectiveTemperature": js_round(eff * 10) / 10,
-                "urbanDensity": cell["urbanDensity"],
-                "heatRisk": heat_risk_level(eff),
-            }
-        )
-    city_max = max(h["effectiveTemperature"] for h in hotspots)  # HEAT_CELLS is never empty
-    # Plain left-to-right sum like JS reduce (3.12's sum() is compensated and can differ in the last ulp).
-    uhi_total = 0.0
-    for c in HEAT_CELLS:
-        uhi_total += c["urbanDensity"] * PDIM_S1["heat"]["uhiMaxDeg"]
-    avg_uhi = uhi_total / len(HEAT_CELLS)
+def heat_baselines(cat: Catalogue) -> dict:
+    """ρ₀ = mean builtUp (0–1, 3 dp) and G₀ = mean green (percent, 1 dp) over the 22 cells.
+
+    The what-if measures ΔT against exactly these served values, so sliders that start at them
+    give ΔT = 0."""
     return {
-        "cityAvgTemp": temperature,
-        "cityMaxEffectiveTemp": js_round(city_max * 10) / 10,
-        "hotspots": hotspots,
-        "uhiEffect": js_round(avg_uhi * 10) / 10,
-        "timestamp": js_iso(now),
+        "density": js_round(cat.mean_built_up_heat * 1000) / 1000,
+        "greenPct": _r1(cat.mean_green_heat * 100),
     }
 
 
-def mean_effective_temp(hotspots: list[dict]) -> float:
-    """City mean of the served per-cell T_eff(i) = HI(T, RH) + rho(i)·3.5 °C (manuscript §4.2).
+def mean_effective_temp(temps: list[float]) -> float:
+    """City mean of the served per-cell T_eff(i) (1-dp values), 1 dp — the heat what-if baseline
+    (B-020), so the card and the zone list under it agree to the digit."""
+    return _r1(sum(temps) / len(temps))
 
-    The heat what-if perturbs T_eff (ΔT = −α·ΔG + u·(ρ_sim − ρ₀)), so this — not the air
-    temperature `cityAvgTemp` — is the baseline the simulation card adds ΔT to (B-020).
-    Averages the 1-decimal values the API serves per cell, so the card and the zone list
-    under it agree to the digit.
-    """
-    temps = [h["effectiveTemperature"] for h in hotspots]
-    return js_round(sum(temps) / len(temps) * 10) / 10
+
+def compute_heat(
+    weather_by_cell: Mapping[str, dict],
+    city_current: dict,
+    now: datetime,
+    cat: Catalogue | None = None,
+    city: str = "hcmc",
+) -> dict:
+    """HeatResponse from each cell's own WeatherCurrent (`temperature` °C, `humidity` %)."""
+    cat = cat or load_catalogue()
+    uhi = PDIM_S1["heat"]["uhiMaxDeg"]
+    hotspots = []
+    uhi_total = 0.0  # plain left-to-right sum like JS reduce
+    for cell in cat.heat_cells:
+        w = weather_by_cell[cell.id]
+        eff = effective_temp(w["temperature"], w["humidity"], cell.built_up)
+        uhi_total += cell.built_up * uhi
+        hotspots.append(
+            {
+                "id": cell.id,
+                "name": cell.name,
+                "lat": cell.lat,
+                "lng": cell.lng,
+                "temperature": _r1(eff),
+                "intensity": cell.built_up,
+            }
+        )
+    temps = [h["temperature"] for h in hotspots]
+    return {
+        "city": city,
+        "timestamp": js_iso(now),
+        "avgTemperature": city_current["temperature"],  # city-centre AIR temperature
+        "maxTemperature": _r1(max(temps)),
+        "heatIslandIntensity": _r1(uhi_total / len(hotspots)),
+        "avgEffectiveTemperature": mean_effective_temp(temps),
+        "baselines": heat_baselines(cat),
+        "hotspots": hotspots,
+        "geojson": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [h["lng"], h["lat"]]},
+                    "properties": {"temperature": h["temperature"], "intensity": h["intensity"]},
+                }
+                for h in hotspots
+            ],
+        },
+    }
