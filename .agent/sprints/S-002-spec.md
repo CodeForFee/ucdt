@@ -145,20 +145,29 @@ heuristics are removed (B-016).
 
 ## H. Algorithm 1 — model maturity per hazard
 active(h) = S1 for every h unless promoted. Evaluated on every `/v1/maturity` request from
-stored history (line 9), window W = 14 days, advancement margin δ = 2 AQI points.
-- D(S2, flood): needs an observed inundation / gauge series — none in the data layer → false.
-- D(S2, heat): needs observed air/land-surface temperature at the cells (Landsat LST ingestion
-  is Stage 2) → false.
-- D(S2, aqi): ≥ 168 paired hourly observations (open-network station AQI vs the CAMS AQI at
-  its mapped point, §A.4) spanning ≥ 7 days within W. If true: fit S2 = least-squares
-  bias correction AQI_obs ≈ a + b·AQI_CAMS on the earliest 70 % of pairs; promote when
-  MAE_holdout(S2) ≤ MAE_holdout(S1) − δ on the latest 30 %. While S2 is active, AQI points are
-  served as a + b·AQI_CAMS and snapshots carry model_version `pdim-s2-aqi`; demote when the
-  condition fails at a later evaluation.
-- D(S3, h): ≥ 12 months of archived data → false in this deployment.
-Line 8 (exposure): `/v1/maturity` returns per hazard: active stage, stage criteria with
-counts vs requirements, S1 validation MAE against stations where pairs exist (null otherwise),
-S2 parameters and MAE when fitted, evaluatedAt.
+stored history (line 9), window W = 14 days, advancement margin δ = 2 AQI points. Figure 2's S2
+box — "α, β, wᵢ fitted to local data with confidence intervals" — means S2 re-estimates the S1
+coefficients of that hazard's own model on local observations and reports 95 % intervals.
+- D(S2, flood): the coefficients w₁…w₄ need an observed inundation / gauge series — none in the
+  data layer → false (reason stated).
+- D(S2, heat): α and u need observed air / land-surface temperature at the cells (Landsat LST
+  ingestion is Stage 2) → false (reason stated).
+- D(S2, aqi): the nowcast coefficients γ_w, γ_p (§D) are re-estimated on an open-network
+  station series (§I.3). Validation series V: the station's hourly AQI (mean of its readings in
+  each local hour) paired with W̃, P̃ at its mapped AQI point for the same hour. D holds when V
+  has ≥ 168 consecutive-hour pairs spanning ≥ 7 days within W.
+  - S2 fit (line 3): y_t = ln(AQI_{t+1}/AQI_t) ≈ −γ_w·W̃_t − γ_p·P̃_t (first-order form of the
+    nowcast), ordinary least squares without intercept on the earliest 70 % of V; report each
+    estimate with its 95 % confidence interval (t-quantile × standard error); estimates are
+    clamped to [0, 1].
+  - Line 4: promote to S2 when MAE_holdout(S2) ≤ MAE_holdout(S1) − δ, where MAE is the
+    one-step-ahead nowcast error on the latest 30 % of V (S1 uses γ_w = 0.05, γ_p = 0.15).
+  - While S2 is active the served 24 h nowcast uses the fitted γ, and aqi snapshots carry
+    model_version `pdim-s2-aqi`; demote (line 9) when the condition fails at a later evaluation.
+- D(S3, h): ≥ 12 months of archived data → false in this deployment (lines 5–7 not reached).
+Line 8 (exposure): `/v1/maturity` returns per hazard: active stage, each stage's criteria with
+current counts vs requirements, the S1 holdout MAE where V exists (null otherwise), S2
+estimates with 95 % CIs and MAE when fitted, δ, W, evaluatedAt.
 
 ## I. Data layer ingestion (worker, every 15 min)
 1. **Weather**: one Open-Meteo Forecast request for the unique coordinates of all units + the
