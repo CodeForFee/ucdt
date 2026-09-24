@@ -16,7 +16,7 @@ alerts & recommendations → §F, §G, §J}; Maturity axis S1→S2→S3 via Algo
 ### A.1 Units and names
 18 flood zones, 22 heat cells, 23 AQI points (`climate/spatial/units.py`), named by
 coordinate-anchored TOPONYMS. No display name may be an administrative label: not "Quận",
-"Huyện", "Q.", "District", and not a former district name. The 11 heat cells that still carry
+"Huyện", "Q.", "District", and not a former district name. The 12 heat cells that still carry
 former district names are renamed to the toponym of the AQI point at the same coordinates:
 
 | id | new name | | id | new name |
