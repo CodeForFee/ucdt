@@ -9,7 +9,7 @@
 | claude subagents (Agent tool) | repo, shell, git worktree, gh | opus = strong, sonnet = cheap | sprint seams; each on its own branch + PR |
 
 ## Now (claims)
-*(No active claims — sprint S-001 closed 2026-09-24 by claude-opus-5, session 77343ae4. Whoever opens the next sprint claims its scope here.)* Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
+- whole repo — claude-opus-5 (tech lead, sprint S-002 Figure-2 fidelity), since 2026-09-24T0330Z. Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
 
 **Git flow (user decision 2026-09-23):** one GitHub issue per task → branch `feat/T-NNN-<slug>` → PR **into `dev`** → tech lead reviews + squash-merges into `dev`, then closes the issue. **`main` belongs to the user** — agents never push or merge to main. `.agent/` lives in the repo (moved from the workspace root 2026-09-23); seam owners commit their task file + log inside their own PR, the lead commits board updates in the wave-gate PR.
 
@@ -37,6 +37,16 @@
 | T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | done |
 | T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | done |
 | T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | done |
+
+## Tasks (S-002 · Figure 2 fidelity — `.agent/sprints/S-002.md`, spec `S-002-spec.md`)
+| id | issue | title | wave | owner | phase |
+|---|---|---|---|---|---|
+| T-101 | #46 | static layers (DEM, WorldCover, OSM) + toponym renames | 1 | claude-opus-5 (sub) | execute |
+| T-102 | #47 | ingestion: per-unit weather + AirGradient open network | 1 | claude-opus-5 (sub) | execute |
+| T-103 | #48 | processing: per-unit PDIM, π(r,i), per-unit alerts, counterfactual, Algorithm 1 | 2 | claude-opus-5 (sub) | plan |
+| T-104 | #49 | API + contracts + gateway | 3 | claude-opus-5 (sub) | plan |
+| T-105 | #50 | web: every Figure-2 presentation box | 4 | claude-opus-5 (sub) | plan |
+| T-106 | #51 | manuscript §3.1 end, §4.2, Data statement → draft(4).docx | 5 | claude-opus-5 | plan |
 
 **Chờ người dùng:** (1) `gh secret set VITE_MAPBOX_TOKEN -R CodeForFee/ucdt` — until then the ucdt-web image is not published (the permission gate blocked the lead from reading the token file). (2) `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
 

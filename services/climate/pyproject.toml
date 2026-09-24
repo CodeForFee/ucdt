@@ -16,6 +16,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+derive = [
+    "rasterio>=1.4.3",
+]
 dev = [
     "pytest>=8.4",
     "pytest-asyncio>=1.2",
