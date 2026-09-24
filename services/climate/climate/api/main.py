@@ -31,12 +31,14 @@ from climate.api.models import (
     MaturityResponse,
     SimulationRequest,
     SimulationResult,
+    UnitRow,
 )
 from climate.config import get_settings
 from climate.db import repo
 from climate.db.session import get_sessionmaker
 from climate.pdim.risk import epoch_ms, js_iso
 from climate.pdim.simulation import run_counterfactual
+from climate.spatial.catalogue import load_catalogue
 
 log = logging.getLogger(__name__)
 app = FastAPI(title="UCDT climate API", version="1.0.0", generate_unique_id_function=lambda r: r.name)
@@ -160,6 +162,19 @@ async def simulate(session: Session, body: SimulationRequest = SimulationRequest
 async def maturity(session: Session):
     """Algorithm 1 evaluated now on the stored history (§H line 8)."""
     return await snapshots.evaluate_maturity(session, datetime.now(UTC))
+
+
+@app.get("/v1/units", response_model=list[UnitRow], tags=["units"])
+async def units():
+    """Unit -> 2025 commune mapping table of the data layer (§A.3), from the committed catalogue."""
+    cat = load_catalogue()
+    kinds = (("flood_zone", cat.flood_zones), ("heat_cell", cat.heat_cells), ("aqi_point", cat.aqi_points))
+    return [
+        {"id": u.id, "kind": k, "name": u.name, "lat": u.lat, "lng": u.lng}
+        | {"commune": u.commune, "communeOsmId": u.commune_osm_id}
+        for k, us in kinds
+        for u in us
+    ]
 
 
 @app.get("/v1/history/{hazard}", response_model=list[HistoryEntry], tags=["history"])

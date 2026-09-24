@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Units
+         * @description Unit -> 2025 commune mapping table of the data layer (§A.3), from the committed catalogue.
+         */
+        get: operations["units"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/history/{hazard}": {
         parameters: {
             query?: never;
@@ -1032,6 +1052,30 @@ export interface components {
             S2: components["schemas"]["Stage"];
             S3: components["schemas"]["Stage"];
         };
+        /**
+         * UnitRow
+         * @description One spatial unit and its 2025 commune (spec §A.3 mapping table). Data/API only: the web
+         *     never renders `commune`.
+         */
+        UnitRow: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "flood_zone" | "heat_cell" | "aqi_point";
+            /** Name */
+            name: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Commune */
+            commune: string | null;
+            /** Communeosmid */
+            communeOsmId: number | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1357,6 +1401,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MaturityResponse"];
+                };
+            };
+        };
+    };
+    units: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitRow"][];
                 };
             };
         };

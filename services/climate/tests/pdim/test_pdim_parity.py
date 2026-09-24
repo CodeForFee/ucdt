@@ -150,20 +150,6 @@ def test_aqi(scenario):
     assert_same(aq, s["outputs"]["aqi"], "aqi")
 
 
-def test_legacy_simulations(scenario):
-    """The S-001 what-if /v1/simulation still serves until T-104 switches it to run_counterfactual."""
-    s, now, weather, aq = scenario
-    fl = s["outputs"]["flood"]
-    for i, sim in enumerate(s["outputs"]["simulations"]):
-        sc = sim["request"]["scenario"]
-        assert simulation.validate_scenario(sc) is None
-        got = simulation.run_simulation(
-            sc, weather, fl, aq, now, simulation_id=f"sim-{risk.epoch_ms(now)}-{i + 1}"
-        )
-        assert_same(got, sim["result"], f"simulations[{i}]")
-        assert got["simulationId"] == sim["result"]["simulationId"]  # counter = call order in a fresh process
-
-
 def test_counterfactual_keeps_city_aqi_and_green_temp_parity(scenario):
     """§G kept two city-level formulas: ΔAQI (ṽ = 1, γ_p washout on the added rain) and, when the
     density slider is untouched, ΔT = −α·ΔG. Everything else is per unit (test_pdim_invariants)."""

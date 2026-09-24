@@ -291,6 +291,15 @@ async def test_history(client, session):
         assert (await client.get("/v1/history/heat", params={"hours": hours})).status_code == 422
 
 
+async def test_units_serve_the_commune_mapping(client):
+    rows = (await client.get("/v1/units")).json()
+    assert len(rows) == 63
+    assert {r["kind"] for r in rows} == {"flood_zone", "heat_cell", "aqi_point"}
+    for r in rows:
+        assert r["commune"] is None or r["commune"].startswith(("Phường ", "Xã ", "Đặc khu ")), r
+        assert not ADMIN.search(r["name"]) and not FORMER.search(r["name"]), r
+
+
 async def test_healthz(client):
     r = await client.get("/healthz")
     assert r.status_code == 200 and r.json() == {"status": "ok"}

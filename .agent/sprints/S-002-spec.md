@@ -50,7 +50,8 @@ a former district's words, e.g. "Phường Bình Thạnh", "Xã Nhà Bè"); it m
 ### A.3 Administrative boundaries and traffic proxy (static, OSM, ODbL)
 - **Commune** (2025 commune-level unit containing the point, admin_level 6 after Resolution
   1685/NQ-UBTVQH15): official name + OSM relation id. It is the unit → commune mapping table of
-  the data layer (Figure 2's administrative-boundaries box) and is served by the API; it is never
+  the data layer (Figure 2's administrative-boundaries box) and is served by the API as
+  `GET /v1/units` (gateway `/api/units`: id, kind, toponym, lat, lng, commune, communeOsmId); it is never
   a unit name, never used for scoring, and NOT rendered in the UI (users would read names such
   as "Phường Bình Thạnh" as the abolished district).
 - **Road density** v(i) [km/km²]: OSM ways with highway ∈ {motorway, trunk, primary, secondary}

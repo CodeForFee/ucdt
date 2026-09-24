@@ -1,9 +1,6 @@
 """What-if simulation (Algorithm 2 step 7): `run_counterfactual` re-runs steps 3–6 on the
 counterfactual state (spec §G). `validate_scenario` is ported from Hackathon-BE
 controllers/simulation.controller.ts.
-
-`run_simulation` is the LEGACY S-001 what-if (city-level, soil-saturation proxy), kept only because
-/v1/simulation still calls it; T-104 switches the route to `run_counterfactual` and deletes it.
 """
 
 import math
@@ -11,20 +8,15 @@ from datetime import datetime
 
 from climate.pdim import flood as flood_mod
 from climate.pdim.constants import DRY_DAY_REFERENCE_RAIN_MM_H, PDIM_S1, get_aqi_level
-from climate.pdim.geo import create_geojson_feature, generate_flood_polygon
 from climate.pdim.heat import heat_risk_level
 from climate.pdim.risk import (
-    effective_temp,
     epoch_ms,
-    estimated_depth_m,
     flood_risk_level,
-    flood_risk_score,
     js_round,
     rain_norm,
 )
 from climate.pdim.rules import band_alerts, recommendations, unit_values
 from climate.spatial.catalogue import Catalogue, load_catalogue
-from climate.spatial.units import FLOOD_ZONES
 
 
 def _finite(v) -> bool:
@@ -59,104 +51,6 @@ def validate_scenario(s: dict) -> str | None:
     if d is not None and (not _finite(d) or d < 0 or d > 1):
         return "urbanDensity must be 0-1"
     return None
-
-
-def _legacy_flood_areas(rainfall: float, local_soil: float, add_green_pct: float) -> list:
-    """Legacy per-zone scoring (expert terrain constant, city soil proxy) for `run_simulation` only."""
-    areas = []
-    for zone in FLOOD_ZONES:
-        drain = min(1, zone["localDrain"] + add_green_pct * PDIM_S1["greenToDrainPerPct"])
-        score = flood_risk_score(rainfall, local_soil, drain, zone["terrain"])
-        if score < 0.15:
-            continue
-        level = flood_risk_level(score)
-        props = {"name": zone["name"], "riskScore": score, "riskLevel": level, "simulated": True}
-        areas.append(
-            {
-                "id": zone["id"],
-                "name": zone["name"],
-                "lat": zone["lat"],
-                "lng": zone["lng"],
-                "riskLevel": level,
-                "riskScore": js_round(score * 1000) / 1000,
-                "estimatedDepth": estimated_depth_m(score),
-                "geojson": create_geojson_feature(
-                    generate_flood_polygon(zone["lat"], zone["lng"], 1.2, score), props
-                ),
-            }
-        )
-    return areas
-
-
-def run_simulation(
-    scenario: dict,
-    weather: dict,
-    flood: dict,
-    aqi: dict,
-    now: datetime,
-    simulation_id: str | None = None,
-) -> dict:
-    """SimulationResult for a validated scenario against the current weather/flood/aqi payloads.
-
-    `simulation_id` defaults to `sim-<epoch ms>-1`; callers needing uniqueness pass their own.
-    """
-    rain_inc = scenario["rainfallIncrease"]
-    green = scenario["addGreenCoverage"]
-    rain_now = weather["current"]["rainfall"]
-    soil = flood["triggers"]["soilSaturation"]
-    ref = PDIM_S1["flood"]["rainRefMmH"]
-
-    # 1. Rainfall: a dry day with a rainfall scenario scales the reference shower instead.
-    base_rain = rain_now if rain_now > 0 else (DRY_DAY_REFERENCE_RAIN_MM_H if rain_inc > 0 else 0)
-    new_rain = base_rain * (1 + rain_inc / 100)
-
-    # 2. Green cover: +0.3% drainage and ΔT = −α·ΔG per +1 pp.
-    new_drain = min(1, flood["triggers"]["drainageCapacity"] + green * PDIM_S1["greenToDrainPerPct"])
-    temp_bonus = green * PDIM_S1["heat"]["alphaGreenDegPerPct"]
-
-    # 3. AQI: ΔAQI = −β·ΔV − 0.15·ΔG, then γ_p washout on the rainfall the scenario ADDS.
-    p_added = max(0, min(new_rain / ref, 1) - min(base_rain / ref, 1))
-    aqi_linear = aqi["aqi"] - (
-        scenario["trafficReduction"] * PDIM_S1["aqi"]["betaTrafficPerPct"]
-        + green * PDIM_S1["aqi"]["greenPerPct"]
-    )
-    aqi_after = max(0, aqi_linear * (1 - PDIM_S1["aqi"]["gammaRain"] * p_added))
-    aqi_delta = aqi_after - aqi["aqi"]
-
-    before = flood["riskScore"]
-    after = flood_risk_score(new_rain, soil, new_drain)
-    new_areas = _legacy_flood_areas(new_rain, min(soil + 0.05, 1), green)
-
-    # ΔT carries both the green term and the UHI term of a changed density (B-004).
-    t, h = weather["current"]["temperature"], weather["current"]["humidity"]
-    base_density = PDIM_S1["heat"]["densityBaseline"]
-    density = scenario.get("urbanDensity")
-    if density is None:
-        density = base_density
-    temp_delta = (effective_temp(t, h, density) - temp_bonus) - effective_temp(t, h, base_density)
-
-    return {
-        "simulationId": simulation_id or f"sim-{epoch_ms(now)}-1",
-        "status": "completed",
-        "results": {
-            "floodRiskDelta": js_round((after - before) * 1000) / 1000,
-            "newFloodAreas": new_areas,
-            "tempDelta": js_round(temp_delta * 10) / 10,
-            "aqiDelta": js_round(aqi_delta * 10) / 10,
-            "affectedBuildings": len(new_areas) * 1200,
-            # Rough: ~80k people per high/critical area, ~50k otherwise.
-            "affectedPopulation": sum(
-                80000 if a["riskLevel"] in ("high", "critical") else 50000 for a in new_areas
-            ),
-        },
-        "comparison": {
-            "before": {
-                "riskScore": js_round(before * 1000) / 1000,
-                "affectedAreas": len(flood["affectedAreas"]),
-            },
-            "after": {"riskScore": js_round(after * 1000) / 1000, "affectedAreas": len(new_areas)},
-        },
-    }
 
 
 # ── §G counterfactual ────────────────────────────────────────────────────────

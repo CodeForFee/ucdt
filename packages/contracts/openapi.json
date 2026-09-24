@@ -263,6 +263,32 @@
         }
       }
     },
+    "/v1/units": {
+      "get": {
+        "tags": [
+          "units"
+        ],
+        "summary": "Units",
+        "description": "Unit -> 2025 commune mapping table of the data layer (§A.3), from the committed catalogue.",
+        "operationId": "units",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnitRow"
+                  },
+                  "type": "array",
+                  "title": "Response Units"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/history/{hazard}": {
       "get": {
         "tags": [
@@ -2061,6 +2087,69 @@
           "S3"
         ],
         "title": "Stages"
+      },
+      "UnitRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "flood_zone",
+              "heat_cell",
+              "aqi_point"
+            ],
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "commune": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commune"
+          },
+          "communeOsmId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Communeosmid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "lat",
+          "lng",
+          "commune",
+          "communeOsmId"
+        ],
+        "title": "UnitRow",
+        "description": "One spatial unit and its 2025 commune (spec §A.3 mapping table). Data/API only: the web\nnever renders `commune`."
       },
       "ValidationError": {
         "properties": {
