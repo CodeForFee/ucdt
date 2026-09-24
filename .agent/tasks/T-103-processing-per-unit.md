@@ -4,7 +4,7 @@ title: processing: per-unit PDIM, π(r,i), per-unit alerts, counterfactual, Algo
 owner: claude-opus-5 (subagent)
 scope: services/climate/climate/pdim/**, services/climate/climate/snapshots.py, services/climate/climate/worker/**, services/climate/climate/db/repo.py, services/climate/tests/{pdim,worker,db}/**
 exit: `uv run pytest -q` green; formula parity with legacy kept for the pure functions; worker --burst on compose writes the five snapshots per spec
-phase: review
+phase: done
 blocked:
 created: 2026-09-24T0330Z
 sprint: S-002

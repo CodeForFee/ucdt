@@ -4,7 +4,7 @@ title: ingestion: per-unit weather + AirGradient open network
 owner: claude-opus-5 (subagent)
 scope: services/climate/climate/ingest/**, services/climate/tests/ingest/**
 exit: `uv run pytest tests/ingest -q` green with fake HTTP; one live smoke call recorded in the task file
-phase: review
+phase: done
 blocked:
 created: 2026-09-24T0330Z
 sprint: S-002

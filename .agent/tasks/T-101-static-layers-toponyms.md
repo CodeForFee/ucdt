@@ -4,7 +4,7 @@ title: static layers (DEM, WorldCover, OSM) + toponym renames
 owner: claude-opus-5 (subagent, v2)
 scope: services/climate/climate/spatial/**, services/climate/climate/db/migrations/versions/002_*.py, services/climate/tests/spatial/**
 exit: `uv run --group derive python -m climate.spatial.derive` regenerates derived.json byte-identically from cached responses; `uv run pytest tests/spatial tests/db -q` green; no display name matches the §A.1 guard
-phase: review
+phase: done
 blocked:
 created: 2026-09-24T0330Z
 sprint: S-002
