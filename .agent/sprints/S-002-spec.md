@@ -30,7 +30,10 @@ former district names are renamed to the toponym of the AQI point at the same co
 
 Guard: a test fails if any unit name, or any name in any API payload, matches
 `/\b(Quận|Huyện|District)\b|\bQ\.\s?\d/` or one of: Bình Thạnh, Phú Nhuận, Tân Bình, Tân Phú,
-Gò Vấp, Bình Tân, Thủ Đức, Bình Chánh, Hóc Môn, Nhà Bè, Cần Giờ, Củ Chi.
+Gò Vấp, Bình Tân, Thủ Đức, Bình Chánh, Hóc Môn, Nhà Bè, Cần Giờ, Củ Chi. Exception: the
+`commune` field carries the OFFICIAL 2025 commune-level name exactly as OSM gives it (several reuse
+a former district's words, e.g. "Phường Bình Thạnh", "Xã Nhà Bè"); it must start with "Phường ",
+"Xã " or "Đặc khu " and must not match the regex, and the former-name list does not apply to it.
 
 ### A.2 DEM and land cover (static, derived once, committed with provenance)
 `python -m climate.spatial.derive` (needs network + the `derive` dependency group) writes
@@ -46,8 +49,10 @@ Gò Vấp, Bình Tân, Thủ Đức, Bình Chánh, Hóc Môn, Nhà Bè, Cần Gi
 
 ### A.3 Administrative boundaries and traffic proxy (static, OSM, ODbL)
 - **Commune** (2025 commune-level unit containing the point, admin_level 6 after Resolution
-  1685/NQ-UBTVQH15): name + OSM relation id. Context only (shown as secondary text, e.g.
-  "Bến Nghé · Phường Sài Gòn"); never a unit name, never used for scoring.
+  1685/NQ-UBTVQH15): official name + OSM relation id. It is the unit → commune mapping table of
+  the data layer (Figure 2's administrative-boundaries box) and is served by the API; it is never
+  a unit name, never used for scoring, and NOT rendered in the UI (users would read names such
+  as "Phường Bình Thạnh" as the abolished district).
 - **Road density** v(i) [km/km²]: OSM ways with highway ∈ {motorway, trunk, primary, secondary}
   fetched within 1 km of the unit; each way is split into its node-to-node segments and a
   segment counts (with its full haversine length) when its midpoint lies within 1 km of the
@@ -182,11 +187,11 @@ estimates with 95 % CIs and MAE when fitted, δ, W, evaluatedAt.
 Static layers (§A) are not fetched at runtime.
 
 ## J. Presentation
-- Dashboard: ranked recommendations list (rule, unit, commune, π, inputs); per-unit alerts;
+- Dashboard: ranked recommendations list (rule, unit toponym, π, inputs); per-unit alerts;
   maturity card (stage per hazard, S2 criteria progress, validation MAE); data provenance.
 - Map: AQI layer adds open-network station markers (distinct style, "trạm quan trắc").
 - Each simulator (flood, heat, AQI): after a run, a "Khuyến nghị cho kịch bản" panel with the
   counterfactual top-k, band changes and would-fire alerts; AQI shows per-station before/after.
 - Flood decomposition labels: T̃ "độ nhạy địa hình (DEM)", Ĩ "độ không thấm (Sentinel)".
 - Heat sliders start at the served ρ₀ and G₀.
-- Popups show "toponym · commune"; never a district label.
+- Popups and lists show the toponym only; the commune is never rendered (§A.3).
