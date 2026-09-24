@@ -253,11 +253,19 @@ export function FloodExtrusion3D({ map, result }: FloodExtrusion3DProps) {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       popupRef.current?.remove();
-
-      if (!isMapUsable(map)) return;
-      removeLayersAndSource(map, [LABEL_ID, LAYER_ID], SOURCE_ID);
+      // Layers + source stay: the next run of this effect upserts them via applyLayer's
+      // setData. Tearing them down on every new result made the extrusion flash on each
+      // slider tick; they are removed only when the component unmounts (below).
     };
   }, [map, result, baseline]);
+
+  useEffect(
+    () => () => {
+      if (!isMapUsable(map)) return;
+      removeLayersAndSource(map, [LABEL_ID, LAYER_ID], SOURCE_ID);
+    },
+    [map],
+  );
 
   return null;
 }

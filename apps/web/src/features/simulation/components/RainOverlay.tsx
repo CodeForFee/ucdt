@@ -5,10 +5,34 @@ interface RainOverlayProps {
   intensity: number;
 }
 
-/** Ported verbatim from Hackathon-FE — pure canvas decoration, no data dependency. */
+type Drop = { x: number; y: number; len: number; speed: number; opacity: number };
+
+function spawn(width: number, height: number, intensity: number, y = Math.random() * height): Drop {
+  return {
+    x: Math.random() * width,
+    y,
+    len: 10 + Math.random() * 20 * intensity,
+    speed: 8 + Math.random() * 10 * intensity,
+    opacity: 0.2 + Math.random() * 0.4,
+  };
+}
+
+/**
+ * Pure canvas decoration, no data dependency (ported from Hackathon-FE).
+ *
+ * The canvas, its ResizeObserver and the animation loop are created ONCE; `intensity`
+ * only moves a ref that the loop reads each frame, growing or trimming the drop set in
+ * place. The legacy version re-ran its whole effect on every intensity change — a new
+ * canvas setup and a fresh random drop field per slider tick — so dragging the rainfall
+ * slider made the overlay visibly restart instead of thickening.
+ */
 export function RainOverlay({ intensity }: RainOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
+  const intensityRef = useRef(intensity);
+
+  useEffect(() => {
+    intensityRef.current = intensity;
+  }, [intensity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -24,25 +48,21 @@ export function RainOverlay({ intensity }: RainOverlayProps) {
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    const dropCount = Math.floor(120 * Math.min(intensity, 3));
-    const drops: { x: number; y: number; len: number; speed: number; opacity: number }[] = [];
-
-    for (let i = 0; i < dropCount; i++) {
-      drops.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        len: 10 + Math.random() * 20 * intensity,
-        speed: 8 + Math.random() * 10 * intensity,
-        opacity: 0.2 + Math.random() * 0.4,
-      });
-    }
+    const drops: Drop[] = [];
+    let raf = 0;
 
     const draw = () => {
+      const level = Math.min(intensityRef.current, 3);
+      const target = Math.floor(120 * level);
+      while (drops.length < target) drops.push(spawn(canvas.width, canvas.height, level));
+      if (drops.length > target) drops.length = target;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = "#93c5fd";
       ctx.lineWidth = 1;
 
-      for (const d of drops) {
+      for (let i = 0; i < drops.length; i++) {
+        const d = drops[i];
         ctx.globalAlpha = d.opacity;
         ctx.beginPath();
         ctx.moveTo(d.x, d.y);
@@ -51,23 +71,21 @@ export function RainOverlay({ intensity }: RainOverlayProps) {
 
         d.y += d.speed;
         d.x += d.speed * 0.15;
-        if (d.y > canvas.height) {
-          d.y = -d.len;
-          d.x = Math.random() * canvas.width;
-        }
+        // Respawn at the top with the CURRENT intensity, so length/speed follow the slider.
+        if (d.y > canvas.height) drops[i] = spawn(canvas.width, canvas.height, level, -d.len);
       }
       ctx.globalAlpha = 1;
-      rafRef.current = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(draw);
     };
-    draw();
+    raf = requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [intensity]);
+  }, []);
 
-  if (intensity <= 0) return null;
-
+  // Always rendered: the one-time effect needs the canvas at mount. At intensity 0 the
+  // loop simply draws zero drops.
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />;
 }

@@ -46,8 +46,10 @@ function AQISimPreview({ result }: { result?: SimulationResult }) {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{sp("aqiTitle")}</p>
       </div>
 
-      <div className="flex items-center gap-4 px-4 py-3">
-        <div className="flex flex-col items-center gap-1.5">
+      {/* items-start + equal-width side columns + an h-14 middle column: the two circles and
+          the delta connector share one centre line whatever the labels underneath wrap to. */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="w-20 shrink-0 flex flex-col items-center gap-1.5 text-center">
           <div className={`${aqiColor(base)} w-14 h-14 rounded-full flex items-center justify-center text-base font-bold ${base > 50 && base <= 100 ? "text-gray-800" : "text-white"}`}>
             {base}
           </div>
@@ -55,7 +57,7 @@ function AQISimPreview({ result }: { result?: SimulationResult }) {
           <span className="text-xs text-muted-foreground">{aqiLabel(base, tAqi)}</span>
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-1">
+        <div className="flex-1 h-14 flex flex-col items-center justify-center gap-1">
           <div className={`text-sm font-bold ${stationDelta < 0 ? "text-green-400" : stationDelta > 0 ? "text-red-400" : "text-muted-foreground"}`}>
             {stationDelta !== 0 ? (
               stationDelta > 0 ? (
@@ -76,14 +78,18 @@ function AQISimPreview({ result }: { result?: SimulationResult }) {
           <div className="w-full h-px bg-border" />
         </div>
 
-        <div className="flex flex-col items-center gap-1.5">
+        <div className="w-20 shrink-0 flex flex-col items-center gap-1.5 text-center">
           <div
             className={`${aqiColor(sim)} w-14 h-14 rounded-full flex items-center justify-center text-base font-bold ${sim > 50 && sim <= 100 ? "text-gray-800" : "text-white"} ${stationDelta !== 0 ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-card" : ""}`}
           >
             {sim}
           </div>
           <span className="text-xs text-muted-foreground">{sp("simulated")}</span>
-          {stationDelta !== 0 && <span className={`text-xs font-medium ${stationDelta < 0 ? "text-green-400" : "text-red-400"}`}>{aqiLabel(sim, tAqi)}</span>}
+          <span
+            className={`text-xs ${stationDelta < 0 ? "font-medium text-green-400" : stationDelta > 0 ? "font-medium text-red-400" : "text-muted-foreground"}`}
+          >
+            {aqiLabel(sim, tAqi)}
+          </span>
         </div>
       </div>
 
