@@ -51,7 +51,10 @@
     "drainage": "drainage",
     "affectedAreaCount": "Affected areas (",
     "next6hTemp": "peak, next 6 h",
-    "next6hRain": "expected, next 6 h"
+    "next6hRain": "expected, next 6 h",
+    "vs24hTemp": "vs 24 h ago",
+    "vs24hRain": "vs 24 h ago",
+    "stale": "Stale data"
   },
   "risk": {
     "low": "Low",
@@ -118,7 +121,7 @@
   "airQualityPage": {
     "title": "Air Quality",
     "subtitle": "Real-time AQI and pollution data",
-    "source": "OpenAQ / MONRE",
+    "source": "Open-Meteo · PDIM Stage 1",
     "currentAqi": "Current AQI",
     "mainPollutant": "Main pollutant: ",
     "breakdown": "Pollutant breakdown (µg/m³)",
@@ -222,6 +225,7 @@
     "preview": {
       "floodTitle": "Flood risk forecast",
       "heatTitle": "Temperature simulation forecast",
+      "heatBasis": "Mean perceived temperature over {count} cells · T_eff = HI(T, RH) + ρ·3.5 °C · ΔT = −0.15·ΔG + 3.5·(ρ − 0.8)",
       "aqiTitle": "AQI simulation forecast",
       "current": "Current",
       "simulated": "Simulated",
@@ -271,8 +275,6 @@
       "understood": "Got it",
       "floodRiskBefore": "Flood risk (before)",
       "affectedAreas": "Affected areas",
-      "affectedBuildings": "Affected buildings",
-      "affectedPop": "Affected population",
       "tempDelta": "Temperature change",
       "floodRiskImpact": "Flood risk (impact)",
       "aqiDelta": "AQI change"
@@ -312,10 +314,6 @@
     "floodRiskFormula": "R_f = 0.45×(rain/50) + 0.30×terrain + 0.25×soil sat. − 0.15×drainage · Θ bands: 0.25/0.50/0.75",
     "affectedAreas": "Affected areas",
     "affectedAreasDesc": "Number of areas/wards flooded before → after scenario. An increase means heavier rain floods more places.",
-    "affectedBuildings": "Affected buildings",
-    "affectedBuildingsDesc": "Estimated number of buildings in flood zones by overlaying flood map with urban building density.",
-    "affectedPop": "Affected population",
-    "affectedPopDesc": "Estimated number of people living in flood zones, calculated from district population density multiplied by projected flood area.",
     "heatTitle": "Temperature simulation results explained",
     "heatIntro": "Results analyze the Urban Heat Island (UHI) effect. Effective temperature includes effects of building density, greenery and traffic.",
     "tempDelta": "Temperature change",
@@ -323,17 +321,13 @@
     "tempFormula": "ΔTemp = −0.15×Δgreenery (α) + 3.5×(density−0.8) (UHI)",
     "floodRiskImpact": "Flood risk (impact)",
     "floodRiskImpactDesc": "High temperatures increase evaporation and alter rain cycles, indirectly affecting flood risk. Shows level before → after.",
-    "heatPop": "Affected population",
-    "heatPopDesc": "Number of people in areas with high UHI impact (effective temperature ≥ 40°C).",
     "aqiTitle": "Air quality simulation results explained",
     "aqiIntro": "Simulation of traffic, greenery and rain impact on AQI. Negative values mean air quality improvement.",
     "aqiDelta": "AQI change",
     "aqiDeltaDesc": "Change in AQI when applying the scenario. Lower AQI (green) means cleaner air. Scale: 0–50 Good | 51–100 Moderate | 101–150 Sensitive | >150 Unhealthy.",
     "aqiFormula": "New AQI = (AQI − 0.3×traffic cut (β) − 0.15×Δgreenery) × (1 − 0.15×added rain (γ_p))",
     "tempDeltaAqi": "Temperature change",
-    "tempDeltaAqiDesc": "Temperature and AQI are linked: higher temperatures promote ground-level ozone formation and raise AQI. Reducing traffic and adding greenery lowers both.",
-    "aqiBuildings": "Affected buildings",
-    "aqiBuildingsDesc": "Number of buildings in zones with significant AQI improvement (ΔAQI ≤ −20). Reflects spatial scale of the scenario."
+    "tempDeltaAqiDesc": "Temperature and AQI are linked: higher temperatures promote ground-level ozone formation and raise AQI. Reducing traffic and adding greenery lowers both."
   },
   "aqiMap": {
     "windDir": "Wind direction",

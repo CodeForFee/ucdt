@@ -9,9 +9,15 @@
 | claude subagents (Agent tool) | repo, shell, git worktree, gh | opus = strong, sonnet = cheap | sprint seams; each on its own branch + PR |
 
 ## Now (claims)
-- whole repo — claude-opus-5 (tech lead, sprint S-001), since 2026-09-23T1617Z; session 1b6751ff from 2026-09-23T1740Z. Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
+*(No active claims — sprint S-001 closed 2026-09-24 by claude-opus-5, session 77343ae4. Whoever opens the next sprint claims its scope here.)* Only the tech lead edits this board; seam owners edit only their task scope, their task file and their own log.
 
 **Git flow (user decision 2026-09-23):** one GitHub issue per task → branch `feat/T-NNN-<slug>` → PR **into `dev`** → tech lead reviews + squash-merges into `dev`, then closes the issue. **`main` belongs to the user** — agents never push or merge to main. `.agent/` lives in the repo (moved from the workspace root 2026-09-23); seam owners commit their task file + log inside their own PR, the lead commits board updates in the wave-gate PR.
+
+**`dev` after a promotion (2026-09-23):** the user promotes by squash-merging `dev` → `main`, and the repo has "Automatically delete head branches" ON, so `dev` disappears after each promotion (#25). The lead re-creates it as `dev = main` (`git push origin origin/main:refs/heads/dev`) and rebases open feature branches with `git rebase --onto origin/dev <old dev tip>`, pushing to a NEW branch name (no force-push). **The setting was turned OFF 2026-09-24 (user decision)**, so a promotion no longer deletes `dev`; still check `git ls-remote --heads origin dev` before opening PRs.
+
+**Branches are never deleted** (user rule 2026-09-23): merge with `gh pr merge --squash`, no `--delete-branch`, no `git push --delete`.
+
+**Merge only on the unpiped exit status of `gh pr checks <n> --watch`** (2026-09-24): `gh pr checks … | tail && gh pr merge` merged #33 with `web` red, because the pipe's exit status is tail's. Capture `rc=$?` from the unpiped command and merge only on 0.
 
 **Lost:** the three legacy logs (2026-08-19T0900Z-antigravity, 2026-09-14T0730Z/0750Z-claude-opus-5) vanished from the old workspace-root `.agent/log/` during this session before the move — not deleted by any command run here, not in the Recycle Bin. Their substance survives in Bugs, Decisions and handoffs below.
 
@@ -24,19 +30,26 @@
 | T-004 | #5 | gateway (Bun + Hono) | 1 | claude-sonnet-5 (sub) | done |
 | T-005 | #6 | web shell + shared | 1 | claude-sonnet-5 (sub) → lead | done |
 | T-011 | #7 | godkit-map for ucdt/ | 1-gate | claude-opus-5 | done |
-| T-006 | #8 | ingest + worker | 2 | claude-opus-5 (sub) | plan |
-| T-007 | #9 | climate-api + contracts | 2 | claude-opus-5 (sub) | plan |
-| T-008 | #10 | web: dashboard, flood, air-quality, alerts | 2 | claude-sonnet-5 (sub) | plan |
-| T-009 | #11 | web: map + simulation | 2 | claude-sonnet-5 (sub) | plan |
-| T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | plan |
-| T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | plan |
-| T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | plan |
+| T-006 | #8 | ingest + worker | 2 | claude-opus-5 (sub) | done |
+| T-007 | #9 | climate-api + contracts | 2 | claude-opus-5 (sub) | done |
+| T-008 | #10 | web: dashboard, flood, air-quality, alerts | 2 | claude-sonnet-5 (sub) | done |
+| T-009 | #11 | web: map + simulation | 2 | claude-sonnet-5 (sub) | done |
+| T-010 | #12 | full-stack compose + Caddy | 3 | claude-opus-5 | done |
+| T-012 | #13 | CI complete + GHCR | 4 | claude-sonnet-5 (sub) | done |
+| T-013 | #14 | deploy + backup + DEPLOY.md | 4 | claude-sonnet-5 (sub) | done |
 
-**Chờ người dùng:** `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
+**Chờ người dùng:** (1) `gh secret set VITE_MAPBOX_TOKEN -R CodeForFee/ucdt` — until then the ucdt-web image is not published (the permission gate blocked the lead from reading the token file). (2) `docs/PO-UCDT draft(3).docx` đang mở trong Word nên không ghi đè được. Bản đã sửa (3 câu §4.3/§4.4.2 cho khớp prototype sau khi bỏ tab + phân giải R_f 4 số hạng) nằm ở `docs/.draft3.tmp.docx`. Đóng Word rồi `mv .draft3.tmp.docx "PO-UCDT draft(3).docx"`.
 
 ## Bugs
+- [x] B-020 Heat simulation preview card compared two different quantities: its circles showed `avgTemperature` (measured AIR temperature, e.g. 27.7°) plus ΔT, while the zone list and ΔT itself are EFFECTIVE temperatures (T_eff = HI + ρ·3.5 °C, ~35°). **User decision 2026-09-24: match docs/PO-UCDT draft(3).docx** — §4.2 defines ΔT as a perturbation of T_eff. Fixed 2026-09-24 claude-opus-5: climate serves `avgEffectiveTemperature` (mean served cell T_eff, `pdim.heat.mean_effective_temp`, additive field; legacy keys unchanged), the card headlines it and T_eff + ΔT with the formula shown, and waits rather than falling back to air temperature on older snapshots. Also per the draft's heat-module text, the heat simulation map now opens on the satellite basemap. Live: air 27.7 / mean T_eff 34.6 (cells 34.55) / card 34.6 → 27.1 at ΔT −7.5.
+- [x] B-019 AQI/heat preview circles misaligned in the simulation sidebar (category label only under "Hiện tại"; connector centred on the row, not the circles). Fixed 2026-09-24 claude-opus-5 (#41): items-start, equal-width side columns, h-14 middle column, category always shown. Headless check: circle centres equal (AQI 270/270, heat 254/254).
+- [x] B-018 Dragging any simulation slider made the whole screen jump: TanStack resets mutation `data` to undefined on every `mutate()`, and `useAutoSimulate` passed it through, so each tick unmounted map result layers, flashed the idle hint and collapsed ComparePanel; `FloodExtrusion3D` also tore down its layers per result and `RainOverlay` rebuilt its canvas per tick. Fixed 2026-09-24 claude-opus-5 (#40): last settled result kept (sequence-guarded against stale responses), layers upserted via setData, rain canvas built once. Regression tests fail 2/3 on the old hook; headless probe: 0 panel drops / 0 idle flashes in 80 samples per page.
+- [ ] B-017 Simulation info-modal text asserts mechanisms the Stage-1 model does not implement (`apps/web/src/messages/{vi,en}.json` `comparePanel`): `floodRiskImpactDesc` says heat changes flood risk via evaporation/rain cycles (the heat scenario moves R_f only through green cover → drainage); `heatIntro` says effective temperature includes traffic (no traffic term in ΔT, PDIM 4.2(ii)); `tempDeltaAqiDesc` says temperature drives ozone/AQI (no temperature term in the AQI what-if). Found 2026-09-24 claude-opus-5 while fixing B-016. Text-only fix; not yet scheduled.
+- [x] B-016 Simulation showed "affected population" (and buildings) as if measured — the legacy heuristic 50k / 80k people and 1,200 buildings per affected zone, with info text claiming a building-density overlay / district population density. Conflicted with Decision 2026-09-14. **User decision 2026-09-24: drop from the UI.** API keeps the fields (legacy parity); web no longer renders them; i18n strings removed; regression test fails 3/3 on the old component. Fixed 2026-09-24 claude-opus-5 (#32).
+- [x] B-015 Dashboard showed "±x vs 24 h ago" from history only minutes deep (`features/dashboard/lib/weatherOutlook.ts` used `history[0]` regardless of age) — a B-007-class false claim that appeared as soon as T-006 started writing weather snapshots. Fixed 2026-09-23 claude-opus-5 (W2 gate PR): delta only when history spans >= 23 h, regression test.
+- [ ] B-014 `apps/web/src/features/flood/lib/decomposeFloodRisk.ts` copies the PDIM flood weights with no cross-check (DP3). Numbers correct today (0.232 == API). Fix: climate serves the decomposed terms. #26.
 - [x] B-013 `apps/gateway/src/index.ts` gave one Bun RedisClient to both cache/rate-limit and `/api/stream`; a subscribed connection rejects every other command, so after the first SSE client both middlewares failed open (no cache, no rate limit). Tests missed it: the fake allowed commands in subscriber mode. Fixed 2026-09-23 claude-opus-5 (#20, PR #21): dedicated subscriber connection, fake enforces subscriber mode, regression test.
-- [ ] B-012 `Hackathon-BE/src/utils/dataTransformer.ts` `transformOpenMeteoResponse` finds the "current hour" by matching `now.toISOString()` (UTC) against Open-Meteo `hourly.time`, which is requested in `Asia/Ho_Chi_Minh` local time — so "current" weather and the 24 h forecast start 7 h in the past (falls back to index 0 before 07:00 local). Found 2026-09-23 claude-opus-5 while planning S-001. Legacy repo is frozen; fix lands in ucdt T-006 (match on HCMC local hour) with a test.
+- [x] B-012 `Hackathon-BE/src/utils/dataTransformer.ts` `transformOpenMeteoResponse` finds the "current hour" by matching `now.toISOString()` (UTC) against Open-Meteo `hourly.time`, which is requested in `Asia/Ho_Chi_Minh` local time — so "current" weather and the 24 h forecast start 7 h in the past (falls back to index 0 before 07:00 local). Found 2026-09-23 claude-opus-5 while planning S-001. Legacy repo is frozen. Fixed in ucdt T-006 (#23, `climate/ingest/weather.py` matches the HCMC local hour via utc_offset_seconds; regression test fails with the legacy logic).
 - [x] B-009 Flood page credited data to "VNMHA / VnDMS"; the backend contacts neither — flood risk is computed locally from Open-Meteo precipitation (googleFlood.client.ts does no network I/O). False provenance in a paper screenshot. Fixed 2026-09-14 claude-opus-5 (log 2026-09-14T0750Z-claude-opus-5)
 - [x] B-010 Flood trigger chart plotted mm/h beside % on one axis as "current vs threshold", implying higher-is-worse for drainage — the SUBTRACTIVE term. 50 mm/h was mislabelled "threshold" (it is P_ref). Fixed 2026-09-14 claude-opus-5
 - [x] B-011 `/api/flood` returned only 3 of R_f's 4 terms (terrainSensitivity missing), so the displayed factors summed to 0.0825 against a displayed score of 0.232 — the DP3 audit claim for that screen was unverifiable. Fixed 2026-09-14 claude-opus-5
@@ -50,6 +63,11 @@
 - [x] B-003 Verify full sync of PDIM S1 formulas between BE & FE (`constants.ts` vs `pdim.ts`) — fixed 2026-08-19 antigravity (log 2026-08-19T0900Z-antigravity)
 
 ## Decisions
+- 2026-09-24 (S-001 W4) Image contract: `images.yml` publishes ghcr.io/codeforfee/ucdt-{climate,gateway,web} tagged `<branch>` (dev/main), `sha-<short>`, and `latest` on main; PRs build without pushing. Production runs `infra/compose.yml` + `infra/compose.prod.yml` (images pinned by `UCDT_TAG`, default `main`; rollback = `UCDT_TAG=sha-…`) via `infra/deploy.sh` — the VPS never builds. The web image bakes the Mapbox token at build time, so it is only published once the `VITE_MAPBOX_TOKEN` repo secret exists (the job skips with a warning, never builds with a placeholder).
+- 2026-09-24 (S-001 W4) `packages/contracts` is enforced, not advisory: the `climate` CI job regenerates it from the climate OpenAPI and fails on any diff.
+- 2026-09-24 Shell scripts are committed 100755 (`git update-index --chmod=+x`); a Windows checkout otherwise commits 100644 and Docker Desktop hides it until Linux fails with exit 126 (PR #37).
+- 2026-09-23 (S-001 W2) Snapshot contract between worker and API: every run writes five `risk_snapshots` (hazard ∈ weather, aqi, flood, heat, recommend), `result` = exactly the legacy Hackathon-BE `/api/<hazard>` `data` payload (heat in heatController's reshaped form), `model_version` = `pdim-s1`, `inputs` = what the models consumed. `/v1/<hazard>/latest` adds `observedAt` + `stale` (> 45 min) and returns 503 before the first snapshot. A failed upstream fetch writes nothing.
+- 2026-09-23 (S-001 W2) Each DB test suite owns its database (`ucdt_test` tests/db, `ucdt_test_api`, `ucdt_test_worker`): tests/db downgrades its DB to base, so a shared one races across parallel worktrees.
 - 2026-09-23 (S-001 W1) Python `services/climate` is the ONLY owner of PDIM coefficients and formulas; `apps/web` has no `pdim.ts` and never recomputes a served value. The gateway (Bun + Hono) never touches the DB and never computes a domain value — it forwards, envelopes, caches, rate-limits and relays SSE. Parity with the legacy TS backend is proven by `tests/pdim/test_pdim_parity.py` against `parity.json` (1e-9).
 - 2026-09-23 (S-001 W1) Live-update contract: the worker publishes JSON on Redis channel `ucdt:events` with `type` ∈ {`snapshot.updated`, `alert.created`} and, for snapshots, `hazard` ∈ web `KEY` (weather, aqi, flood, heat, recommend). The gateway uses `type` as the SSE event name; `useLiveEvents` invalidates by it. Any other shape is silently ignored.
 - 2026-09-23 Redis pub/sub always gets its own connection — never share a subscribed client with key commands (B-013).
@@ -64,7 +82,17 @@
 - 2026-08-19 Multi-hazard unified spatial reference: 18 flood zones, 22 districts, 23 AQI monitoring stations across HCMC.
 - 2026-08-19 Rule-based recommendation engine prioritizing by pi(r, i) = S(b) * E(i) * F(a).
 
+## Follow-ups (not bugs, not yet tasks)
+- The web app is blank without `VITE_MAPBOX_TOKEN` (`apps/web/src/config/env.ts` requires it at startup), although only map/simulation need it. Make it optional and show a message on the map pages instead.
+- Web `shared/types` vs the API: forecast item lacks `windSpeed`; optional fields never sent: AQI `dominantPollutant`/`trend7d`/`hourlyPattern`, station `category`, simulation `geojson`. Switch web types to `@ucdt/contracts` when convenient.
+- `alerts` table has no CHECK on `type`/`severity` — one bad row makes `GET /v1/alerts` 500 (needs a migration).
+- `POST /v1/alerts/read` returns rows actually changed; legacy returned ids sent.
+- `/v1/history/{hazard}?hours=168` returns ~670 full snapshots — trim when a chart uses it.
+- System alert text says "làm mới mỗi 5 phút"; the worker runs every 15. Locked by parity.json — regenerate the fixture if changed.
+- `apps/web/src/router/routes.test.tsx` still encodes wave-1 placeholder headings (pages keep sr-only h1s to satisfy it).
+- A real public Mapbox token lives in the legacy `Hackathon-FE/.env` (`NEXT_PUBLIC_MAPBOX_TOKEN`); copy it into `infra/.env` / `apps/web/.env.local` (both gitignored). Map layers verified with it at the W3 gate.
+
 ## Last 3 handoffs
-- 2026-09-23T1740Z-claude-opus-5-1b6751ff — done: wave 1 closed. T-005 committed from the dead subagent's worktree (PR #19); found + fixed B-013 (PR #21); gate W1 green on dev; T-011 map written (56 nodes). Merged-branch deletion was blocked by the permission gate — left for the user. NEXT: user approves wave 2 (T-006..T-009).
-- 2026-09-23T1636Z-claude-opus-5-77343ae4 — partial: sprint S-001 opened (ucdt monorepo, github CodeForFee/ucdt private, flow issue→branch→PR into dev, main is the user's); T-001 done (9c96276); PR #15 merged into dev (.agent in repo, CI on dev); wave 1 T-002..T-005 dispatched in worktrees. Found B-012. NEXT: review+merge wave-1 PRs, gate W1, T-011 map, stop for user.
-- 2026-09-14T0750Z-claude-opus-5 — done: dropped air-quality + alerts nav tabs; fixed flood page (false data source, misleading trigger chart, missing terrain term) with a 4-term R_f decomposition verified against live API; manuscript corrected. PENDING: draft(3).docx locked by Word, corrected copy at docs/.draft3.tmp.docx.
+- 2026-09-23T1636Z-claude-opus-5-77343ae4 (cont. 2026-09-24) — done: wave 4 closed, sprint S-001 closed. T-012 #36 (drift check + GHCR images; first push ucdt-climate/gateway :dev, web skipped — no secret), T-013 #37 (compose.prod, deploy.sh, backup/restore, Uptime Kuma, DEPLOY.md; two review rounds: exec bits, live-DB restore). B-016 fixed (#33); flaky routes.test fixed (#35) after #33 was merged with red CI (lead error, rule added). Auto-delete branches OFF. Gate W4 green on dev 9cd795b. Map refreshed (82 nodes). NEXT: user sets the Mapbox secret, promotes dev → main, then deploys per docs/DEPLOY.md; open B-014, B-017.
+- 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 3 closed. T-010 full-stack compose + Caddy: 7 services healthy, all pages at http://localhost, SSE live through Caddy, legacy Hackathon-FE runs against the new stack, ≈ 213 MiB total. NEXT: user approves wave 4 (T-012 CI + GHCR, T-013 deploy/backup/docs).
+- 2026-09-23T1740Z-claude-opus-5-1b6751ff (cont.) — done: wave 2 closed. T-006 #23, T-007 #24, T-008 #27, T-009 #29 merged into dev (T-008/T-009 rebased by the lead after `dev` was auto-deleted by #25 and re-created). Gate W2: all suites green; worker → API → gateway → web verified end to end incl. SSE. Fixed B-015; opened B-014 (#26), B-016 (user decision). NEXT: user approves wave 3 (T-010 compose + Caddy).

@@ -51,3 +51,15 @@ def compute_heat(weather_current: dict, now: datetime) -> dict:
         "uhiEffect": js_round(avg_uhi * 10) / 10,
         "timestamp": js_iso(now),
     }
+
+
+def mean_effective_temp(hotspots: list[dict]) -> float:
+    """City mean of the served per-cell T_eff(i) = HI(T, RH) + rho(i)·3.5 °C (manuscript §4.2).
+
+    The heat what-if perturbs T_eff (ΔT = −α·ΔG + u·(ρ_sim − ρ₀)), so this — not the air
+    temperature `cityAvgTemp` — is the baseline the simulation card adds ΔT to (B-020).
+    Averages the 1-decimal values the API serves per cell, so the card and the zone list
+    under it agree to the digit.
+    """
+    temps = [h["effectiveTemperature"] for h in hotspots]
+    return js_round(sum(temps) / len(temps) * 10) / 10

@@ -49,7 +49,9 @@ async def ingest(ctx: dict) -> str:
     try:
         forecast, city, stations = await fetch_all(ctx["http"])
     except Exception as e:  # any upstream failure: keep the last good snapshots, T-007 marks them stale
-        log.error("ingest skipped: upstream fetch failed: %s", type(e).__name__)
+        # Status code, never str(e): the URL of a fallback AQ source carries its API key.
+        status = e.response.status_code if isinstance(e, httpx.HTTPStatusError) else ""
+        log.error("ingest skipped: upstream fetch failed: %s %s", type(e).__name__, status)
         return "skipped"
     async with ctx["sessionmaker"]() as s, s.begin():
         hazards, alert_ids = await store_run(s, forecast, city, stations, now)

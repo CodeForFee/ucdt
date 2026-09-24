@@ -8,8 +8,10 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+asyncpg://ucdt:ucdt@localhost:5432/ucdt"
-    redis_url: str = "redis://localhost:6379/0"
+    # 127.0.0.1, not localhost: on Windows localhost tries ::1 first — Redis timed out and each
+    # Postgres connect took ~2 s. Compose overrides both with service names.
+    database_url: str = "postgresql+asyncpg://ucdt:ucdt@127.0.0.1:5432/ucdt"
+    redis_url: str = "redis://127.0.0.1:6379/0"
 
     # Optional AQI fallbacks — Open-Meteo Air Quality needs no key and is tried first.
     iqair_api_key: str = ""

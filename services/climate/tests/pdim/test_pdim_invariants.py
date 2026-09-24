@@ -127,3 +127,23 @@ def test_aqi_station_fetch_failure_is_dropped():
     assert out["forecast24h"][0]["hour"] == "2026-09-23T10:00:00.000Z"
     with pytest.raises(ValueError):
         aqi.compute_aqi(None, stations, None, NOW)
+
+
+def test_mean_effective_temp_is_the_heat_whatif_baseline():
+    """B-020: the heat card adds ΔT to mean T_eff (manuscript §4.2), not to air temperature."""
+    import json
+    from pathlib import Path
+
+    from climate.pdim import heat as heat_mod
+
+    fixture = json.loads((Path(__file__).parents[1] / "fixtures" / "parity.json").read_text(encoding="utf-8"))
+    s = next(s for s in fixture["scenarios"] if s["id"] == "dry-heat-polluted")
+    raw = s["outputs"]["heat"]
+    teff = [h["effectiveTemperature"] for h in raw["hotspots"]]
+    got = heat_mod.mean_effective_temp(raw["hotspots"])
+    assert min(teff) <= got <= max(teff)
+    assert abs(got - sum(teff) / len(teff)) <= 0.05 + 1e-9
+    assert got != raw["cityAvgTemp"]  # the air temperature is a different quantity
+    assert (
+        heat_mod.mean_effective_temp([{"effectiveTemperature": 35.1}, {"effectiveTemperature": 35.2}]) == 35.2
+    )

@@ -10,8 +10,8 @@
       "SQL"
     ],
     "frameworks": [
-      "FastAPI (pending T-007)",
-      "arq (pending T-006)",
+      "FastAPI",
+      "arq",
       "SQLAlchemy Core + Alembic",
       "PostGIS",
       "Bun + Hono",
@@ -22,9 +22,10 @@
       "use-intl",
       "Tailwind v4 + shadcn",
       "Mapbox GL",
-      "Caddy (pending T-010)"
+      "Caddy",
+      "GitHub Actions + GHCR"
     ],
-    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001. State at wave-1 gate: PDIM port, DB schema, gateway and web shell are done; ingestion/worker (T-006), the climate HTTP API + contracts (T-007) and every real web page (T-008, T-009) do not exist yet, so the gateway currently forwards to a climate-api that is not written."
+    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001 (all 13 tasks merged into dev). The full stack runs from one compose file behind Caddy (worker -> Postgres -> climate API -> gateway -> web, SSE live); CI builds and pushes GHCR images, and compose.prod.yml + infra/deploy.sh deploy them on a VPS with daily backups. Open: B-014 (web copy of flood weights), B-017 (info-modal text), the VITE_MAPBOX_TOKEN repo secret."
   },
   "nodes": [
     {
@@ -44,12 +45,50 @@
       "type": "file",
       "name": "compose.yml",
       "filePath": "infra/compose.yml",
-      "summary": "Production-shaped compose: postgis 16-3.4 + redis 7 only (no ports published, mem_limit sized for a 2 vCPU / 3.78 GB VPS). Redis runs with persistence OFF and allkeys-lru at 64 MB — it is a cache + pub/sub bus, never a store. App services (climate-api, worker, gateway, caddy+web) are added in T-010.",
+      "summary": "The whole stack: postgres, redis, migrate (one-shot alembic upgrade head), climate-api, climate-worker (one image via a YAML anchor), gateway, caddy. Only caddy publishes ports (80/443). Start order is enforced by healthchecks (postgres -> migrate completed -> api /healthz -> gateway /health -> caddy). mem_limits total ~1.6 GB cap; measured ~213 MiB. Redis: persistence OFF, allkeys-lru 64 MB — cache/queue/pub-sub, never a store. LANDMINE: running it without compose.dev.yml drops the 127.0.0.1 ports the host dev loop and pytest need.",
       "tags": [
         "infra",
-        "compose"
+        "compose",
+        "landmine"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:infra/Caddyfile",
+      "type": "file",
+      "name": "Caddyfile",
+      "filePath": "infra/Caddyfile",
+      "summary": "/api/* -> gateway:3001 with flush_interval -1 and deliberately NO encode (compression buffers SSE); everything else is the SPA (try_files -> index.html, zstd/gzip, immutable /assets). SITE_ADDRESS :80 or a domain for auto-HTTPS.",
+      "tags": [
+        "infra",
+        "proxy"
       ],
       "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/web.Dockerfile",
+      "type": "file",
+      "name": "web.Dockerfile",
+      "filePath": "infra/web.Dockerfile",
+      "summary": "Builds apps/web with pnpm (corepack, --filter web...) and bakes VITE_* build args into the bundle, then copies dist + Caddyfile into caddy:2-alpine. VITE_MAPBOX_TOKEN is required — env.ts blanks the app without it.",
+      "tags": [
+        "infra",
+        "docker",
+        "web"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.dockerignore",
+      "type": "file",
+      "name": ".dockerignore",
+      "filePath": ".dockerignore",
+      "summary": "Root build-context ignore for the web and gateway images (both build from the repo root): node_modules, dist, .venv, .git, .claude, .agent, env files.",
+      "tags": [
+        "infra",
+        "docker"
+      ],
+      "complexity": "simple"
     },
     {
       "id": "file:infra/compose.dev.yml",
@@ -80,7 +119,7 @@
       "type": "file",
       "name": "climate.yml",
       "filePath": ".github/workflows/climate.yml",
-      "summary": "CI for services/climate: PostGIS service container, uv sync --locked, ruff check + format, pytest. Deliberately NO path filter — a required check skipped by a filter would block unrelated PRs.",
+      "summary": "CI for services/climate: PostGIS service container, uv sync --locked (cached), ruff check + format, pytest, then the CONTRACTS DRIFT CHECK — dump the climate OpenAPI, `pnpm -F @ucdt/contracts gen`, `git diff --exit-code -- packages/contracts` (a schema change without regenerated contracts fails here). Deliberately NO path filter — a required check skipped by a filter would block unrelated PRs. Concurrency cancels superseded runs.",
       "tags": [
         "ci"
       ],
@@ -91,7 +130,7 @@
       "type": "file",
       "name": "gateway.yml",
       "filePath": ".github/workflows/gateway.yml",
-      "summary": "CI for apps/gateway: bun test + tsc.",
+      "summary": "CI for apps/gateway: bun test + tsc. Concurrency per ref, timeout-minutes.",
       "tags": [
         "ci"
       ],
@@ -102,7 +141,7 @@
       "type": "file",
       "name": "web.yml",
       "filePath": ".github/workflows/web.yml",
-      "summary": "CI for apps/web: lint, vitest, vite build with a placeholder VITE_MAPBOX_TOKEN (env.ts throws without one).",
+      "summary": "CI for apps/web: lint, vitest, vite build with a placeholder VITE_MAPBOX_TOKEN (env.ts throws without one). routes.test waits up to 4 s for lazy route chunks (a cold runner once took 1.1 s, #34).",
       "tags": [
         "ci"
       ],
@@ -138,12 +177,126 @@
       "type": "file",
       "name": "config.py",
       "filePath": "services/climate/climate/config.py",
-      "summary": "pydantic-settings Settings (DATABASE_URL, REDIS_URL, optional IQAIR/AQICN keys, ingest every 15 min, stale after 45 min, city hcmc, tz Asia/Ho_Chi_Minh), cached by get_settings(). Reads services/climate/.env.",
+      "summary": "pydantic-settings Settings (DATABASE_URL, REDIS_URL — defaults on 127.0.0.1, not localhost (::1 first on Windows: Redis timeouts, 2 s Postgres connects), optional IQAIR/AQICN keys, ingest every 15 min, stale after 45 min, city hcmc, tz Asia/Ho_Chi_Minh), cached by get_settings(). Reads services/climate/.env.",
       "tags": [
         "climate",
         "config"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/ingest/weather.py",
+      "type": "file",
+      "name": "weather.py",
+      "filePath": "services/climate/climate/ingest/weather.py",
+      "summary": "Open-Meteo forecast client + transform_forecast. B-012 fix: the current hour is matched in HCMC LOCAL time via Open-Meteo's utc_offset_seconds (not zoneinfo — Windows lacks tzdata and no dep may be added). Requests forecast_days=2 so 24 forecast hours always exist.",
+      "tags": [
+        "climate",
+        "ingest",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/ingest/air.py",
+      "type": "file",
+      "name": "air.py",
+      "filePath": "services/climate/climate/ingest/air.py",
+      "summary": "Air-quality fetch: Open-Meteo Air Quality first, IQAir / AQICN fallbacks only when their keys are set. Returns None on failure; a failed station is dropped.",
+      "tags": [
+        "climate",
+        "ingest"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/snapshots.py",
+      "type": "file",
+      "name": "snapshots.py",
+      "filePath": "services/climate/climate/snapshots.py",
+      "summary": "store_run(): one scoring run inside the CALLER's transaction — observations, the five risk_snapshots (weather, aqi, flood, heat, recommend; result = legacy /api/<hazard> data, model_version pdim-s1) and new alerts. LANDMINE: heat is stored in heatController's reshaped form (heat_payload), not compute_heat's raw output — the web and the API model depend on that.",
+      "tags": [
+        "climate",
+        "processing",
+        "landmine"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/worker/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "services/climate/climate/worker/main.py",
+      "summary": "arq WorkerSettings: cron every ingest_interval_minutes + at startup: fetch all -> store_run -> commit -> publish ucdt:events. Any upstream failure skips the run (no half snapshot set). Run once: `uv run arq climate.worker.main.WorkerSettings --burst`.",
+      "tags": [
+        "climate",
+        "worker",
+        "entry"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/api/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "services/climate/climate/api/main.py",
+      "summary": "FastAPI internal API (only client: the gateway). /v1/{hazard}/latest adds observedAt + stale (> 45 min); 503 until a snapshot exists (gateway turns it into 502). /v1/simulation runs live on the latest weather+flood+aqi snapshots. /v1/alerts, /v1/alerts/read, /v1/history/{hazard}?hours=1..168, /healthz.",
+      "tags": [
+        "climate",
+        "api",
+        "entry"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/api/models.py",
+      "type": "file",
+      "name": "models.py",
+      "filePath": "services/climate/climate/api/models.py",
+      "summary": "Pydantic response/request models mirroring the legacy shapes; SimulationRequest bounds = validate_scenario. Source of the OpenAPI schema.",
+      "tags": [
+        "climate",
+        "api",
+        "contract"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/Dockerfile",
+      "type": "file",
+      "name": "Dockerfile",
+      "filePath": "services/climate/Dockerfile",
+      "summary": "One image for api (default CMD uvicorn :8000), worker (arq ...) and migrate (alembic upgrade head). uv, non-root uid 10001, ~300 MB.",
+      "tags": [
+        "climate",
+        "infra",
+        "docker"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/tests/api/conftest.py",
+      "type": "file",
+      "name": "conftest.py",
+      "filePath": "services/climate/tests/api/conftest.py",
+      "summary": "API tests on their own database `ucdt_test_api` (sharing ucdt_test with tests/db races: tests/db downgrades it to base).",
+      "tags": [
+        "test",
+        "db"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/tests/worker/test_worker.py",
+      "type": "file",
+      "name": "test_worker.py",
+      "filePath": "services/climate/tests/worker/test_worker.py",
+      "summary": "Parity scenario through faked HTTP -> worker -> real DB: each stored result equals legacy /api/<hazard> within 1e-9; events only after commit; failed fetch writes nothing. DB `ucdt_test_worker`.",
+      "tags": [
+        "test",
+        "worker"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "file:services/climate/climate/spatial/units.py",
@@ -163,7 +316,7 @@
       "type": "file",
       "name": "constants.py",
       "filePath": "services/climate/climate/pdim/constants.py",
-      "summary": "SINGLE source of truth for every PDIM Stage-1 coefficient: flood w1..w4 = .45/.30/.25/.15, Θ=(.25,.5,.75), rainRef 50 mm/h; heat α=0.15, UHI 3.5 °C; AQI β=0.3, γ_w=.05, γ_p=.15; green->drain 0.003; AQI_CATEGORIES bands. Ported verbatim from legacy constants.ts; parity-tested. The web no longer mirrors any of these.",
+      "summary": "SINGLE source of truth for every PDIM Stage-1 coefficient: flood w1..w4 = .45/.30/.25/.15, Θ=(.25,.5,.75), rainRef 50 mm/h; heat α=0.15, UHI 3.5 °C; AQI β=0.3, γ_w=.05, γ_p=.15; green->drain 0.003; AQI_CATEGORIES bands. Ported verbatim from legacy constants.ts; parity-tested. One known web copy: the flood weights in apps/web features/flood (B-014, #26).",
       "tags": [
         "climate",
         "pdim",
@@ -391,7 +544,7 @@
       "type": "file",
       "name": "index.ts",
       "filePath": "apps/gateway/src/index.ts",
-      "summary": "Bun entry: builds TWO RedisClients (commands + a dedicated pub/sub subscriber, B-013) and serves the Hono app on :3001 with idleTimeout 0 so SSE is not cut.",
+      "summary": "Bun entry (defaults CLIMATE_URL http://127.0.0.1:8000, REDIS_URL 127.0.0.1 — not localhost, which is slow on Windows): builds TWO RedisClients (commands + a dedicated pub/sub subscriber, B-013) and serves the Hono app on :3001 with idleTimeout 0 so SSE is not cut.",
       "tags": [
         "gateway",
         "entry"
@@ -533,16 +686,79 @@
       "complexity": "simple"
     },
     {
-      "id": "directory:apps/web/src/features",
+      "id": "directory:apps/web/src/features/dashboard",
       "type": "directory",
-      "name": "features",
-      "filePath": "apps/web/src/features",
-      "summary": "One folder per screen: dashboard, map, simulation, flood, air-quality, alerts. Wave 1 ships PLACEHOLDER pages only; T-008 fills dashboard/flood/air-quality/alerts, T-009 map + simulation. ESLint forbids a feature importing another feature.",
+      "name": "dashboard",
+      "filePath": "apps/web/src/features/dashboard",
+      "summary": "Overview cards, risk banner, 24 h charts, rule-based RecommendPanel (ruleId/priorityScore/inputs, B-005). lib/weatherOutlook: a 'vs 24 h ago' delta only when history really spans >= 23 h, else the 6 h forecast outlook (B-007, B-015).",
+      "tags": [
+        "web",
+        "features"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "directory:apps/web/src/features/flood",
+      "type": "directory",
+      "name": "flood",
+      "filePath": "apps/web/src/features/flood",
+      "summary": "Flood page: per-zone table + RiskDecomposition of all four R_f terms, drainage drawn subtractive (B-010/B-011). LANDMINE: lib/decomposeFloodRisk.ts keeps its own copy of w1..w4 with no cross-check (B-014, #26) — change a flood weight in climate and this silently desyncs.",
+      "tags": [
+        "web",
+        "features",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "directory:apps/web/src/features/air-quality",
+      "type": "directory",
+      "name": "air-quality",
+      "filePath": "apps/web/src/features/air-quality",
+      "summary": "Air-quality page: stations, EPA bands from shared/lib/aqi.ts, provenance = Open-Meteo.",
       "tags": [
         "web",
         "features"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/features/alerts",
+      "type": "directory",
+      "name": "alerts",
+      "filePath": "apps/web/src/features/alerts",
+      "summary": "Alerts page: list + mark-read (optimistic, persisted via POST /api/alerts/read).",
+      "tags": [
+        "web",
+        "features"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/features/map",
+      "type": "directory",
+      "name": "map",
+      "filePath": "apps/web/src/features/map",
+      "summary": "Full Mapbox map with flood/heat/AQI layers and controls. mapbox-gl stays in its own chunk; init failure (no WebGL) is logged and leaves the boot overlay up. Needs a real VITE_MAPBOX_TOKEN to paint.",
+      "tags": [
+        "web",
+        "features",
+        "map"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "directory:apps/web/src/features/simulation",
+      "type": "directory",
+      "name": "simulation",
+      "filePath": "apps/web/src/features/simulation",
+      "summary": "Heat/flood/AQI what-if pages. No local PDIM: sliders debounce (150 ms) POST /api/simulation and render TanStack mutation state; zustand holds slider state only. SimHeatLayer shows only the backend tempDelta (B-006); urbanDensity is sent (B-004). The affected-population figure it shows is a legacy heuristic (B-016). ComparePanel never renders affectedPopulation / affectedBuildings: the API still sends them for legacy parity, but they are the Stage-1 heuristic (50k/80k people, 1,200 buildings per zone), not an exposure model (B-016, user decision).",
+      "tags": [
+        "web",
+        "features",
+        "simulation"
+      ],
+      "complexity": "complex"
     },
     {
       "id": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
@@ -709,12 +925,122 @@
       "type": "file",
       "name": "package.json",
       "filePath": "packages/contracts/package.json",
-      "summary": "@ucdt/contracts: will hold TypeScript types generated from the climate OpenAPI schema (`gen` script). EMPTY until T-007 — src/index.ts does not exist yet.",
+      "summary": "@ucdt/contracts: `gen` runs openapi-typescript over openapi.json (--default-non-nullable false so defaulted request fields stay optional).",
       "tags": [
-        "contracts",
-        "pending"
+        "contracts"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "file:packages/contracts/openapi.json",
+      "type": "file",
+      "name": "openapi.json",
+      "filePath": "packages/contracts/openapi.json",
+      "summary": "Generated by `uv run python -m climate.api.dump_openapi` — do not hand-edit. Regenerating must produce no diff (T-007 exit).",
+      "tags": [
+        "contracts",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:packages/contracts/src/schema.ts",
+      "type": "file",
+      "name": "schema.ts",
+      "filePath": "packages/contracts/src/schema.ts",
+      "summary": "Generated TS types for the climate API. Not yet consumed by apps/web, whose shared/types were ported by hand — known mismatches are on the board (T-007 follow-ups).",
+      "tags": [
+        "contracts",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.github/workflows/images.yml",
+      "type": "file",
+      "name": "images.yml",
+      "filePath": ".github/workflows/images.yml",
+      "summary": "Builds the three GHCR images on every PR (build only) and pushes them on push to dev/main: ghcr.io/codeforfee/ucdt-climate (services/climate), ucdt-gateway (apps/gateway/Dockerfile, root context), ucdt-web (infra/web.Dockerfile). Tags: branch name, sha-<short>, latest on main only — the contract compose.prod.yml pulls. Job ids are *-image so they never collide with the required climate/gateway/web checks. web-image SKIPS with a ::warning:: while the VITE_MAPBOX_TOKEN repo secret is empty (never builds with a placeholder).",
+      "tags": [
+        "ci",
+        "images",
+        "ghcr"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/compose.prod.yml",
+      "type": "file",
+      "name": "compose.prod.yml",
+      "filePath": "infra/compose.prod.yml",
+      "summary": "Production override, always used together with compose.yml: swaps every app service to ghcr.io/codeforfee/ucdt-*:${UCDT_TAG:-main} (rollback = UCDT_TAG=sha-xxxx), adds `backup` (postgres:16-alpine, daily pg_dump -Fc into ${BACKUP_DIR:-/var/backups/ucdt}, keep 7) and `uptime-kuma` published ONLY on 127.0.0.1:3100 (reach it over an SSH tunnel). LANDMINE: compose.yml still interpolates VITE_MAPBOX_TOKEN as a required build arg, so infra/.env on the VPS needs it even though prod never builds.",
+      "tags": [
+        "infra",
+        "deploy",
+        "landmine"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:infra/deploy.sh",
+      "type": "file",
+      "name": "deploy.sh",
+      "filePath": "infra/deploy.sh",
+      "summary": "VPS deploy, run from the repo root by the user (agents never SSH): refuses without infra/.env, git pull --ff-only, compose pull, up -d --no-build --remove-orphans --wait, ps, image prune. UCDT_TAG selects the image tag for rollback.",
+      "tags": [
+        "infra",
+        "deploy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/entrypoint.sh",
+      "type": "file",
+      "name": "entrypoint.sh",
+      "filePath": "infra/backup/entrypoint.sh",
+      "summary": "Entrypoint of the backup service: runs backup.sh immediately, then every 24 h; a failed run is logged and retried, never crashes the container. LANDMINE: every script here must be committed 100755 — a Windows checkout silently commits 100644, Docker Desktop hides it, and on Linux the service crash-loops with exit 126 (caught in PR #37). Use `git update-index --chmod=+x`.",
+      "tags": [
+        "infra",
+        "backup",
+        "landmine"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/backup.sh",
+      "type": "file",
+      "name": "backup.sh",
+      "filePath": "infra/backup/backup.sh",
+      "summary": "POSIX sh: one pg_dump -Fc of $PGDATABASE into $BACKUP_DIR/<db>-<UTC ts>.dump, logged to stdout and backup.log, then prunes to the newest $KEEP (7). A failed dump is deleted, not kept half-written.",
+      "tags": [
+        "infra",
+        "backup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:infra/backup/restore.sh",
+      "type": "file",
+      "name": "restore.sh",
+      "filePath": "infra/backup/restore.sh",
+      "summary": "Host-side restore of a dump into the running postgres container: typed-name confirmation, stops climate-api/climate-worker/backup, dropdb --force, createdb, pg_restore, and restarts those services from an EXIT trap (also on failure). RESTORE_DRY_RUN=1 prints the stop/start instead of running them. Proven against a held connection into a scratch DB.",
+      "tags": [
+        "infra",
+        "backup"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:docs/DEPLOY.md",
+      "type": "file",
+      "name": "DEPLOY.md",
+      "filePath": "docs/DEPLOY.md",
+      "summary": "Vietnamese VPS runbook: Docker install, hardening checklist (sudo user + SSH key, PermitRootLogin/PasswordAuthentication no, ufw 22/80/443, unattended-upgrades, fail2ban), private clone, docker login ghcr.io (PAT read:packages), infra/.env, first deploy / update / rollback, backup copy-off + restore, Uptime Kuma via ssh -L 3100, troubleshooting. Written, not yet run on a real VPS.",
+      "tags": [
+        "docs",
+        "deploy"
+      ],
+      "complexity": "moderate"
     }
   ],
   "edges": [
@@ -1010,13 +1336,6 @@
     },
     {
       "source": "file:apps/web/src/router/routes.tsx",
-      "target": "directory:apps/web/src/features",
-      "type": "imports",
-      "weight": 0.7,
-      "description": "lazy-loads every page"
-    },
-    {
-      "source": "file:apps/web/src/router/routes.tsx",
       "target": "directory:apps/web/src/shared/components",
       "type": "imports",
       "weight": 0.7,
@@ -1072,23 +1391,11 @@
       "weight": 0.7
     },
     {
-      "source": "directory:apps/web/src/features",
-      "target": "directory:apps/web/src/shared/hooks",
-      "type": "imports",
-      "weight": 0.7
-    },
-    {
-      "source": "directory:apps/web/src/features",
-      "target": "directory:apps/web/src/shared/components",
-      "type": "imports",
-      "weight": 0.7
-    },
-    {
       "source": "file:apps/web/eslint.config.js",
-      "target": "directory:apps/web/src/features",
+      "target": "directory:apps/web/src/features/simulation",
       "type": "constrains",
       "weight": 0.7,
-      "description": "no cross-feature imports"
+      "description": "no cross-feature imports (all six features)"
     },
     {
       "source": "file:apps/web/src/shared/lib/axios.ts",
@@ -1106,10 +1413,10 @@
     },
     {
       "source": "file:apps/gateway/src/climate.ts",
-      "target": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/climate/api/main.py",
       "type": "calls",
-      "weight": 0.5,
-      "description": "HTTP CLIMATE_URL/v1/* (climate-api lands in T-007)"
+      "weight": 0.9,
+      "description": "HTTP CLIMATE_URL/v1/*"
     },
     {
       "source": "file:infra/compose.yml",
@@ -1124,22 +1431,320 @@
       "type": "runs",
       "weight": 0.4,
       "description": "PostGIS service for DB tests"
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/db/repo.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/pdim/flood.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/pdim/heat.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/pdim/aqi.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/pdim/rules.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/ingest/weather.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:services/climate/climate/snapshots.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:services/climate/climate/ingest/weather.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:services/climate/climate/ingest/air.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:apps/gateway/src/app.ts",
+      "type": "publishes",
+      "weight": 0.9,
+      "description": "Redis ucdt:events -> SSE /api/stream"
+    },
+    {
+      "source": "file:services/climate/climate/api/main.py",
+      "target": "file:services/climate/climate/api/models.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/api/main.py",
+      "target": "file:services/climate/climate/db/repo.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/api/main.py",
+      "target": "file:services/climate/climate/pdim/simulation.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/api/models.py",
+      "target": "file:packages/contracts/openapi.json",
+      "type": "generates",
+      "weight": 0.7
+    },
+    {
+      "source": "file:packages/contracts/openapi.json",
+      "target": "file:packages/contracts/src/schema.ts",
+      "type": "generates",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/api/main.py",
+      "target": "file:services/climate/tests/api/conftest.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:services/climate/tests/worker/test_worker.py",
+      "type": "tested_by",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/Dockerfile",
+      "target": "file:services/climate/climate/api/main.py",
+      "type": "runs",
+      "weight": 0.7
+    },
+    {
+      "source": "file:services/climate/Dockerfile",
+      "target": "file:services/climate/climate/worker/main.py",
+      "type": "runs",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/dashboard",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/dashboard",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/flood",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/flood",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/air-quality",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/air-quality",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/alerts",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/alerts",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/map",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/map",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:apps/web/src/router/routes.tsx",
+      "target": "directory:apps/web/src/features/simulation",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "lazy page"
+    },
+    {
+      "source": "directory:apps/web/src/features/simulation",
+      "target": "directory:apps/web/src/shared/hooks",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "directory:apps/web/src/features/flood",
+      "target": "file:services/climate/climate/pdim/constants.py",
+      "type": "duplicates",
+      "weight": 0.5,
+      "description": "FLOOD_WEIGHTS copy, no cross-check (B-014)"
+    },
+    {
+      "source": "file:infra/compose.yml",
+      "target": "file:infra/web.Dockerfile",
+      "type": "builds",
+      "weight": 0.7
+    },
+    {
+      "source": "file:infra/compose.yml",
+      "target": "file:services/climate/Dockerfile",
+      "type": "builds",
+      "weight": 0.7
+    },
+    {
+      "source": "file:infra/web.Dockerfile",
+      "target": "file:infra/Caddyfile",
+      "type": "copies",
+      "weight": 0.7
+    },
+    {
+      "source": "file:infra/Caddyfile",
+      "target": "file:apps/gateway/src/app.ts",
+      "type": "proxies",
+      "weight": 0.9,
+      "description": "/api/* incl. SSE"
+    },
+    {
+      "source": "file:.github/workflows/images.yml",
+      "target": "file:services/climate/Dockerfile",
+      "type": "builds",
+      "weight": 0.8,
+      "description": "builds + pushes ucdt-climate"
+    },
+    {
+      "source": "file:.github/workflows/images.yml",
+      "target": "file:infra/web.Dockerfile",
+      "type": "builds",
+      "weight": 0.8,
+      "description": "builds + pushes ucdt-web (needs the VITE_MAPBOX_TOKEN secret)"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:infra/compose.yml",
+      "type": "configures",
+      "weight": 0.9,
+      "description": "override: GHCR images + backup + uptime-kuma"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:.github/workflows/images.yml",
+      "type": "reads",
+      "weight": 0.6,
+      "description": "pulls the image names/tags that workflow publishes"
+    },
+    {
+      "source": "file:infra/compose.prod.yml",
+      "target": "file:infra/backup/entrypoint.sh",
+      "type": "runs",
+      "weight": 0.7,
+      "description": "backup service entrypoint"
+    },
+    {
+      "source": "file:infra/backup/entrypoint.sh",
+      "target": "file:infra/backup/backup.sh",
+      "type": "runs",
+      "weight": 0.8,
+      "description": "every 24 h"
+    },
+    {
+      "source": "file:infra/deploy.sh",
+      "target": "file:infra/compose.prod.yml",
+      "type": "runs",
+      "weight": 0.8,
+      "description": "compose pull + up -d --no-build"
+    },
+    {
+      "source": "file:infra/backup/restore.sh",
+      "target": "file:infra/compose.prod.yml",
+      "type": "calls",
+      "weight": 0.5,
+      "description": "stops/starts api, worker, backup around the restore"
+    },
+    {
+      "source": "file:docs/DEPLOY.md",
+      "target": "file:infra/deploy.sh",
+      "type": "configures",
+      "weight": 0.4,
+      "description": "documents the deploy/rollback procedure"
     }
   ],
   "layers": [
     {
       "id": "infra",
-      "name": "Infrastructure and CI",
-      "description": "Compose (stateful services only until T-010), env template, GitHub Actions per service, and the one-shot parity generator.",
+      "name": "Infrastructure, CI and deploy",
+      "description": "Full-stack compose behind Caddy, the production override (GHCR images, daily backups, Uptime Kuma), the VPS deploy/restore scripts and runbook, the web image, env template, GitHub Actions (per-service required checks + GHCR images), and the one-shot parity generator.",
       "nodeIds": [
         "file:package.json",
         "file:infra/compose.yml",
+        "file:infra/Caddyfile",
+        "file:infra/web.Dockerfile",
+        "file:.dockerignore",
         "file:infra/compose.dev.yml",
         "file:infra/.env.example",
         "file:.github/workflows/climate.yml",
         "file:.github/workflows/gateway.yml",
         "file:.github/workflows/web.yml",
-        "file:tools/gen-parity.ts"
+        "file:tools/gen-parity.ts",
+        "file:.github/workflows/images.yml",
+        "file:infra/compose.prod.yml",
+        "file:infra/deploy.sh",
+        "file:infra/backup/entrypoint.sh",
+        "file:infra/backup/backup.sh",
+        "file:infra/backup/restore.sh",
+        "file:docs/DEPLOY.md"
       ]
     },
     {
@@ -1162,14 +1767,28 @@
     {
       "id": "data",
       "name": "Data layer — Postgres/PostGIS",
-      "description": "Hand-written migrations, Core tables, a dict-returning async repository. Ingestion (T-006) and the FastAPI routes (T-007) are not written yet.",
+      "description": "Ingest clients (Open-Meteo + AQ fallbacks), hand-written migrations, Core tables, a dict-returning async repository.",
       "nodeIds": [
         "file:services/climate/climate/config.py",
+        "file:services/climate/climate/ingest/weather.py",
+        "file:services/climate/climate/ingest/air.py",
         "file:services/climate/climate/db/models.py",
         "file:services/climate/climate/db/repo.py",
         "file:services/climate/climate/db/session.py",
         "file:services/climate/climate/db/migrations/env.py",
         "file:services/climate/climate/db/migrations/versions/001_initial.py"
+      ]
+    },
+    {
+      "id": "climate-runtime",
+      "name": "Climate runtime — worker + API",
+      "description": "The two processes of the one climate image: the arq worker that ingests, scores and publishes every 15 min, and the internal FastAPI the gateway calls.",
+      "nodeIds": [
+        "file:services/climate/climate/snapshots.py",
+        "file:services/climate/climate/worker/main.py",
+        "file:services/climate/climate/api/main.py",
+        "file:services/climate/climate/api/models.py",
+        "file:services/climate/Dockerfile"
       ]
     },
     {
@@ -1181,7 +1800,9 @@
         "file:services/climate/tests/pdim/test_pdim_invariants.py",
         "file:services/climate/tests/pdim/test_pdim_legacy.py",
         "file:services/climate/tests/db/conftest.py",
-        "file:services/climate/tests/fixtures/parity.json"
+        "file:services/climate/tests/fixtures/parity.json",
+        "file:services/climate/tests/api/conftest.py",
+        "file:services/climate/tests/worker/test_worker.py"
       ]
     },
     {
@@ -1233,17 +1854,24 @@
     {
       "id": "web-features",
       "name": "Web features",
-      "description": "Screens, isolated from each other by ESLint. Placeholders until wave 2.",
+      "description": "The six screens, isolated from each other by ESLint; each renders what the API computed.",
       "nodeIds": [
-        "directory:apps/web/src/features"
+        "directory:apps/web/src/features/dashboard",
+        "directory:apps/web/src/features/flood",
+        "directory:apps/web/src/features/air-quality",
+        "directory:apps/web/src/features/alerts",
+        "directory:apps/web/src/features/map",
+        "directory:apps/web/src/features/simulation"
       ]
     },
     {
       "id": "contracts",
       "name": "Contracts",
-      "description": "OpenAPI-generated TS types. Empty until T-007.",
+      "description": "OpenAPI schema dumped from the climate API and the TS types generated from it.",
       "nodeIds": [
-        "file:packages/contracts/package.json"
+        "file:packages/contracts/package.json",
+        "file:packages/contracts/openapi.json",
+        "file:packages/contracts/src/schema.ts"
       ]
     }
   ],
@@ -1287,6 +1915,16 @@
     },
     {
       "order": 5,
+      "title": "How data arrives",
+      "description": "worker/main.py fetches Open-Meteo every 15 min, snapshots.store_run scores and stores five snapshots in one transaction, then publishes ucdt:events.",
+      "nodeIds": [
+        "file:services/climate/climate/worker/main.py",
+        "file:services/climate/climate/snapshots.py",
+        "file:services/climate/climate/ingest/weather.py"
+      ]
+    },
+    {
+      "order": 6,
       "title": "Storage",
       "description": "Migration 001 seeds the units; repo.py is the only data access and never commits.",
       "nodeIds": [
@@ -1295,17 +1933,17 @@
       ]
     },
     {
-      "order": 6,
+      "order": 7,
       "title": "Where a browser request lands",
-      "description": "Gateway app.ts: rate limit, cache, then climate.ts forwards to CLIMATE_URL/v1/* and wraps the legacy envelope. index.ts keeps a separate Redis connection for SSE (B-013).",
+      "description": "Gateway app.ts: rate limit, cache, then climate.ts forwards to the FastAPI /v1/* and wraps the legacy envelope. index.ts keeps a separate Redis connection for SSE (B-013).",
       "nodeIds": [
         "file:apps/gateway/src/app.ts",
         "file:apps/gateway/src/climate.ts",
-        "file:apps/gateway/src/index.ts"
+        "file:services/climate/climate/api/main.py"
       ]
     },
     {
-      "order": 7,
+      "order": 8,
       "title": "The web app",
       "description": "routes.tsx lists every screen; shared/ services + hooks fetch and unwrap; useLiveEvents turns SSE into query invalidation.",
       "nodeIds": [
@@ -1315,12 +1953,15 @@
       ]
     },
     {
-      "order": 8,
+      "order": 9,
       "title": "Run it",
-      "description": "compose.dev.yml for postgres + redis on loopback; each service has its own CI workflow with the same commands.",
+      "description": "Whole stack: `docker compose -f infra/compose.yml up -d --build` -> http://localhost. Dev loop: compose.dev.yml for postgres + redis on loopback, then uvicorn / arq --burst / bun / vite (API_PROXY_TARGET if :3001 is taken). Production: push to dev/main publishes GHCR images; on the VPS `infra/deploy.sh` pulls them (docs/DEPLOY.md).",
       "nodeIds": [
+        "file:infra/compose.yml",
+        "file:infra/Caddyfile",
         "file:infra/compose.dev.yml",
-        "file:.github/workflows/climate.yml"
+        "file:infra/compose.prod.yml",
+        "file:infra/deploy.sh"
       ]
     }
   ]

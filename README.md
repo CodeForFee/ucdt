@@ -28,7 +28,14 @@ Prerequisites: Node ≥ 22 + pnpm, Bun ≥ 1.3, uv, Docker.
 ```bash
 pnpm install                                                     # web, gateway, contracts
 (cd services/climate && uv sync)                                 # climate
-docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d   # postgres + redis on 127.0.0.1
+docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d postgres redis   # postgres + redis on 127.0.0.1
+```
+
+Whole stack, as it runs on the VPS (only Caddy publishes ports; http://localhost):
+
+```bash
+cp infra/.env.example infra/.env          # set VITE_MAPBOX_TOKEN (required) and POSTGRES_PASSWORD
+docker compose -f infra/compose.yml up -d --build
 ```
 
 ## Working agreement
