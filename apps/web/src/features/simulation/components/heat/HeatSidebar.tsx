@@ -41,15 +41,16 @@ function HeatSimPreview({ result, onFocus }: { result?: SimulationResult; onFocu
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{sp("heatTitle")}</p>
       </div>
 
-      <div className="flex items-center gap-4 px-4 py-3">
-        <div className="flex flex-col items-center gap-1.5">
+      {/* Same layout as the AQI preview: circles and connector on one centre line. */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="w-20 shrink-0 flex flex-col items-center gap-1.5 text-center">
           <div className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold bg-orange-500/20 text-orange-400 border-2 border-orange-500/30">
             {avgBase}°
           </div>
           <span className="text-xs text-muted-foreground">{sp("current")}</span>
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-1">
+        <div className="flex-1 h-14 flex flex-col items-center justify-center gap-1">
           <div className={`text-sm font-bold ${avgDelta < 0 ? "text-green-400" : avgDelta > 0 ? "text-red-400" : "text-muted-foreground"}`}>
             {avgDelta !== 0 ? (
               avgDelta > 0 ? (
@@ -70,7 +71,7 @@ function HeatSimPreview({ result, onFocus }: { result?: SimulationResult; onFocu
           <div className="w-full h-px bg-border" />
         </div>
 
-        <div className="flex flex-col items-center gap-1.5">
+        <div className="w-20 shrink-0 flex flex-col items-center gap-1.5 text-center">
           <div
             className={`w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold border-2 ${avgDelta !== 0 ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-card" : ""}`}
             style={{ background: tempBarColor(avgSim) + "33", color: tempBarColor(avgSim), borderColor: tempBarColor(avgSim) + "88" }}
