@@ -320,6 +320,12 @@ export interface components {
             title: string;
             /** Message */
             message: string;
+            /** Unitid */
+            unitId?: string | null;
+            /** Unitname */
+            unitName?: string | null;
+            /** Value */
+            value?: number | null;
             /** Isread */
             isRead: boolean;
             /** Createdat */

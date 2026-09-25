@@ -23,14 +23,14 @@ describe("ScenarioRecommendations (counterfactual, §G/§J)", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows the counterfactual top-k with rule, toponym and π", () => {
+  it("shows the counterfactual top-k ranked by toponym, without exposing the internal rule/score", () => {
     const { container } = renderIt();
     expect(screen.getByRole("heading", { name: "Khuyến nghị cho kịch bản" })).toBeInTheDocument();
     expect(container.textContent).toContain("Top 2 / 9");
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items[0]).toContain("Rạch Ông");
-    expect(items[0]).toContain("R-COMB-01");
-    expect(items[0]).toContain("π 3.23");
+    expect(items[0]).not.toContain("R-COMB-01");
+    expect(items[0]).not.toContain("π");
   });
 
   it("shows band changes before → after per unit, and the alerts that would fire", () => {

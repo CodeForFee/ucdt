@@ -453,7 +453,7 @@
     "noRecommend": "No active recommendations",
     "rule": "Rule",
     "priorityScore": "Priority score",
-    "ruleBasedNote": "A transparent rule-based system — not machine-learning AI.",
+    "ruleBasedNote": "A transparent, rule-based system.",
     "firedCount": "Top {shown} of {fired} fired (rule, unit) pairs",
     "whyThis": "Why this"
   },
@@ -508,6 +508,16 @@
       "message": "Weather and air quality are within safe limits across all spatial units.",
       "actions": ["Continue routine monitoring"]
     }
+  },
+  "alertRules": {
+    "flood_warning": { "title": "Flood risk warning", "message": "High flood risk at {name}. Risk score: {riskPct}%." },
+    "flood_critical": { "title": "Severe flood warning", "message": "Very high flood risk at {name}. Risk score: {riskPct}%." },
+    "storm_warning": { "title": "Heavy rain", "message": "Rainfall at {name}: {value}mm/h. Be careful when travelling." },
+    "storm_critical": { "title": "Very heavy rain", "message": "Rainfall at {name}: {value}mm/h. Avoid travelling if possible." },
+    "aqi_warning": { "title": "Poor air quality", "message": "AQI at {name} = {value} — {category}. Wear an N95 mask." },
+    "aqi_critical": { "title": "Severe air pollution", "message": "AQI at {name} = {value} — {category}. Avoid going outside." },
+    "heat_warning": { "title": "Heat warning", "message": "Effective temperature at {name}: {value}°C. Drink enough water, avoid direct sun." },
+    "heat_critical": { "title": "Extreme heat warning", "message": "Effective temperature at {name}: {value}°C. Drink enough water, avoid direct sun." }
   },
   "alertsBell": {
     "open": "Open alerts",

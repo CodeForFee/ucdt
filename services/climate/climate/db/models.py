@@ -70,6 +70,12 @@ alerts = sa.Table(
     sa.Column("severity", sa.Text, nullable=False),
     sa.Column("title", sa.Text, nullable=False),
     sa.Column("message", sa.Text, nullable=False),
+    # unit_id/unit_name/value: nullable, added after the initial schema (migration 003) so the
+    # FE can localize title/message client-side (type+severity+value+unitName) instead of
+    # showing this Vietnamese-only text in English mode. NULL on rows written before that.
+    sa.Column("unit_id", sa.Text),
+    sa.Column("unit_name", sa.Text),
+    sa.Column("value", sa.Float),
     sa.Column("snapshot_id", sa.BigInteger, sa.ForeignKey("risk_snapshots.id", ondelete="SET NULL")),
     sa.Column("created_at", TS, nullable=False),
     sa.Column("expires_at", TS, nullable=False),

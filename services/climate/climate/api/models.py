@@ -269,6 +269,11 @@ class Alert(BaseModel):
     type: AlertType
     title: str
     message: str
+    # Added migration 003; null on alerts raised before it (the FE falls back to `message`,
+    # which stays Vietnamese-only for those — see the frontend's `alertRules` catalog).
+    unitId: str | None = None
+    unitName: str | None = None
+    value: float | None = None
     isRead: bool
     createdAt: str
     expiresAt: str
