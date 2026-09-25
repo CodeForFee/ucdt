@@ -1,7 +1,10 @@
 # deploy — runs infra/deploy.sh on the VPS after `images` finishes publishing to GHCR on main.
 # The SSH key (VPS_SSH_KEY secret) is scoped to the `deploy` user and forced, in
-# ~/.ssh/authorized_keys on the VPS, to run exactly `cd /opt/ucdt && infra/deploy.sh` — even a
-# leaked key can't do anything else. See docs/DEPLOY.md.
+# ~/.ssh/authorized_keys on the VPS, to run exactly `/opt/ucdt/infra/deploy.sh` (deploy.sh cds
+# to the repo root itself) — even a leaked key can't do anything else. See docs/DEPLOY.md.
+# (An earlier version of this forced command used `cd /opt/ucdt && infra/deploy.sh`; a shell
+# quoting bug turned `&&` into `\&\&` when it was written, so `cd` saw four arguments and every
+# deploy failed — the absolute-path form here has no `&&` to mangle.)
 name: deploy
 
 on:
@@ -25,4 +28,4 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # The authorized_keys forced command ignores this and always runs deploy.sh —
           # spelled out here only for readability.
-          script: cd /opt/ucdt && infra/deploy.sh
+          script: /opt/ucdt/infra/deploy.sh

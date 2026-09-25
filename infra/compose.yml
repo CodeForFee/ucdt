@@ -154,12 +154,17 @@ services:
         condition: service_healthy
     mem_limit: 128m
 
-  # infra/certbot/init.sh (first run) and infra/certbot/renew-cron.sh (a host crontab entry,
-  # docs/DEPLOY.md) both run `certbot` in this same container via `docker compose run`/`exec` —
-  # it has no long-running process of its own.
+  # infra/certbot/init.sh and infra/certbot/renew-cron.sh (a host crontab entry, docs/DEPLOY.md)
+  # both run `certbot` in this same container via `docker compose run --entrypoint certbot` —
+  # it has no long-running process of its own. `profiles` keeps `up`/`--wait` from ever
+  # starting it directly: without this, `up -d --wait` saw this container exit immediately
+  # (its default command has nothing to run) and failed the whole deploy, because nothing
+  # `depends_on: service_completed_successfully` it the way migrate/nginx-cert-init are.
+  # `docker compose run` targets a named service regardless of its profile, so this doesn't
+  # affect init.sh/renew-cron.sh.
   certbot:
     image: certbot/certbot:v2.11.0
-    entrypoint: ["/bin/true"]
+    profiles: ["tools"]
     volumes:
       - letsencrypt_certs:/etc/letsencrypt
       - certbot_webroot:/var/www/certbot
