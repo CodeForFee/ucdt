@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, LayoutDashboard, Map, FlaskConical, Droplets, ListChecks } from "lucide-react";
+import { Activity, LayoutDashboard, Map, FlaskConical, ShieldAlert } from "lucide-react";
 import { useTranslations } from "use-intl";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -13,15 +13,17 @@ export function Header() {
   const { pathname } = useLocation();
   const [currentTime, setCurrentTime] = useState("");
 
-  // Five tabs (user decision 2026-09-24, T-105; replaces the 4-tab Decision of 2026-09-14):
-  // ranked recommendations get their own tab, alerts live in the header bell. Air quality
-  // and alerts keep detail pages reachable by URL.
+  // Four tabs (user decision 2026-09-25, replacing the five-tab decision of 2026-09-24):
+  // Flood and Recommendations merged into one "Risks" tab, hazard sub-tabs (Flood/Heat/AQI)
+  // each carrying that hazard's risk detail + alerts + recommendations — matching the
+  // manuscript's presentation-layer tile "Cảnh báo & khuyến nghị được xếp hạng" per hazard.
+  // Alerts also live in the header bell; the unfiltered all-hazard Recommendations/Alerts
+  // pages stay reachable by URL.
   const NAV_ITEMS = [
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { href: "/map", label: t("map"), icon: Map },
     { href: "/simulation", label: t("simulation"), icon: FlaskConical },
-    { href: "/flood", label: t("flood"), icon: Droplets },
-    { href: "/recommendations", label: t("recommendations"), icon: ListChecks },
+    { href: "/risks", label: t("risks"), icon: ShieldAlert },
   ];
 
   useEffect(() => {

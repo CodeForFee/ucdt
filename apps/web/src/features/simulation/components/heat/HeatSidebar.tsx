@@ -5,15 +5,21 @@ import { GreenCoverageSlider, UrbanDensitySlider } from "../shared/BaselineSlide
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useHeatMap } from "@/shared/hooks/useHeatMap";
+import { heatRiskLevel } from "@/shared/lib/heatRisk";
 import { Thermometer, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { useTranslations } from "use-intl";
 import type { SimulationResult } from "@/shared/types/simulation";
 
+const RISK_CLASS: Record<ReturnType<typeof heatRiskLevel>, string> = {
+  critical: "text-red-500",
+  high: "text-orange-400",
+  medium: "text-yellow-400",
+  low: "text-green-400",
+};
+
 function tempRiskLabel(t: number, tr: (k: "critical" | "high" | "medium" | "low") => string) {
-  if (t >= 44) return { label: tr("critical"), cls: "text-red-500" };
-  if (t >= 40) return { label: tr("high"), cls: "text-orange-400" };
-  if (t >= 37) return { label: tr("medium"), cls: "text-yellow-400" };
-  return { label: tr("low"), cls: "text-green-400" };
+  const level = heatRiskLevel(t);
+  return { label: tr(level), cls: RISK_CLASS[level] };
 }
 
 function tempBarColor(t: number) {
