@@ -86,10 +86,13 @@ Sửa các giá trị trong `infra/.env`:
 - `POSTGRES_PASSWORD` — đặt mật khẩu mạnh (Postgres không public ra ngoài compose network,
   nhưng đừng để mặc định `ucdt`).
 - `VITE_MAPBOX_TOKEN` — bắt buộc phải có giá trị non-empty: `infra/compose.yml` khai báo biến
-  này là required (`${VITE_MAPBOX_TOKEN:?...}`) cho build arg của `caddy`, và Compose kiểm tra
-  điều này ngay cả khi bạn không build (chỉ pull image có sẵn từ GHCR) — set token thật vào đây.
-- `SITE_ADDRESS` — domain (vd. `ucdt.example.org`) để Caddy tự cấp HTTPS (Let's Encrypt), hoặc
-  để `:80` nếu chỉ chạy bằng IP (không có HTTPS).
+  này là required (`${VITE_MAPBOX_TOKEN:?...}`) cho build arg của `nginx`/`nginx-cert-init`
+  (image web), và Compose kiểm tra điều này ngay cả khi bạn không build (chỉ pull image có sẵn
+  từ GHCR) — set token thật vào đây.
+- `SITE_ADDRESS` — domain (vd. `ucdt.example.org`) để nginx phục vụ đúng `server_name` và
+  certbot xin chứng chỉ HTTPS thật (mục 6b); để mặc định `localhost` nếu chỉ test bằng IP —
+  nginx vẫn luôn bật TLS nhưng dùng chứng chỉ tự ký (`infra/certbot/dummy-cert.sh`), trình
+  duyệt sẽ cảnh báo "không an toàn" cho tới khi có domain thật.
 - `BACKUP_DIR` (không có sẵn trong `.env.example`, thêm nếu muốn đổi) — thư mục trên host chứa
   bản backup, mặc định `/var/backups/ucdt`:
   ```bash
@@ -109,11 +112,30 @@ UCDT_TAG=main infra/deploy.sh    # hoặc bỏ UCDT_TAG, mặc định là "main
 2. `docker compose -f infra/compose.yml -f infra/compose.prod.yml pull` — kéo image
    `ucdt-climate` / `ucdt-gateway` / `ucdt-web` từ GHCR theo tag `UCDT_TAG` (mặc định `main`).
 3. `up -d --no-build --remove-orphans --wait` — khởi động toàn bộ stack (postgres, redis,
-   migrate, climate-api, climate-worker, gateway, caddy, backup, uptime-kuma), chờ healthcheck.
+   migrate, climate-api, climate-worker, gateway ×2, `nginx-cert-init` (ghi chứng chỉ tự ký
+   nếu chưa có), nginx, backup, uptime-kuma), chờ healthcheck.
 4. In trạng thái service (`compose ps`) rồi `docker image prune -f` dọn image cũ không dùng.
 5. Từ chối chạy nếu thiếu `infra/.env`.
 
-Sau khi chạy xong, mở `http://<ip-hoặc-domain>/` để kiểm tra.
+Sau khi chạy xong, mở `https://<ip-hoặc-domain>/` để kiểm tra — lần đầu trên domain thật sẽ
+thấy cảnh báo chứng chỉ tự ký, chạy tiếp mục **6b** để có HTTPS thật.
+
+### 6b. Xin chứng chỉ HTTPS thật (chỉ chạy 1 lần, sau khi DNS đã trỏ về VPS)
+
+```bash
+infra/certbot/init.sh
+```
+
+Script thay chứng chỉ tự ký bằng chứng chỉ Let's Encrypt thật cho `SITE_ADDRESS`, rồi reload
+nginx. Sau đó cài cron gia hạn hằng ngày trên **host** (không phải trong container):
+
+```bash
+sudo crontab -e
+# thêm dòng:
+0 3 * * * /opt/ucdt/infra/certbot/renew-cron.sh >> /var/log/ucdt-certbot.log 2>&1
+```
+
+`certbot renew` không làm gì nếu chứng chỉ chưa gần hết hạn, nên chạy hằng ngày là an toàn.
 
 ## 7. Cập nhật và rollback
 
@@ -184,7 +206,7 @@ rồi mở `http://localhost:3100` trên trình duyệt máy bạn. Lần đầu
 admin.
 
 **Monitor gợi ý:**
-- HTTP(s) — `http://<vps>/` hoặc domain, path `/` — kiểm tra Caddy + web còn sống.
+- HTTP(s) — `http://<vps>/` hoặc domain, path `/` — kiểm tra nginx + web còn sống.
 - HTTP(s) — `http://<vps>/api/weather` — kiểm tra xuyên suốt cả chuỗi gateway -> climate-api ->
   Postgres (trả 200 nghĩa là toàn bộ pipeline dữ liệu đang hoạt động, không chỉ web tĩnh).
 - Có thể thêm `/api/aqi`, `/api/flood`, `/api/heat` nếu muốn giám sát riêng từng hazard.
@@ -196,7 +218,9 @@ admin.
 | `deploy.sh` báo thiếu `infra/.env` | Chạy bước 5 (`cp infra/.env.example infra/.env`, điền giá trị). |
 | `docker compose ... config` báo thiếu `VITE_MAPBOX_TOKEN` | Biến này bắt buộc trong `infra/.env` dù không build image — xem mục 5. |
 | `git pull --ff-only` báo lỗi diverged | VPS có commit/local change không sync với `dev`/`main` — không tự ý `reset --hard`, kiểm tra `git status`/`git log` trước. |
-| Service không `healthy` sau `deploy.sh` | `docker compose -f infra/compose.yml -f infra/compose.prod.yml logs <service>` — thứ tự khởi động là postgres → migrate → climate-api → gateway → caddy, lỗi ở bước nào chặn các bước sau. |
+| Service không `healthy` sau `deploy.sh` | `docker compose -f infra/compose.yml -f infra/compose.prod.yml logs <service>` — thứ tự khởi động là postgres → migrate → climate-api → gateway/gateway2 → nginx-cert-init → nginx, lỗi ở bước nào chặn các bước sau. |
+| `nginx` không lên, log báo thiếu cert | `nginx-cert-init` chưa chạy xong hoặc volume `letsencrypt_certs` bị xoá — chạy lại `docker compose ... up -d nginx-cert-init` rồi `up -d nginx`. |
+| Trình duyệt báo chứng chỉ không an toàn dù đã chạy `certbot/init.sh` | Kiểm tra DNS `SITE_ADDRESS` đã trỏ đúng VPS chưa (`dig`/`nslookup`) — certbot cần domain phân giải đúng trước khi xin chứng chỉ mới xin lại được. |
 | `docker login ghcr.io` báo 401/403 | PAT hết hạn hoặc thiếu scope `read:packages` — tạo PAT mới. |
 | Web trắng trang / lỗi ngay khi mở | `apps/web` yêu cầu `VITE_MAPBOX_TOKEN` hợp lệ tại **build time** (image `ucdt-web` được T-012 build sẵn) — nếu ảnh GHCR build với token placeholder, phải yêu cầu rebuild/publish lại image với token thật, đổi token trong `infra/.env` không có tác dụng với image đã build sẵn. |
 | Backup không tạo file mới | `docker compose logs backup`; kiểm tra `BACKUP_DIR` trên host có tồn tại và ghi được (`ls -la /var/backups/ucdt`). |

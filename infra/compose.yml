@@ -1,11 +1,13 @@
-# UCDT full stack. Only Caddy publishes ports; everything else talks on the compose network.
+# UCDT full stack. Only nginx publishes ports; everything else talks on the compose network.
 #
-#   docker compose -f infra/compose.yml up -d --build        # whole stack at http://localhost
+#   docker compose -f infra/compose.yml up -d --build        # whole stack at https://localhost
 #   docker compose -f infra/compose.yml -f infra/compose.dev.yml up -d postgres redis
 #                                                            # dev: just the stateful services on 127.0.0.1
 #
 # Configuration comes from infra/.env (copy infra/.env.example). mem_limit values are sized
-# for a 2 vCPU / 3.78 GB VPS with headroom.
+# for a 2 vCPU / 3.78 GB VPS with headroom. nginx replaced Caddy — see docs/DEPLOY.md for the
+# certbot bootstrap (infra/certbot/init.sh) that turns the self-signed placeholder cert
+# (infra/certbot/dummy-cert.sh) into a real one.
 name: ucdt
 
 x-climate: &climate
@@ -17,6 +19,38 @@ x-climate: &climate
     REDIS_URL: redis://redis:6379/0
     IQAIR_API_KEY: ${IQAIR_API_KEY:-}
     AQICN_TOKEN: ${AQICN_TOKEN:-}
+
+# Two stateless replicas behind nginx's upstream (infra/nginx.conf.template) — cache, rate
+# limiting and pub/sub all live in the shared Redis (B-013), so either instance sees the same
+# state and neither needs session affinity.
+x-gateway: &gateway
+  build:
+    context: ..
+    dockerfile: apps/gateway/Dockerfile
+  restart: unless-stopped
+  environment:
+    CLIMATE_URL: http://climate-api:8000
+    REDIS_URL: redis://redis:6379
+  depends_on:
+    redis:
+      condition: service_healthy
+    climate-api:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3001/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+  mem_limit: 128m
+
+x-web-build: &web-build
+  build:
+    context: ..
+    dockerfile: infra/web.Dockerfile
+    args:
+      # Required: apps/web/src/config/env.ts refuses to start without it.
+      VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:?set VITE_MAPBOX_TOKEN in infra/.env}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
 
 services:
   postgres:
@@ -82,50 +116,55 @@ services:
     mem_limit: 256m
 
   gateway:
-    build:
-      context: ..
-      dockerfile: apps/gateway/Dockerfile
-    restart: unless-stopped
-    environment:
-      CLIMATE_URL: http://climate-api:8000
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-      climate-api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    mem_limit: 128m
+    <<: *gateway
 
-  # Serves the web build and reverse-proxies /api/* to the gateway (infra/Caddyfile).
-  caddy:
-    build:
-      context: ..
-      dockerfile: infra/web.Dockerfile
-      args:
-        # Required: apps/web/src/config/env.ts refuses to start without it.
-        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:?set VITE_MAPBOX_TOKEN in infra/.env}
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+  gateway2:
+    <<: *gateway
+
+  # One-shot: drops a self-signed placeholder cert (infra/certbot/dummy-cert.sh) so nginx can
+  # bind :443 on a brand-new box, before infra/certbot/init.sh obtains the real one.
+  nginx-cert-init:
+    <<: *web-build
+    entrypoint: ["/bin/sh", "/certbot/dummy-cert.sh"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - letsencrypt_certs:/etc/letsencrypt
+      - ./certbot:/certbot:ro
+    restart: "no"
+
+  # Serves the web build and reverse-proxies /api/* to the gateway upstream (infra/nginx.conf.template).
+  nginx:
+    <<: *web-build
     restart: unless-stopped
     environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
     volumes:
-      - caddy_data:/data
-      - caddy_config:/config
+      - letsencrypt_certs:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
     depends_on:
+      nginx-cert-init:
+        condition: service_completed_successfully
       gateway:
+        condition: service_healthy
+      gateway2:
         condition: service_healthy
     mem_limit: 128m
 
+  # infra/certbot/init.sh (first run) and infra/certbot/renew-cron.sh (a host crontab entry,
+  # docs/DEPLOY.md) both run `certbot` in this same container via `docker compose run`/`exec` —
+  # it has no long-running process of its own.
+  certbot:
+    image: certbot/certbot:v2.11.0
+    entrypoint: ["/bin/true"]
+    volumes:
+      - letsencrypt_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
+  letsencrypt_certs:
+  certbot_webroot:

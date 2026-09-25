@@ -6,7 +6,7 @@ import { GreenCoverageSlider } from "../shared/BaselineSliders";
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useAQIData } from "@/shared/hooks/useAQIData";
-import { Wind, Play, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { Wind, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { useTranslations } from "use-intl";
 import type { SimulationResult } from "@/shared/types/simulation";
 
@@ -101,12 +101,10 @@ function AQISimPreview({ result }: { result?: SimulationResult }) {
 
 interface AQISidebarProps {
   result?: SimulationResult;
-  isPending: boolean;
-  onRun: () => void;
   onReset: () => void;
 }
 
-export function AQISidebar({ result, isPending, onRun, onReset }: AQISidebarProps) {
+export function AQISidebar({ result, onReset }: AQISidebarProps) {
   const ts = useTranslations("simulation");
   const sc = useTranslations("simulation.scenarios");
   const sl = useTranslations("simulation.sliders");
@@ -166,10 +164,6 @@ export function AQISidebar({ result, isPending, onRun, onReset }: AQISidebarProp
       </div>
 
       <div className="shrink-0 px-4 py-3 border-t border-border space-y-2">
-        <Button size="sm" onClick={onRun} disabled={isPending} className="w-full">
-          <Play className="h-3.5 w-3.5 mr-1.5" />
-          {isPending ? ts("running") : ts("run")}
-        </Button>
         <Button size="sm" variant="outline" onClick={onReset} className="w-full">
           <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
           {ts("reset")}

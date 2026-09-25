@@ -36,7 +36,7 @@ const result: SimulationResult = { ...simulation, results: { ...simulation.resul
 function renderSidebar() {
   return render(
     <IntlProvider locale="vi" messages={messages}>
-      <HeatSidebar result={result} isPending={false} onRun={() => {}} onReset={() => {}} />
+      <HeatSidebar result={result} onReset={() => {}} />
     </IntlProvider>,
   );
 }
@@ -48,7 +48,7 @@ describe("HeatSidebar preview (B-020, manuscript §4.2)", () => {
     expect(text).toContain("34.6°"); // baseline = served mean T_eff
     expect(text).toContain("33.1°"); // simulated = 34.6 + (−1.5)
     expect(text).not.toContain("27.7°"); // air temperature is a different quantity
-    expect(text).toContain("T_eff = HI(T, RH) + ρ·3,5 °C");
+    expect(text).not.toContain("T_eff = HI(T, RH)"); // raw formula is not shown to end users
   });
 
   it("waits for a snapshot carrying mean T_eff instead of falling back to air temperature", () => {

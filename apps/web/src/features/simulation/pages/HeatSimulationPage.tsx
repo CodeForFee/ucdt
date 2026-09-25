@@ -6,7 +6,7 @@ import { useSimulationStore } from "@/shared/stores/simulationStore";
 
 export default function HeatSimulationPage() {
   const ts = useTranslations("simulation");
-  const { data: result, isPending, runNow, reset } = useAutoSimulate("heat");
+  const { data: result, reset } = useAutoSimulate("heat");
   const resetSimulation = useSimulationStore((s) => s.resetSimulation);
 
   return (
@@ -15,8 +15,6 @@ export default function HeatSimulationPage() {
       <HeatMap result={result} />
       <HeatSidebar
         result={result}
-        isPending={isPending}
-        onRun={runNow}
         onReset={() => {
           resetSimulation();
           reset();

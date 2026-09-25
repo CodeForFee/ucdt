@@ -217,10 +217,10 @@
     "running": "Calculating...",
     "reset": "Reset",
     "loading": "Loading map...",
-    "idleHint": "Choose a scenario and click \"Run simulation\"",
+    "idleHint": "Drag a slider or pick a quick scenario to see simulation results",
     "idleHintSub": "3D flood results will appear on the map",
     "idleHintAqi": "Simulated AQI markers will appear on the map",
-    "idleHintHeat": "Drag sliders to preview · Click Run simulation for accurate results",
+    "idleHintHeat": "Drag a slider or pick a quick scenario to see simulation results",
     "quickScenario": "Quick scenarios",
     "show3D": "3D display",
     "enable3D": "Enable 3D view",
@@ -228,7 +228,7 @@
     "preview": {
       "floodTitle": "Flood risk forecast",
       "heatTitle": "Temperature simulation forecast",
-      "heatBasis": "Mean effective temperature of {count} cells · T_eff = HI(T, RH) + ρ·3.5 °C · ΔT = −0.15·ΔG + 3.5·(ρ − ρ₀)",
+      "heatBasis": "Mean effective temperature of {count} cells",
       "aqiTitle": "AQI simulation forecast",
       "current": "Current",
       "simulated": "Simulated",
@@ -318,21 +318,18 @@
     "floodIntro": "The simulation forecasts flood levels based on the rainfall parameters you selected. The metrics below reflect conditions before and after the scenario.",
     "floodRiskBefore": "Flood risk (before)",
     "floodRiskBeforeDesc": "Overall flood risk score (0–100%) before the scenario, from observed rainfall, terrain sensitivity (DEM), imperviousness (WorldCover) and drainage capacity.",
-    "floodRiskFormula": "R_f = 0.45×(rain/50) + 0.30×terrain + 0.25×imperviousness − 0.15×drainage · Thresholds Θ: 0.25/0.50/0.75",
     "affectedAreas": "Affected areas",
     "affectedAreasDesc": "Number of flooded zones before → after the scenario. An increase means heavier rain floods more places.",
     "heatTitle": "Temperature simulation results explained",
     "heatIntro": "Results analyze the Urban Heat Island (UHI) effect. Effective temperature includes effects of building density, greenery and traffic.",
     "tempDelta": "Temperature change",
     "tempDeltaDesc": "Change in effective temperature vs baseline. Negative values (green) are good — the scenario cools the city.",
-    "tempFormula": "ΔT = −0.15×Δgreen (α) + 3.5×(density − ρ₀) (UHI)",
     "floodRiskImpact": "Flood risk (impact)",
     "floodRiskImpactDesc": "High temperatures increase evaporation and alter rain cycles, indirectly affecting flood risk. Shows level before → after.",
     "aqiTitle": "Air quality simulation results explained",
     "aqiIntro": "Simulation of traffic, greenery and rain impact on AQI. Negative values mean air quality improvement.",
     "aqiDelta": "AQI change",
     "aqiDeltaDesc": "Change in AQI when applying the scenario. Lower AQI (green) means cleaner air. Scale: 0–50 Good | 51–100 Moderate | 101–150 Sensitive | >150 Unhealthy.",
-    "aqiFormula": "New AQI = (AQI − 0.3×traffic cut (β) − 0.15×Δgreenery) × (1 − 0.15×added rain (γ_p))",
     "tempDeltaAqi": "Temperature change",
     "tempDeltaAqiDesc": "Temperature and AQI are linked: higher temperatures promote ground-level ozone formation and raise AQI. Reducing traffic and adding greenery lowers both."
   },
@@ -451,14 +448,66 @@
   },
   "recommendations": {
     "title": "Recommendations",
-    "subtitle": "The full list ranked by π(r, i): unit, rule, priority score and the inputs the rule fired on",
+    "subtitle": "Recommendations per unit, ranked by priority",
     "listTitle": "Ranked Recommendations",
     "noRecommend": "No active recommendations",
     "rule": "Rule",
     "priorityScore": "Priority score",
-    "ruleBasedNote": "Rule-based engine. Priority pi(r,i) = S(b) x E(i) x F(a).",
+    "ruleBasedNote": "A transparent rule-based system — not machine-learning AI.",
     "firedCount": "Top {shown} of {fired} fired (rule, unit) pairs",
     "whyThis": "Why this"
+  },
+  "recRules": {
+    "R-FLOOD-01": {
+      "title": "Severe flood risk",
+      "message": "Severe flood risk at {name}: risk score {riskPct}%, rainfall {rainfall}mm/h above the danger threshold.",
+      "actions": ["Avoid travelling through low-lying areas", "Do not drive into flooded roads", "Move vehicles to higher ground or a safe location", "Follow emergency notices from local authorities", "Prepare an emergency bag in case of evacuation"]
+    },
+    "R-FLOOD-02": {
+      "title": "Possible flooding in the next 2 hours",
+      "message": "High chance of flooding within the next 2h at {name}. Risk score: {riskPct}%.",
+      "actions": ["Limit travel during peak rain hours", "Choose routes avoiding flood-prone areas", "Check the flood forecast before heading out", "Schedule trips earlier than usual"]
+    },
+    "R-FLOOD-03": {
+      "title": "Monitor rainfall conditions",
+      "message": "Monitor rainfall at {name} (risk score {riskPct}%) — light flooding possible if rain continues.",
+      "actions": ["Check the weather before going out", "Avoid parking in low-lying areas", "Keep a raincoat and boots ready"]
+    },
+    "R-COMB-01": {
+      "title": "Flooding and air pollution at once",
+      "message": "Double hazard at {name}: high flood risk ({riskPct}%) combined with AQI {aqi} nearby. Minimize going outside.",
+      "actions": ["Stay indoors with windows closed", "Follow emergency notices from local authorities", "Prepare drinking water and food supplies", "Keep your phone fully charged", "Contact family about your situation"]
+    },
+    "R-AQI-01": {
+      "title": "Very poor air quality",
+      "message": "Very poor air quality at {name} (AQI {aqi}). Avoid going outside except for emergencies.",
+      "actions": ["Stay indoors with windows closed", "Use an air purifier", "Avoid outdoor exercise", "Wear an N95 mask if you must go outside", "Children, the elderly and people with respiratory conditions should take extra care"]
+    },
+    "R-AQI-02": {
+      "title": "Unhealthy AQI level",
+      "message": "AQI at {name} is at an unhealthy level ({aqi}). Wear an N95 mask outdoors.",
+      "actions": ["Wear an N95 or KN95 mask", "Limit strenuous outdoor activity", "Sensitive groups should stay indoors", "Drink plenty of water"]
+    },
+    "R-AQI-03": {
+      "title": "AQI unhealthy for sensitive groups",
+      "message": "AQI at {name} is {aqi}. Sensitive groups should limit outdoor activity.",
+      "actions": ["Wear a mask for prolonged time outside", "Avoid intense outdoor exercise"]
+    },
+    "R-HEAT-01": {
+      "title": "Extreme heat",
+      "message": "Extreme heat at {name} — effective temperature {temp}°C. High risk of heatstroke.",
+      "actions": ["Avoid going out between 10:00-16:00", "Drink at least 3 litres of water a day", "Wear light-coloured, breathable clothing", "Never leave children or the elderly in a car", "Know the signs of heatstroke: dizziness, nausea"]
+    },
+    "R-HEAT-02": {
+      "title": "High temperature, stay hydrated",
+      "message": "Effective temperature at {name} is high ({temp}°C). Drink enough water and avoid direct sun.",
+      "actions": ["Drink at least 2 litres of water a day", "Wear a hat and protective clothing", "Rest in the shade"]
+    },
+    "R-NORM-00": {
+      "title": "Normal conditions",
+      "message": "Weather and air quality are within safe limits across all spatial units.",
+      "actions": ["Continue routine monitoring"]
+    }
   },
   "alertsBell": {
     "open": "Open alerts",

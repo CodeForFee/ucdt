@@ -1,0 +1,71 @@
+# Reverse proxy + static host for apps/web, replacing Caddy (infra/Caddyfile, retired).
+# ${SITE_ADDRESS} is substituted at container start (nginx:alpine's docker-entrypoint envsubst
+# hook) from infra/.env — a bare domain (e.g. po-ucdt.top) or "localhost" for local dev.
+# TLS is always on, even locally: infra/certbot/dummy-cert.sh drops a 1-day self-signed cert
+# into the shared volume before nginx starts, so this ONE config works before and after
+# infra/certbot/init.sh obtains the real Let's Encrypt certificate (see docs/DEPLOY.md).
+
+upstream gateway_upstream {
+	# Two stateless replicas (compose.yml) sharing one Redis for cache/rate-limit/pub-sub
+	# (B-013) — round-robin gives real throughput headroom on a 2 vCPU VPS without a second host.
+	server gateway:3001;
+	server gateway2:3001;
+}
+
+server {
+	listen 80;
+	server_name ${SITE_ADDRESS};
+
+	location /.well-known/acme-challenge/ {
+		root /var/www/certbot;
+	}
+
+	location / {
+		return 301 https://$host$request_uri;
+	}
+}
+
+server {
+	listen 443 ssl;
+	http2 on;
+	server_name ${SITE_ADDRESS};
+
+	ssl_certificate     /etc/letsencrypt/live/${SITE_ADDRESS}/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/${SITE_ADDRESS}/privkey.pem;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_session_cache shared:SSL:10m;
+	ssl_session_timeout 1d;
+
+	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+	add_header X-Content-Type-Options "nosniff" always;
+	add_header X-Frame-Options "DENY" always;
+	add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+	gzip on;
+	gzip_vary on;
+	gzip_min_length 1024;
+	gzip_types text/css application/javascript application/json image/svg+xml font/woff2;
+
+	# /api/stream is SSE (§ live-update contract) — buffering would hold events until the
+	# buffer fills, so it stays off for the whole /api/ prefix rather than one more location.
+	location /api/ {
+		proxy_pass http://gateway_upstream;
+		proxy_http_version 1.1;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_buffering off;
+		proxy_read_timeout 1h;
+	}
+
+	location /assets/ {
+		root /usr/share/nginx/html;
+		add_header Cache-Control "public, max-age=31536000, immutable";
+	}
+
+	location / {
+		root /usr/share/nginx/html;
+		try_files $uri /index.html;
+	}
+}

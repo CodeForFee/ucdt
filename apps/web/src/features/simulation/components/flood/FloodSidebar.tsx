@@ -6,7 +6,7 @@ import { GreenCoverageSlider } from "../shared/BaselineSliders";
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useFloodRisk } from "@/shared/hooks/useFloodRisk";
-import { Droplets, Play, RotateCcw, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Droplets, RotateCcw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useTranslations } from "use-intl";
 import { indexByName, findZone } from "@/shared/lib/floodZones";
 import type { SimulationResult } from "@/shared/types/simulation";
@@ -213,12 +213,10 @@ function FloodSimPreview({ result }: { result?: SimulationResult }) {
 
 interface FloodSidebarProps {
   result?: SimulationResult;
-  isPending: boolean;
-  onRun: () => void;
   onReset: () => void;
 }
 
-export function FloodSidebar({ result, isPending, onRun, onReset }: FloodSidebarProps) {
+export function FloodSidebar({ result, onReset }: FloodSidebarProps) {
   const ts = useTranslations("simulation");
   const sc = useTranslations("simulation.scenarios");
   const sl = useTranslations("simulation.sliders");
@@ -268,10 +266,6 @@ export function FloodSidebar({ result, isPending, onRun, onReset }: FloodSidebar
       </div>
 
       <div className="shrink-0 px-4 py-3 border-t border-border space-y-2">
-        <Button size="sm" onClick={onRun} disabled={isPending} className="w-full">
-          <Play className="h-3.5 w-3.5 mr-1.5" />
-          {isPending ? ts("running") : ts("run")}
-        </Button>
         <Button size="sm" variant="outline" onClick={onReset} className="w-full">
           <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
           {ts("reset")}

@@ -5,7 +5,7 @@ import { GreenCoverageSlider, UrbanDensitySlider } from "../shared/BaselineSlide
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useHeatMap } from "@/shared/hooks/useHeatMap";
-import { Thermometer, Play, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { Thermometer, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { useTranslations } from "use-intl";
 import type { SimulationResult } from "@/shared/types/simulation";
 
@@ -153,12 +153,10 @@ function HeatSimPreview({ result, onFocus }: { result?: SimulationResult; onFocu
 
 interface HeatSidebarProps {
   result?: SimulationResult;
-  isPending: boolean;
-  onRun: () => void;
   onReset: () => void;
 }
 
-export function HeatSidebar({ result, isPending, onRun, onReset }: HeatSidebarProps) {
+export function HeatSidebar({ result, onReset }: HeatSidebarProps) {
   const ts = useTranslations("simulation");
   const sc = useTranslations("simulation.scenarios");
   const sl = useTranslations("simulation.sliders");
@@ -196,10 +194,6 @@ export function HeatSidebar({ result, isPending, onRun, onReset }: HeatSidebarPr
       </div>
 
       <div className="shrink-0 px-4 py-3 border-t border-border space-y-2">
-        <Button size="sm" onClick={onRun} disabled={isPending} className="w-full">
-          <Play className="h-3.5 w-3.5 mr-1.5" />
-          {isPending ? ts("running") : ts("run")}
-        </Button>
         <Button size="sm" variant="outline" onClick={onReset} className="w-full">
           <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
           {ts("reset")}
