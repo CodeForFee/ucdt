@@ -42,8 +42,6 @@ export function ScenarioRecommendations({ result, showStations = false }: { resu
                 <li key={r.id} className="flex items-baseline gap-2">
                   <span className="text-muted-foreground w-4 shrink-0">{i + 1}.</span>
                   <span className="flex-1 min-w-0 truncate">{r.unitName}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">{r.ruleId}</span>
-                  <span className="font-mono shrink-0">π {r.priorityScore.toFixed(2)}</span>
                 </li>
               ))}
             </ol>

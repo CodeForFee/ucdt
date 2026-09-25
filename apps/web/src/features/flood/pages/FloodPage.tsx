@@ -19,7 +19,8 @@ export default function FloodPage() {
   const zone = data?.affectedAreas.find((a) => a.id === zoneId);
 
   return (
-    <div className="space-y-5 max-w-6xl mx-auto">
+    <div className="h-full overflow-y-auto">
+    <div className="space-y-5 max-w-6xl mx-auto p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{fp("title")}</h1>
@@ -153,6 +154,7 @@ export default function FloodPage() {
           <p className="text-xs text-muted-foreground">{fp("screeningNote")}</p>
         </>
       )}
+    </div>
     </div>
   );
 }

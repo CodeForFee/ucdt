@@ -554,6 +554,39 @@
             "type": "string",
             "title": "Message"
           },
+          "unitId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
+          },
+          "unitName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitname"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
           "isRead": {
             "type": "boolean",
             "title": "Isread"
@@ -1853,6 +1886,10 @@
             "type": "string",
             "title": "Unitname"
           },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -1877,6 +1914,7 @@
           "severity",
           "unitId",
           "unitName",
+          "value",
           "title",
           "message",
           "createdAt",

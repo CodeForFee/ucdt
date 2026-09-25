@@ -14,8 +14,11 @@ ARG VITE_API_BASE_URL=""
 ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN pnpm -F web build
 
-# nginx:1.27 already ships openssl (infra/certbot/dummy-cert.sh) and the official
-# docker-entrypoint.d envsubst hook that turns *.template into conf.d/*.conf at startup.
+# nginx:1.27-alpine links against openssl but does NOT ship the CLI — install it explicitly
+# for infra/certbot/dummy-cert.sh (found the hard way: nginx-cert-init exited 127 on first
+# live deploy, "openssl: not found"). The image already has the official docker-entrypoint.d
+# envsubst hook that turns *.template into conf.d/*.conf at startup.
 FROM nginx:1.27-alpine
+RUN apk add --no-cache openssl
 COPY infra/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
