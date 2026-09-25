@@ -6,7 +6,7 @@ import { useSimulationStore } from "@/shared/stores/simulationStore";
 
 export default function FloodSimulationPage() {
   const ts = useTranslations("simulation");
-  const { data: result, isPending, runNow, reset } = useAutoSimulate("flood");
+  const { data: result, reset } = useAutoSimulate("flood");
   const resetSimulation = useSimulationStore((s) => s.resetSimulation);
 
   return (
@@ -15,8 +15,6 @@ export default function FloodSimulationPage() {
       <FloodMap result={result} />
       <FloodSidebar
         result={result}
-        isPending={isPending}
-        onRun={runNow}
         onReset={() => {
           resetSimulation();
           reset();

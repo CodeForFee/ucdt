@@ -16,15 +16,12 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
   const cp = useTranslations("comparePanel");
   const sr = useTranslations("simulation.results");
 
-  const SCENARIO_INFO: Record<
-    ScenarioKind,
-    { title: string; intro: string; items: { label: string; desc: string; formula?: string }[] }
-  > = {
+  const SCENARIO_INFO: Record<ScenarioKind, { title: string; intro: string; items: { label: string; desc: string }[] }> = {
     flood: {
       title: cp("floodTitle"),
       intro: cp("floodIntro"),
       items: [
-        { label: cp("floodRiskBefore"), desc: cp("floodRiskBeforeDesc"), formula: cp("floodRiskFormula") },
+        { label: cp("floodRiskBefore"), desc: cp("floodRiskBeforeDesc") },
         { label: cp("affectedAreas"), desc: cp("affectedAreasDesc") },
       ],
     },
@@ -32,7 +29,7 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
       title: cp("heatTitle"),
       intro: cp("heatIntro"),
       items: [
-        { label: cp("tempDelta"), desc: cp("tempDeltaDesc"), formula: cp("tempFormula") },
+        { label: cp("tempDelta"), desc: cp("tempDeltaDesc") },
         { label: cp("floodRiskImpact"), desc: cp("floodRiskImpactDesc") },
       ],
     },
@@ -40,7 +37,7 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
       title: cp("aqiTitle"),
       intro: cp("aqiIntro"),
       items: [
-        { label: cp("aqiDelta"), desc: cp("aqiDeltaDesc"), formula: cp("aqiFormula") },
+        { label: cp("aqiDelta"), desc: cp("aqiDeltaDesc") },
         { label: cp("tempDeltaAqi"), desc: cp("tempDeltaAqiDesc") },
       ],
     },
@@ -88,12 +85,6 @@ function InfoModal({ scenario, onClose }: { scenario: ScenarioKind; onClose: () 
               </div>
               <div className="px-4 py-3 space-y-2">
                 <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                {item.formula && (
-                  <div className="flex items-start gap-2 bg-muted/50 rounded-lg px-3 py-2 border border-border/60">
-                    <span className="text-[10px] font-bold text-primary mt-0.5 shrink-0">f(x)</span>
-                    <p className="text-[11px] font-mono text-foreground leading-relaxed">{item.formula}</p>
-                  </div>
-                )}
               </div>
             </div>
           ))}

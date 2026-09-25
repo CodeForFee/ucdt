@@ -118,11 +118,10 @@ describe("no administrative names in the UI (§A.1, §A.3, §J)", () => {
   );
 
   it("the screens do render the toponyms the payloads carry", () => {
-    expect(textOf(<DashboardPage />, "vi")).toContain("Độ trưởng thành mô hình");
+    expect(textOf(<DashboardPage />, "vi")).toContain("Rạch Ông");
     const recs = textOf(<RecommendationsPage />, "vi");
     expect(recs).toContain("Ung Văn Khiêm");
-    expect(recs).toContain("R-FLOOD-03");
-    expect(recs).toContain("π = 3.23");
+    expect(recs).toContain("Theo dõi tình hình mưa"); // R-FLOOD-03's locale-rendered title
     const bell = textOf(<OpenBell />, "vi");
     expect(bell).toContain("Ung Văn Khiêm");
     expect(bell).toContain("Nguy cơ ngập tại Ung Văn Khiêm");

@@ -217,10 +217,10 @@
     "running": "Đang tính toán...",
     "reset": "Đặt lại",
     "loading": "Đang tải bản đồ...",
-    "idleHint": "Chọn kịch bản và nhấn \"Chạy mô phỏng\"",
+    "idleHint": "Kéo slider hoặc chọn kịch bản nhanh để xem kết quả mô phỏng",
     "idleHintSub": "Kết quả ngập 3D sẽ hiển thị trên bản đồ",
     "idleHintAqi": "Markers AQI mô phỏng sẽ hiển thị trên bản đồ",
-    "idleHintHeat": "Kéo slider để xem preview · Nhấn Chạy mô phỏng để lấy kết quả chính xác",
+    "idleHintHeat": "Kéo slider hoặc chọn kịch bản nhanh để xem kết quả mô phỏng",
     "quickScenario": "Kịch bản nhanh",
     "show3D": "Hiển thị 3D",
     "enable3D": "Bật góc nhìn 3D",
@@ -228,7 +228,7 @@
     "preview": {
       "floodTitle": "Dự báo rủi ro ngập",
       "heatTitle": "Dự báo nhiệt độ mô phỏng",
-      "heatBasis": "Nhiệt độ cảm nhận trung bình {count} ô · T_eff = HI(T, RH) + ρ·3,5 °C · ΔT = −0,15·ΔG + 3,5·(ρ − ρ₀)",
+      "heatBasis": "Nhiệt độ cảm nhận trung bình {count} ô",
       "aqiTitle": "Dự báo AQI mô phỏng",
       "current": "Hiện tại",
       "simulated": "Mô phỏng",
@@ -318,21 +318,18 @@
     "floodIntro": "Kết quả mô phỏng dự báo mức độ ngập lụt khi áp dụng tham số lượng mưa bạn đã chọn. Các chỉ số dưới đây phản ánh tình trạng trước và sau kịch bản.",
     "floodRiskBefore": "Rủi ro ngập (trước)",
     "floodRiskBeforeDesc": "Điểm rủi ro ngập tổng thể (0–100%) trước khi áp dụng kịch bản, từ lượng mưa thực tế, độ nhạy địa hình (DEM), độ không thấm (WorldCover) và năng lực thoát nước.",
-    "floodRiskFormula": "R_f = 0.45×(mưa/50) + 0.30×địa hình + 0.25×độ không thấm − 0.15×thoát nước · Ngưỡng Θ: 0.25/0.50/0.75",
     "affectedAreas": "Khu vực ảnh hưởng",
     "affectedAreasDesc": "Số khu vực bị ngập trước → sau kịch bản. Tăng nghĩa là mưa lớn hơn gây ngập thêm nhiều nơi.",
     "heatTitle": "Giải thích kết quả nhiệt độ",
     "heatIntro": "Kết quả phân tích hiệu ứng đảo nhiệt đô thị (Urban Heat Island). Nhiệt độ hiệu dụng đã bao gồm ảnh hưởng của mật độ xây dựng, cây xanh và giao thông.",
     "tempDelta": "Biến động nhiệt độ",
     "tempDeltaDesc": "Mức thay đổi nhiệt độ hiệu dụng so với baseline. Giá trị âm (xanh) là tốt — kịch bản giúp hạ nhiệt đô thị.",
-    "tempFormula": "Δ nhiệt = −0.15×Δcây xanh (α) + 3.5×(mật độ − ρ₀) (UHI)",
     "floodRiskImpact": "Rủi ro ngập (ảnh hưởng)",
     "floodRiskImpactDesc": "Nhiệt độ cao làm tăng bốc hơi và thay đổi chu kỳ mưa, ảnh hưởng gián tiếp đến rủi ro ngập. Hiển thị mức trước → sau.",
     "aqiTitle": "Giải thích kết quả chất lượng không khí",
     "aqiIntro": "Kết quả mô phỏng tác động của giao thông, cây xanh và mưa lên chỉ số AQI. Giá trị âm là cải thiện chất lượng không khí.",
     "aqiDelta": "Biến động AQI",
     "aqiDeltaDesc": "Mức thay đổi chỉ số AQI khi áp dụng kịch bản. AQI giảm (xanh) nghĩa là không khí sạch hơn. Thang: 0–50 Tốt | 51–100 Trung bình | 101–150 Nhạy cảm | >150 Có hại.",
-    "aqiFormula": "AQI mới = (AQI − 0.3×giảm xe (β) − 0.15×Δcây xanh) × (1 − 0.15×mưa thêm (γ_p))",
     "tempDeltaAqi": "Biến động nhiệt độ",
     "tempDeltaAqiDesc": "Nhiệt độ và AQI có liên hệ: nhiệt độ cao thúc đẩy hình thành ozone mặt đất và tăng AQI. Kịch bản giảm xe và thêm cây đồng thời hạ cả hai chỉ số."
   },
@@ -451,14 +448,66 @@
   },
   "recommendations": {
     "title": "Khuyến nghị",
-    "subtitle": "Toàn bộ danh sách xếp hạng theo π(r, i): đơn vị, luật, điểm ưu tiên và dữ liệu đầu vào của luật",
+    "subtitle": "Danh sách khuyến nghị theo từng khu vực, xếp hạng theo mức độ ưu tiên",
     "listTitle": "Khuyến nghị được xếp hạng",
     "noRecommend": "Không có khuyến nghị nào đang kích hoạt",
     "rule": "Luật",
     "priorityScore": "Điểm ưu tiên",
-    "ruleBasedNote": "Bộ luật tường minh. Ưu tiên π(r,i) = S(b) × E(i) × F(a).",
+    "ruleBasedNote": "Hệ thống dựa trên bộ luật rõ ràng, minh bạch — không phải AI học máy.",
     "firedCount": "Top {shown} / {fired} cặp (luật, đơn vị) kích hoạt",
     "whyThis": "Vì sao"
+  },
+  "recRules": {
+    "R-FLOOD-01": {
+      "title": "Nguy cơ ngập nghiêm trọng",
+      "message": "Nguy cơ ngập nghiêm trọng tại {name}: điểm rủi ro {riskPct}%, lượng mưa {rainfall}mm/h vượt ngưỡng nguy hiểm.",
+      "actions": ["Tránh di chuyển qua các khu vực trũng thấp", "Không đi vào đường ngập nước", "Di chuyển xe lên tầng cao hoặc nơi an toàn", "Theo dõi thông báo khẩn từ cơ quan chức năng", "Chuẩn bị túi đồ khẩn cấp nếu cần sơ tán"]
+    },
+    "R-FLOOD-02": {
+      "title": "Khả năng ngập trong 2 giờ tới",
+      "message": "Khả năng ngập cao trong 2h tới tại {name}. Điểm rủi ro: {riskPct}%.",
+      "actions": ["Hạn chế di chuyển trong khung giờ mưa cao điểm", "Chọn đường tránh khu vực thường xuyên ngập", "Kiểm tra ứng dụng dự báo ngập trước khi ra đường", "Đặt lịch di chuyển sớm hơn thường lệ"]
+    },
+    "R-FLOOD-03": {
+      "title": "Theo dõi tình hình mưa",
+      "message": "Theo dõi tình hình mưa tại {name} (điểm rủi ro {riskPct}%) — có khả năng ngập nhẹ nếu mưa tiếp tục.",
+      "actions": ["Kiểm tra thời tiết trước khi ra ngoài", "Tránh đỗ xe ở khu vực trũng thấp", "Chuẩn bị áo mưa và ủng"]
+    },
+    "R-COMB-01": {
+      "title": "Đồng thời ngập lụt và ô nhiễm không khí",
+      "message": "Tình trạng nguy hiểm kép tại {name}: nguy cơ ngập cao ({riskPct}%) kết hợp với AQI {aqi} ở khu vực lân cận. Hạn chế ra ngoài tối đa.",
+      "actions": ["Ở trong nhà và đóng kín cửa sổ", "Theo dõi thông báo khẩn từ chính quyền địa phương", "Chuẩn bị nước uống và thực phẩm dự trữ", "Sạc pin điện thoại đầy đủ", "Liên hệ người thân về tình trạng của bạn"]
+    },
+    "R-AQI-01": {
+      "title": "Chất lượng không khí rất xấu",
+      "message": "Chất lượng không khí rất xấu tại {name} (AQI {aqi}). Không ra ngoài trừ trường hợp khẩn cấp.",
+      "actions": ["Ở trong nhà, đóng cửa sổ", "Sử dụng máy lọc không khí", "Không tập thể dục ngoài trời", "Đeo khẩu trang N95 nếu buộc phải ra ngoài", "Trẻ em, người già và bệnh nhân hô hấp cần đặc biệt chú ý"]
+    },
+    "R-AQI-02": {
+      "title": "AQI ở mức không lành mạnh",
+      "message": "AQI tại {name} ở mức không lành mạnh ({aqi}). Đeo khẩu trang N95 khi ra ngoài.",
+      "actions": ["Đeo khẩu trang N95 hoặc KN95", "Hạn chế hoạt động mạnh ngoài trời", "Nhóm nhạy cảm nên ở trong nhà", "Uống nhiều nước"]
+    },
+    "R-AQI-03": {
+      "title": "AQI không tốt cho nhóm nhạy cảm",
+      "message": "AQI tại {name} là {aqi}. Nhóm nhạy cảm nên hạn chế hoạt động ngoài trời.",
+      "actions": ["Đeo khẩu trang khi ra ngoài lâu", "Hạn chế tập thể dục cường độ cao ngoài trời"]
+    },
+    "R-HEAT-01": {
+      "title": "Nắng nóng cực đoan",
+      "message": "Nắng nóng cực đoan tại {name} — nhiệt độ hiệu dụng {temp}°C. Nguy cơ say nắng cao.",
+      "actions": ["Tránh ra ngoài từ 10:00 - 16:00", "Uống ít nhất 3 lít nước mỗi ngày", "Mặc quần áo sáng màu, thoáng mát", "Không để trẻ em hoặc người già trong xe", "Nhận biết dấu hiệu say nắng: chóng mặt, buồn nôn"]
+    },
+    "R-HEAT-02": {
+      "title": "Nhiệt độ cao, uống đủ nước",
+      "message": "Nhiệt độ hiệu dụng tại {name} cao ({temp}°C). Uống đủ nước và tránh nắng trực tiếp.",
+      "actions": ["Uống ít nhất 2 lít nước mỗi ngày", "Đội mũ và mặc quần áo bảo vệ", "Nghỉ ngơi trong bóng mát"]
+    },
+    "R-NORM-00": {
+      "title": "Điều kiện bình thường",
+      "message": "Thời tiết và chất lượng không khí trong ngưỡng an toàn tại mọi đơn vị không gian.",
+      "actions": ["Tiếp tục theo dõi thường xuyên"]
+    }
   },
   "alertsBell": {
     "open": "Mở cảnh báo",

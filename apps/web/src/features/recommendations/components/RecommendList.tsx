@@ -1,7 +1,7 @@
 import { useTranslations } from "use-intl";
 import { ListChecks, Droplets, Wind, Thermometer, AlertOctagon, ChevronRight, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { Recommendation, RecommendationInputs } from "@/shared/types/recommend";
+import type { Recommendation } from "@/shared/types/recommend";
 
 const CATEGORY_ICONS: Record<Recommendation["category"], React.ComponentType<{ className?: string }>> = {
   flood: Droplets,
@@ -17,49 +17,19 @@ const PRIORITY_STYLES: Record<Recommendation["priority"], string> = {
   urgent: "bg-red-500/20 text-red-400",
 };
 
-/** The inputs a rule fired on, in display order. `aqiPointId` (an internal join key to the
- *  paired AQI point, §A.4) is data, not a value, and is not shown. */
-const INPUT_KEYS = ["riskScore", "rainfall", "aqi", "effectiveTemperature", "severityBand", "exposureE", "feasibilityFa"] as const;
-
-function formatInput(value: unknown): string {
-  if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return String(value);
-}
-
 /**
  * Rule provenance (B-005, §E, §J): every ranked item names the unit's toponym, the rule
- * that fired, π(r, i) and the inputs that rule saw. `commune` is carried by the payload but
- * NEVER rendered (§A.3): readers would take "Phường Bình Thạnh" for the abolished district.
+ * that fired and a locale-aware title/message/actions. The server's `title`/`message`/
+ * `actionItems` are Vietnamese-only (rules.py has no i18n) — `recRules.<ruleId>` re-renders
+ * the same content in the active locale from the `ruleId` + `inputs` the server already sends,
+ * falling back to the server text for a `ruleId` this catalog doesn't know yet.
+ * `commune` is carried by the payload but NEVER rendered (§A.3): readers would take
+ * "Phường Bình Thạnh" for the abolished district.
  */
-function InputsList({ inputs }: { inputs: RecommendationInputs }) {
-  const t = useTranslations("recInputs");
-  const bt = useTranslations("bands");
-  const r = useTranslations("recommendations");
-  const rows = INPUT_KEYS.filter((k) => inputs[k] != null);
-  if (rows.length === 0) return null;
-  return (
-    <div className="mt-2 rounded-md bg-background/60 p-2">
-    <p className="mb-1 text-[11px] font-medium text-muted-foreground">{r("whyThis")}</p>
-    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-      {rows.map((k) => {
-        const v = inputs[k];
-        const shown = k === "severityBand" && typeof v === "string" && bt.has(v) ? bt(v) : formatInput(v);
-        return (
-          <div key={k} className="flex justify-between gap-2 min-w-0">
-            <dt className="text-muted-foreground truncate">{t(k)}</dt>
-            <dd className="font-mono shrink-0">{shown}</dd>
-          </div>
-        );
-      })}
-    </dl>
-    </div>
-  );
-}
-
 function RecommendCard({ rec, rank }: { rec: Recommendation; rank: number }) {
   const Icon = CATEGORY_ICONS[rec.category] ?? ListChecks;
   const r = useTranslations("risk");
-  const d = useTranslations("recommendations");
+  const rr = useTranslations("recRules");
   const uk = useTranslations("unitKind");
 
   const PRIORITY_LABELS: Record<Recommendation["priority"], string> = {
@@ -68,6 +38,18 @@ function RecommendCard({ rec, rank }: { rec: Recommendation; rank: number }) {
     high: r("high"),
     urgent: r("urgent"),
   };
+
+  const hasTemplate = rr.has(`${rec.ruleId}.title`);
+  const vars = {
+    name: rec.unitName,
+    riskPct: rec.inputs.riskScore != null ? Math.round(rec.inputs.riskScore * 100) : 0,
+    rainfall: rec.inputs.rainfall != null ? rec.inputs.rainfall.toFixed(1) : "",
+    aqi: rec.inputs.aqi ?? 0,
+    temp: rec.inputs.effectiveTemperature != null ? rec.inputs.effectiveTemperature.toFixed(1) : "",
+  };
+  const title = hasTemplate ? rr(`${rec.ruleId}.title`) : rec.title;
+  const message = hasTemplate ? rr(`${rec.ruleId}.message`, vars) : rec.message;
+  const actions = hasTemplate ? (rr.raw(`${rec.ruleId}.actions`) as string[]) : rec.actionItems;
 
   return (
     <li className="flex gap-3 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
@@ -89,23 +71,12 @@ function RecommendCard({ rec, rank }: { rec: Recommendation; rank: number }) {
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-          <span className="font-mono" title={d("priorityScore")}>
-            π = {rec.priorityScore.toFixed(2)}
-          </span>
-          <span className="text-border">·</span>
-          <span className="font-mono" title={d("rule")}>
-            {rec.ruleId}
-          </span>
-          <span className="text-border">·</span>
-          <span className="truncate">{rec.title}</span>
-        </div>
+        <p className="text-xs font-medium mt-1">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{message}</p>
 
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{rec.message}</p>
-
-        {rec.actionItems.length > 0 && (
+        {actions.length > 0 && (
           <ul className="mt-2 space-y-0.5">
-            {rec.actionItems.map((action, i) => (
+            {actions.map((action, i) => (
               <li key={i} className="flex items-start gap-1 text-xs text-muted-foreground">
                 <ChevronRight className="h-3 w-3 shrink-0 mt-0.5" />
                 <span>{action}</span>
@@ -113,8 +84,6 @@ function RecommendCard({ rec, rank }: { rec: Recommendation; rank: number }) {
             ))}
           </ul>
         )}
-
-        <InputsList inputs={rec.inputs} />
       </div>
     </li>
   );

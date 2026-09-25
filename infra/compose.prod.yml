@@ -22,7 +22,11 @@ services:
     <<: *climate-image
   gateway:
     image: ghcr.io/codeforfee/ucdt-gateway:${UCDT_TAG:-main}
-  caddy:
+  gateway2:
+    image: ghcr.io/codeforfee/ucdt-gateway:${UCDT_TAG:-main}
+  nginx-cert-init:
+    image: ghcr.io/codeforfee/ucdt-web:${UCDT_TAG:-main}
+  nginx:
     image: ghcr.io/codeforfee/ucdt-web:${UCDT_TAG:-main}
 
   # Daily pg_dump -Fc into a host bind mount, keeps the newest 7. postgres:16-alpine matches
@@ -47,7 +51,7 @@ services:
     mem_limit: 64m
 
   # Uptime dashboard, reachable only via `ssh -L 3100:127.0.0.1:3100 <vps>` -- never exposed
-  # publicly. Add monitors for /health through Caddy and /api/weather (see docs/DEPLOY.md).
+  # publicly. Add monitors for /health through nginx and /api/weather (see docs/DEPLOY.md).
   uptime-kuma:
     image: louislam/uptime-kuma:1
     restart: unless-stopped
