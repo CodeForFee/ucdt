@@ -1,4 +1,4 @@
-# Vite build of apps/web, served by Caddy (which also reverse-proxies /api to the gateway).
+# Vite build of apps/web, served by nginx (which also reverse-proxies /api to the gateway).
 # Build context: the repo root (pnpm workspace + lockfile).
 FROM node:22-alpine AS build
 RUN corepack enable
@@ -14,6 +14,8 @@ ARG VITE_API_BASE_URL=""
 ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN pnpm -F web build
 
-FROM caddy:2-alpine
-COPY infra/Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /repo/apps/web/dist /srv
+# nginx:1.27 already ships openssl (infra/certbot/dummy-cert.sh) and the official
+# docker-entrypoint.d envsubst hook that turns *.template into conf.d/*.conf at startup.
+FROM nginx:1.27-alpine
+COPY infra/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
