@@ -8,6 +8,8 @@ import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import { aqiCode, aqiColor } from "@/shared/lib/aqi";
 import { formatDateTime } from "@/shared/lib/formatters";
+import { HazardRecommendations } from "@/features/recommendations/components/HazardRecommendations";
+import { HazardAlerts } from "@/features/alerts/components/HazardAlerts";
 import type { AQIData } from "@/shared/types/aqi";
 
 /**
@@ -155,6 +157,9 @@ export default function AirQualityPage() {
           </Card>
 
           <ObservedStationsList data={data} />
+
+          <HazardAlerts hazard="aqi" />
+          <HazardRecommendations category="air" />
         </>
       )}
     </div>

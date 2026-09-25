@@ -5,6 +5,9 @@
     "simulation": "Simulation",
     "airQuality": "Air Quality",
     "flood": "Flood",
+    "heat": "Temperature",
+    "aqi": "Air Quality",
+    "risks": "Risks",
     "alerts": "Alerts",
     "appName": "Urban Climate DT",
     "version": "UCDT v1.0",
@@ -162,6 +165,18 @@
     "decompPick": "Pick a zone in the table to see its own decomposition",
     "backToCity": "Back to city",
     "colRain": "Rain (mm/h)"
+  },
+  "heatPage": {
+    "title": "Heat risk",
+    "subtitle": "Real-time urban heat island effect",
+    "source": "Open-Meteo · PDIM Stage 1",
+    "scoreLabel": "Mean effective temperature",
+    "affectedAreas": "Notable heat cells",
+    "uhiEffect": "UHI effect",
+    "hotspots": "Heat cells",
+    "colArea": "Area",
+    "colTemp": "Effective temperature",
+    "colLevel": "Level"
   },
   "alertsPage": {
     "title": "Alerts",

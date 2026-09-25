@@ -32,8 +32,11 @@ describe("routes", () => {
     ["/simulation/heat", "Kịch bản Nhiệt độ"],
     ["/simulation/flood", "Kịch bản Ngập lụt"],
     ["/simulation/aqi", "Kịch bản Chất lượng Không khí"],
-    ["/flood", "Nguy cơ ngập lụt"],
-    ["/air-quality", "Chất lượng không khí"],
+    ["/risks/flood", "Nguy cơ ngập lụt"],
+    ["/risks/heat", "Nguy cơ nắng nóng"],
+    ["/risks/aqi", "Chất lượng không khí"],
+    ["/flood", "Nguy cơ ngập lụt"], // legacy URL, redirects to /risks/flood
+    ["/air-quality", "Chất lượng không khí"], // legacy URL, redirects to /risks/aqi
     ["/alerts", "Cảnh báo"],
     ["/recommendations", "Khuyến nghị"],
   ];
@@ -47,21 +50,28 @@ describe("routes", () => {
     expect(screen.getByRole("link", { name: /Urban Climate DT/i })).toBeInTheDocument();
   });
 
-  it("the nav carries five tabs, Recommendations included (user decision 2026-09-24)", async () => {
-    renderAt("/recommendations");
-    await screen.findByRole("heading", { name: "Khuyến nghị" }, LAZY);
+  it("the nav carries four tabs, Risks merging Flood+Recommendations (user decision 2026-09-25)", async () => {
+    renderAt("/risks/flood");
+    await screen.findByRole("heading", { name: "Nguy cơ ngập lụt" }, LAZY);
     const nav = screen.getByRole("navigation");
     const tabs = within(nav).getAllByRole("link");
     expect(tabs.map((a) => a.getAttribute("href"))).toEqual([
       "/dashboard",
       "/map",
       "/simulation",
-      "/flood",
-      "/recommendations",
+      "/risks",
     ]);
-    expect(within(nav).getByRole("link", { name: /Khuyến nghị/ }).className).toContain("text-primary"); // active
+    expect(within(nav).getByRole("link", { name: /Rủi ro/ }).className).toContain("text-primary"); // active
     // Alerts moved from the overview into the header bell.
     expect(screen.getByRole("button", { name: "Mở cảnh báo" })).toBeInTheDocument();
+  });
+
+  it("the /risks sub-tab bar carries Flood/Heat/AQI and each embeds alerts+recommendations", async () => {
+    renderAt("/risks/heat");
+    await screen.findByRole("heading", { name: "Nguy cơ nắng nóng" }, LAZY);
+    expect(screen.getByRole("link", { name: "Ngập lụt" })).toHaveAttribute("href", "/risks/flood");
+    expect(screen.getByRole("link", { name: "Nhiệt độ" })).toHaveAttribute("href", "/risks/heat");
+    expect(screen.getByRole("link", { name: "Chất lượng Không khí" })).toHaveAttribute("href", "/risks/aqi");
   });
 
   it("redirects / to /dashboard", async () => {

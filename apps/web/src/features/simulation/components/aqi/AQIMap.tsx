@@ -41,7 +41,10 @@ function WindInfoBadge({ result }: { result?: SimulationResult }) {
   const delta = aqiBase != null && aqiSim != null ? aqiSim - aqiBase : 0;
 
   return (
-    <div className="absolute top-3 left-3 z-10 bg-card/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border shadow-lg text-xs space-y-1.5">
+    // top-right, below MapControls (also top-3 right-3) — left-3 sat directly under the
+    // sidebar (SidebarShell is `left-0 z-20`, wider z-index than this badge, even collapsed
+    // to its w-10 icon rail), hiding the card in every sidebar state, not just one.
+    <div className="absolute top-40 right-3 z-10 bg-card/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-border shadow-lg text-xs space-y-1.5">
       <div className="flex items-center gap-2.5">
         <div className="relative w-8 h-8 shrink-0">
           <svg viewBox="0 0 32 32" className="w-full h-full">

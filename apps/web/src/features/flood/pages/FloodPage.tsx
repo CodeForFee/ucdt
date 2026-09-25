@@ -9,6 +9,8 @@ import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import type { RiskLevel } from "@/shared/constants/riskLevels";
 import { RiskDecomposition } from "@/features/flood/components/RiskDecomposition";
+import { HazardRecommendations } from "@/features/recommendations/components/HazardRecommendations";
+import { HazardAlerts } from "@/features/alerts/components/HazardAlerts";
 
 export default function FloodPage() {
   const { data, isLoading, isError, refetch } = useFloodRisk();
@@ -150,6 +152,9 @@ export default function FloodPage() {
               )}
             </CardContent>
           </Card>
+
+          <HazardAlerts hazard="flood" />
+          <HazardRecommendations category="flood" />
 
           <p className="text-xs text-muted-foreground">{fp("screeningNote")}</p>
         </>
