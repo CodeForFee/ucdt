@@ -92,6 +92,7 @@
     "legend": {
       "flood": "Ngập lụt",
       "aqi": "AQI",
+      "heat": "Nhiệt độ",
       "low": "Thấp",
       "medium": "Trung bình",
       "high": "Cao",
@@ -121,8 +122,11 @@
     "subtitle": "Dữ liệu AQI và ô nhiễm theo thời gian thực",
     "source": "Open-Meteo (CAMS) · AirGradient · PDIM",
     "currentAqi": "Chỉ số AQI hiện tại",
+    "scoreLabel": "Chỉ số chất lượng không khí",
+    "pointCount": "Điểm quan trắc",
     "mainPollutant": "AQI tính từ: ",
     "breakdown": "Thành phần ô nhiễm (µg/m³)",
+    "breakdownSub": "AQI lấy giá trị cao nhất trong các chỉ số con theo từng chất (chuẩn EPA), không phải tổng có trọng số như Ngập/Nhiệt — biểu đồ dưới đây cho biết chất nào đang kéo AQI lên.",
     "measured": "Đo được",
     "whoLimit": "Giới hạn WHO",
     "stations": "Điểm AQI mô hình (CAMS, Open-Meteo)",
@@ -176,7 +180,14 @@
     "hotspots": "Các ô nhiệt",
     "colArea": "Khu vực",
     "colTemp": "Nhiệt độ hiệu dụng",
-    "colLevel": "Mức độ"
+    "colLevel": "Mức độ",
+    "triggers": "Phân giải nhiệt độ hiệu dụng",
+    "triggersSub": "Hai số hạng do máy chủ tính; cộng lại đúng bằng nhiệt độ hiệu dụng trung bình",
+    "trigHeatIndex": "Chỉ số nhiệt (HI)",
+    "heatIndexNote": "Chỉ số nhiệt Rothfusz từ nhiệt độ và độ ẩm không khí (Open-Meteo)",
+    "trigUhi": "Hiệu ứng đảo nhiệt đô thị (UHI)",
+    "uhiNote": "Mật độ xây dựng × 3,5°C (ESA WorldCover)",
+    "sumLabel": "Tổng"
   },
   "alertsPage": {
     "title": "Cảnh báo",
@@ -210,6 +221,12 @@
     "veryUnhealthy": "Rất không lành mạnh",
     "hazardous": "Nguy hiểm",
     "observed": "Trạm quan trắc (AirGradient)"
+  },
+  "floodLegend": {
+    "title": "Độ sâu ngập (m)"
+  },
+  "heatLegend": {
+    "title": "Nhiệt độ hiệu dụng (°C)"
   },
   "landUse": {
     "industrial": "Công nghiệp",

@@ -814,6 +814,11 @@ export interface components {
              * @description all fired (r, i), before the top-k cut
              */
             firedCount: number;
+            /**
+             * Allrecommendations
+             * @description every fired (r, i), unlike recommendations' top-k cut
+             */
+            allRecommendations: components["schemas"]["Recommendation"][];
             /** Summary */
             summary: string;
             /**

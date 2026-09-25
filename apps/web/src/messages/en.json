@@ -92,6 +92,7 @@
     "legend": {
       "flood": "Flood",
       "aqi": "AQI",
+      "heat": "Temperature",
       "low": "Low",
       "medium": "Medium",
       "high": "High",
@@ -121,8 +122,11 @@
     "subtitle": "Real-time AQI and pollution data",
     "source": "Open-Meteo (CAMS) · AirGradient · PDIM",
     "currentAqi": "Current AQI",
+    "scoreLabel": "Air quality index",
+    "pointCount": "Monitoring points",
     "mainPollutant": "AQI computed from: ",
     "breakdown": "Pollutant breakdown (µg/m³)",
+    "breakdownSub": "AQI takes the highest of each pollutant's own sub-index (EPA standard), not a weighted sum like Flood/Heat — this chart shows which pollutant is driving it up.",
     "measured": "Measured",
     "whoLimit": "WHO limit",
     "stations": "Modelled AQI points (CAMS, Open-Meteo)",
@@ -176,7 +180,14 @@
     "hotspots": "Heat cells",
     "colArea": "Area",
     "colTemp": "Effective temperature",
-    "colLevel": "Level"
+    "colLevel": "Level",
+    "triggers": "Effective temperature breakdown",
+    "triggersSub": "Two terms computed by the server; they sum to exactly the mean effective temperature",
+    "trigHeatIndex": "Heat index (HI)",
+    "heatIndexNote": "Rothfusz heat index from air temperature and humidity (Open-Meteo)",
+    "trigUhi": "Urban heat island (UHI) effect",
+    "uhiNote": "Built-up density × 3.5°C (ESA WorldCover)",
+    "sumLabel": "Sum"
   },
   "alertsPage": {
     "title": "Alerts",
@@ -210,6 +221,12 @@
     "veryUnhealthy": "Very Unhealthy",
     "hazardous": "Hazardous",
     "observed": "Monitoring station (AirGradient)"
+  },
+  "floodLegend": {
+    "title": "Flood depth (m)"
+  },
+  "heatLegend": {
+    "title": "Effective temperature (°C)"
   },
   "landUse": {
     "industrial": "Industrial",

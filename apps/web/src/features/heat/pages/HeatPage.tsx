@@ -7,6 +7,7 @@ import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import { heatRiskLevel } from "@/shared/lib/heatRisk";
+import { HeatDecomposition } from "@/features/heat/components/HeatDecomposition";
 import { HazardRecommendations } from "@/shared/components/hazards/HazardRecommendations";
 import { HazardAlerts } from "@/shared/components/hazards/HazardAlerts";
 
@@ -105,6 +106,21 @@ export default function HeatPage() {
               </div>
             </CardContent>
           </Card>
+
+          {data.avgEffectiveTemperature != null && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">{hp("triggers")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{hp("triggersSub")}</p>
+              </CardHeader>
+              <CardContent>
+                <HeatDecomposition
+                  avgEffectiveTemperature={data.avgEffectiveTemperature}
+                  heatIslandIntensity={data.heatIslandIntensity}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           <HazardAlerts hazard="heat" />
           <HazardRecommendations category="heat" />

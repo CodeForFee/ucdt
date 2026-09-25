@@ -1,4 +1,5 @@
 import { useTranslations } from "use-intl";
+import { Wind } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAQIData } from "@/shared/hooks/useAQIData";
 import { AQIGauge } from "@/shared/components/charts/AQIGauge";
@@ -95,6 +96,46 @@ export default function AirQualityPage() {
 
       {data && (
         <>
+          {/* Score card, matching FloodPage/HeatPage's layout (big number + level badge +
+              stats) — AQI's own index already IS its risk score (0–500 EPA scale), same as
+              flood's R_f (%) and heat's T_eff (°C); each hazard just keeps its native unit
+              rather than a made-up shared 0–100 scale. */}
+          <Card>
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-5">
+              <div className="flex items-center gap-3">
+                <Wind className="h-8 w-8" style={{ color: aqiColor(data.aqi ?? 0) }} />
+                <div>
+                  <p className="text-3xl font-bold" style={{ color: aqiColor(data.aqi ?? 0) }}>
+                    {data.aqi ?? "--"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{aq("scoreLabel")}</p>
+                </div>
+              </div>
+              <div className="sm:ml-4">
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-medium border"
+                  style={{
+                    background: `${aqiColor(data.aqi ?? 0)}20`,
+                    color: aqiColor(data.aqi ?? 0),
+                    borderColor: `${aqiColor(data.aqi ?? 0)}4d`,
+                  }}
+                >
+                  {aqiT(aqiCode(data.aqi ?? 0))}
+                </span>
+              </div>
+              <div className="sm:ml-auto flex gap-6">
+                <div className="text-center">
+                  <p className="text-lg font-semibold">{data.pm25?.toFixed(0) ?? "--"}</p>
+                  <p className="text-xs text-muted-foreground">PM2.5</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold">{data.stations?.length ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">{aq("pointCount")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <Card className="flex flex-col items-center justify-center py-6">
               <CardHeader className="pb-2 text-center">
@@ -112,6 +153,7 @@ export default function AirQualityPage() {
             <Card className="lg:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">{aq("breakdown")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{aq("breakdownSub")}</p>
               </CardHeader>
               <CardContent>
                 <BarChart
