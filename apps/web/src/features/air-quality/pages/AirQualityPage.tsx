@@ -153,6 +153,7 @@ export default function AirQualityPage() {
             <Card className="lg:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">{aq("breakdown")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{aq("breakdownSub")}</p>
               </CardHeader>
               <CardContent>
                 <BarChart
