@@ -1,12 +1,13 @@
-"""One scoring run: fetched weather + air quality in, observations + the five risk snapshots +
-new alerts written. Pure PDIM functions do the maths; repo.py does the writes. The caller owns
-the transaction, so a run lands completely or not at all:
+"""One scoring run: per-unit weather + air quality + open-network readings in, observations + the
+five risk snapshots + new per-unit alerts written. Pure PDIM functions do the maths; repo.py does
+the reads and writes. The caller owns the transaction, so a run lands completely or not at all:
 
     async with get_sessionmaker()() as s, s.begin():
-        hazards, alert_ids = await store_run(s, forecast_raw, city_aq, station_aqs, now)
+        hazards, alert_ids = await store_run(s, weather_by_unit, city_aq, station_aqs, readings, now)
     # publish only here, after commit
 
-`result` of each snapshot is exactly the legacy Hackathon-BE `data` payload of `/api/<hazard>`.
+`inputs` of each snapshot is what its model consumed; the what-if (§G) re-runs from the flood, heat
+and aqi `inputs` + `result`, and Algorithm 1 (§H) reads aqi `inputs.pointWeather/stationMap`.
 """
 
 from datetime import datetime
@@ -15,79 +16,83 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from climate.config import get_settings
 from climate.db import repo
-from climate.ingest.weather import local_time, transform_forecast
-from climate.pdim import aqi, flood, heat, rules
-from climate.spatial.units import AQI_POINTS
+from climate.pdim import aqi, flood, heat, maturity, rules
+from climate.spatial.catalogue import Catalogue, load_catalogue
 
-MODEL_VERSION = "pdim-s1"
 HAZARDS = ("weather", "aqi", "flood", "heat", "recommend")
 # Which snapshot an alert of each type was raised from.
-ALERT_SNAPSHOT = {"flood": "flood", "aqi": "aqi", "heat": "heat", "storm": "weather", "system": "recommend"}
+ALERT_SNAPSHOT = {"flood": "flood", "storm": "weather", "aqi": "aqi", "heat": "heat"}
 
 
-def heat_payload(raw: dict, city: str) -> dict:
-    """Legacy /api/heat served heatController's reshape of getHeatData, not the service output
-    (Hackathon-BE/src/controllers/heat.controller.ts). The other four controllers pass through."""
-    return {
-        "city": city,
-        "timestamp": raw["timestamp"],
-        "avgTemperature": raw["cityAvgTemp"],
-        "maxTemperature": raw["cityMaxEffectiveTemp"],
-        "heatIslandIntensity": raw["uhiEffect"],
-        # Not in legacy heatController (an additive field; legacy keys unchanged): the mean
-        # T_eff of the 22 cells, the baseline the heat what-if's ΔT applies to (B-020).
-        "avgEffectiveTemperature": heat.mean_effective_temp(raw["hotspots"]),
-        "hotspots": [
-            {"id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"]}
-            | {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]}
-            for h in raw["hotspots"]
-        ],
-        "geojson": {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "geometry": {"type": "Point", "coordinates": [h["lng"], h["lat"]]},
-                    "properties": {"temperature": h["effectiveTemperature"], "intensity": h["urbanDensity"]},
-                }
-                for h in raw["hotspots"]
-            ],
-        },
-    }
+async def evaluate_maturity(session: AsyncSession, now: datetime) -> dict:
+    """Algorithm 1 on the stored history of the last W (spec §H); what `/v1/maturity` serves."""
+    since = now - maturity.WINDOW
+    return maturity.evaluate(
+        await repo.station_readings(session, since),
+        await repo.snapshot_inputs(session, "aqi", since, ("pointWeather", "stationMap")),
+        await repo.oldest_snapshot_at(session),
+        now,
+    )
 
 
 async def store_run(
     session: AsyncSession,
-    forecast_raw: dict,
+    weather_by_unit: dict[str, dict],
     city_aq: dict,
     station_aqs: list[dict | None],
+    readings: list[dict],
     now: datetime,
+    cat: Catalogue | None = None,
 ) -> tuple[list[str], list[str]]:
-    """Score and store one run. `station_aqs` is aligned with AQI_POINTS (None = fetch failed,
-    dropped like legacy). Returns (hazards written, newly inserted alert ids)."""
-    weather = transform_forecast(forecast_raw, now)
-    month = local_time(forecast_raw, now).month
-    rainfall = weather["current"]["rainfall"]
+    """Score and store one run. `weather_by_unit` = ingest.weather.fetch_weather_by_unit (unit id →
+    WeatherResponse, plus "city"); `station_aqs` is aligned with the catalogue's AQI points (None =
+    fetch failed, dropped); `readings` = ingest.airgradient.fetch_airgradient. Returns (hazards
+    written, newly inserted alert ids)."""
+    cat = cat or load_catalogue()
+    city_w = weather_by_unit["city"]
+    cur = {uid: w["current"] for uid, w in weather_by_unit.items()}
+    gammas, aqi_version = maturity.nowcast_gammas(await evaluate_maturity(session, now))
 
-    fl = flood.compute_flood(rainfall, month)
-    aq = aqi.compute_aqi(city_aq, station_aqs, weather["forecast"], now)
+    rain = {z.id: cur[z.id]["rainfall"] for z in cat.flood_zones}
+    fl = flood.compute_flood(rain, cur["city"]["rainfall"], cat)
+    ht = heat.compute_heat(cur, cur["city"], now, cat, get_settings().city_id)
+    observed = aqi.observed_stations(readings, cat)
+    aq = aqi.compute_aqi(city_aq, station_aqs, city_w["forecast"], now, observed, gammas, cat)
+
+    # Per-unit values of this run and of the previous snapshots (read before this run's inserts).
+    values = rules.unit_values(fl, aq, ht)
+    prev = [await repo.latest_snapshot(session, h) for h in ("flood", "aqi", "heat")]
+    prev_values = rules.unit_values(*(p["result"] if p else None for p in prev))
+
     results = {
-        "weather": weather,
+        "weather": city_w,
         "aqi": aq,
         "flood": fl,
-        "heat": heat_payload(heat.compute_heat(weather["current"], now), get_settings().city_id),
-        "recommend": rules.recommendations(weather, fl, aq, now),
+        "heat": ht,
+        "recommend": rules.recommendations(values, cat, now),
+    }
+    point_weather = {
+        uid: {"windSpeed": cur[uid]["windSpeed"], "rainfall": cur[uid]["rainfall"]}
+        for uid in (*(p.id for p in cat.aqi_points), "city")
     }
     inputs = {
-        "weather": {"openMeteo": forecast_raw},
-        "aqi": {"city": city_aq, "stations": station_aqs, "forecast": weather["forecast"]},
-        "flood": {"rainfall": rainfall, "month": month},
-        "heat": {"current": weather["current"]},
-        "recommend": {"current": weather["current"], "rainfall": rainfall, "month": month, "aqi": aq["aqi"]},
+        "weather": {"units": cur},
+        "aqi": {
+            "city": city_aq,
+            "points": dict(zip((p.id for p in cat.aqi_points), station_aqs, strict=True)),
+            "pointWeather": point_weather,
+            "forecast": city_w["forecast"],
+            "observed": readings,
+            "stationMap": {s["id"]: s["nearestPointId"] for s in observed},
+            "nowcastGammas": list(gammas),
+        },
+        "flood": {"rainfall": rain, "cityRainfall": cur["city"]["rainfall"]},
+        "heat": {"weather": {c.id: cur[c.id] for c in cat.heat_cells}, "city": cur["city"]},
+        "recommend": {"values": values},
     }
 
-    await repo.insert_weather_obs(session, "city", now, forecast_raw)
-    for loc, raw in [("city", city_aq), *zip((p["id"] for p in AQI_POINTS), station_aqs, strict=True)]:
+    await repo.insert_weather_obs(session, "city", now, city_w)
+    for loc, raw in [("city", city_aq), *zip((p.id for p in cat.aqi_points), station_aqs, strict=True)]:
         if raw is not None:
             await repo.insert_aqi_obs(
                 session,
@@ -96,16 +101,26 @@ async def store_run(
                 aqi=aqi.normalize_aqi(raw["aqi"], raw["source"]),
                 **{k: raw[k] for k in ("pm25", "pm10", "o3", "no2", "source")},
             )
+    for (
+        s
+    ) in observed:  # stamped with the observation time, so Algorithm 1 bins it by the hour it was measured
+        await repo.insert_aqi_obs(
+            session,
+            s["id"],
+            datetime.fromisoformat(s["observedAt"]),
+            aqi=s["aqi"],
+            pm25=s["pm25"],
+            source=s["source"],
+        )
 
     ids = {
-        h: await repo.insert_snapshot(session, h, now, MODEL_VERSION, inputs[h], results[h]) for h in HAZARDS
+        h: await repo.insert_snapshot(
+            session, h, now, aqi_version if h == "aqi" else maturity.MODEL_S1, inputs[h], results[h]
+        )
+        for h in HAZARDS
     }
 
-    active = [
-        {"type": a["type"], "isRead": a["read_at"] is not None}
-        for a in await repo.list_active_alerts(session, now)
-    ]
-    fresh = rules.new_alerts(weather, fl, aq, now, active)
+    fresh = rules.band_alerts(values, prev_values, cat, now)
     alert_ids = await repo.insert_alerts(
         session,
         [
@@ -118,7 +133,6 @@ async def store_run(
                 "message": a["message"],
                 "created_at": now,
                 "expires_at": datetime.fromisoformat(a["expiresAt"]),
-                "read_at": now if a["isRead"] else None,
                 "snapshot_id": ids[ALERT_SNAPSHOT[a["type"]]],
             }
             for a in fresh

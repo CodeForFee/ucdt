@@ -1,21 +1,33 @@
-import type { SimulationParams, SimulationRequest } from "@/shared/types/simulation";
+import type { HeatBaselines } from "@/shared/types/heat";
+import type { Scenario, SimulationParams, SimulationRequest } from "@/shared/types/simulation";
 
 export type ScenarioKind = "flood" | "heat" | "aqi";
 
 /**
+ * ΔG in percentage points, as the API reads `addGreenCoverage` ("percentage points vs
+ * baseline", §C/§G): ΔG = G_sim − G₀ with G₀ the SERVED mean green cover (heat
+ * `baselines.greenPct`, ESA WorldCover). An untouched slider, or no baseline yet, is ΔG = 0.
+ * This is request construction only: ΔT, ΔAQI and D̃_sim are computed by climate.
+ */
+export function greenDeltaPp(greenCoverage: number | undefined, baselines: HeatBaselines | undefined): number {
+  if (greenCoverage == null || !baselines) return 0;
+  return Math.round((greenCoverage * 100 - baselines.greenPct) * 10) / 10;
+}
+
+/**
  * Builds the POST /api/simulation body for each scenario tab from the shared slider
- * state. Pulled out as a pure function (no store/query reads) so it is unit-testable
- * without mounting a component — see scenarioRequest.test.ts.
+ * state. Pure (no store/query reads) so it is unit-testable — see scenarioRequest.test.ts.
  *
- * B-004: the heat scenario must always carry `urbanDensity`, or the backend's UHI term
- * of tempDelta is identically zero and the slider does nothing.
+ * B-004: the heat scenario carries `urbanDensity` once the user has moved the slider; an
+ * untouched slider omits it, which the API scores at the served baseline ρ₀ (§C), so the
+ * UHI term is exactly 0 there instead of being measured against a hard-coded 0.8.
  */
 export function buildScenarioBody(
   scenario: ScenarioKind,
   params: SimulationParams,
-): SimulationRequest["scenario"] {
-  // BE reads addGreenCoverage as the % of green cover ADDED on top of the 30% baseline.
-  const addGreenCoverage = Math.round((params.greenCoverage - 0.3) * 100);
+  baselines?: HeatBaselines,
+): Scenario {
+  const addGreenCoverage = greenDeltaPp(params.greenCoverage, baselines);
 
   switch (scenario) {
     case "flood":
@@ -31,7 +43,7 @@ export function buildScenarioBody(
         rainfallDurationHours: 0,
         addGreenCoverage,
         trafficReduction: 0,
-        urbanDensity: params.urbanDensity ?? 0.8,
+        ...(params.urbanDensity != null && { urbanDensity: params.urbanDensity }),
       };
     case "aqi":
       return {
@@ -47,6 +59,7 @@ export function buildScenarioRequest(
   scenario: ScenarioKind,
   cityId: string,
   params: SimulationParams,
+  baselines?: HeatBaselines,
 ): SimulationRequest {
-  return { cityId, scenario: buildScenarioBody(scenario, params) };
+  return { cityId, scenario: buildScenarioBody(scenario, params, baselines) };
 }

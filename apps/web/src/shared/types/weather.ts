@@ -1,23 +1,8 @@
-// Matches BE WeatherResponse exactly
-export interface WeatherData {
-  current: WeatherCurrent;
-  forecast: WeatherForecastItem[];
-}
+import type { components } from "@ucdt/contracts";
 
-export interface WeatherCurrent {
-  temperature: number;
-  feelsLike: number;
-  humidity: number;
-  rainfall: number;
-  windSpeed: number;
-  windDirection: number;
-  condition: string;
-  timestamp: string;
-}
+type S = components["schemas"];
 
-export interface WeatherForecastItem {
-  hour: string;
-  temperature: number;
-  rainfall: number;
-  stormProbability: number;
-}
+/** `GET /api/weather` — generated from the climate OpenAPI (packages/contracts). */
+export type WeatherData = S["WeatherLatest"];
+export type WeatherCurrent = S["WeatherCurrent"];
+export type WeatherForecastItem = S["WeatherForecastItem"];

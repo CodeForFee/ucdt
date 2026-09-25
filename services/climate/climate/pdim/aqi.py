@@ -7,9 +7,12 @@ services/aqi.service.ts (buildNowcast24h, trend, getAQI assembly).
 
 from datetime import datetime, timedelta
 
-from climate.pdim.constants import get_aqi_category
+from climate.pdim.constants import PDIM_S1, get_aqi_category
 from climate.pdim.risk import aqi_nowcast_step, as_utc, js_iso, js_round
-from climate.spatial.units import AQI_POINTS
+from climate.spatial.catalogue import Catalogue, load_catalogue
+from climate.spatial.derive import nearest
+
+S1_GAMMAS = (PDIM_S1["aqi"]["gammaWind"], PDIM_S1["aqi"]["gammaRain"])
 
 # EPA 2012 PM2.5 breakpoints: (cLow, cHigh, iLow, iHigh).
 _PM25_BREAKPOINTS = (
@@ -55,8 +58,11 @@ def raw_from_open_meteo(current: dict | None) -> dict:
     }
 
 
-def build_nowcast_24h(current_aqi: float, weather_forecast: list, now: datetime) -> list:
-    """24 h series of AQI(t+1) = AQI(t)·(1 − γ_w·W̃)·(1 − γ_p·P̃); flat persistence past the forecast."""
+def build_nowcast_24h(
+    current_aqi: float, weather_forecast: list, now: datetime, gammas: tuple[float, float] = S1_GAMMAS
+) -> list:
+    """24 h series of AQI(t+1) = AQI(t)·(1 − γ_w·W̃)·(1 − γ_p·P̃); flat persistence past the forecast.
+    `gammas` = (γ_w, γ_p): S1 by default, the fitted pair while S2 is active (§H)."""
     # Legacy truncates to the hour in HCMC local time; UTC+7 is a whole-hour offset, so UTC is the same.
     hour0 = as_utc(now).replace(minute=0, second=0, microsecond=0)
     series = []
@@ -67,7 +73,7 @@ def build_nowcast_24h(current_aqi: float, weather_forecast: list, now: datetime)
         if hour is None:
             hour = js_iso(hour0 + timedelta(hours=i))
         series.append({"hour": hour, "aqi": js_round(aqi)})
-        aqi = aqi_nowcast_step(aqi, _or0(wf.get("windSpeed")), _or0(wf.get("rainfall")))
+        aqi = aqi_nowcast_step(aqi, _or0(wf.get("windSpeed")), _or0(wf.get("rainfall")), *gammas)
     return series
 
 
@@ -81,21 +87,52 @@ def aqi_trend(forecast24h: list) -> str:
     return "stable"
 
 
-def compute_aqi(city_raw: dict | None, station_raws: list, forecast: list | None, now: datetime) -> dict:
-    """AQIResponse. `station_raws` is aligned with AQI_POINTS; None = fetch failed (dropped)."""
+def observed_stations(readings: list[dict], cat: Catalogue | None = None) -> list[dict]:
+    """Open-network readings (ingest.airgradient) -> served stations: PM2.5 -> US AQI, plus the
+    station -> nearest AQI point mapping (§A.4, same haversine rule as derived.json)."""
+    cat = cat or load_catalogue()
+    points = [{"id": p.id, "lat": p.lat, "lng": p.lng} for p in cat.aqi_points]
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "lat": r["lat"],
+            "lng": r["lng"],
+            "aqi": pm25_to_aqi(r["pm25"]),
+            "pm25": r["pm25"],
+            "observedAt": r["observedAt"],
+            "source": r["source"],
+            "nearestPointId": nearest(r["lat"], r["lng"], points),
+        }
+        for r in readings
+    ]
+
+
+def compute_aqi(
+    city_raw: dict | None,
+    station_raws: list,
+    forecast: list | None,
+    now: datetime,
+    observed: list[dict] = (),
+    gammas: tuple[float, float] = S1_GAMMAS,
+    cat: Catalogue | None = None,
+) -> dict:
+    """AQIResponse. `station_raws` is aligned with the catalogue's AQI points (CAMS); None = fetch
+    failed (dropped). `observed` = observed_stations(...) of the open network, served separately."""
     if city_raw is None:
         raise ValueError("city-level AQI unavailable")
+    cat = cat or load_catalogue()
     aqi = normalize_aqi(city_raw["aqi"], city_raw["source"])
-    forecast24h = build_nowcast_24h(aqi, forecast or [], now)
+    forecast24h = build_nowcast_24h(aqi, forecast or [], now, gammas)
     stations = [
         {
-            "id": p["id"],
-            "name": p["name"],
-            "lat": p["lat"],
-            "lng": p["lng"],
+            "id": p.id,
+            "name": p.name,
+            "lat": p.lat,
+            "lng": p.lng,
             "aqi": normalize_aqi(raw["aqi"], raw["source"]),
         }
-        for p, raw in zip(AQI_POINTS, station_raws, strict=True)
+        for p, raw in zip(cat.aqi_points, station_raws, strict=True)
         if raw is not None
     ]
     return {
@@ -108,4 +145,5 @@ def compute_aqi(city_raw: dict | None, station_raws: list, forecast: list | None
         "trend": aqi_trend(forecast24h),
         "forecast24h": forecast24h,
         "stations": stations,
+        "observedStations": list(observed),
     }

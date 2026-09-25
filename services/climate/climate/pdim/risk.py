@@ -42,24 +42,24 @@ def epoch_ms(now: datetime) -> int:
     return (as_utc(now) - _EPOCH) // timedelta(milliseconds=1)
 
 
-def _clamp(value: float, lo: float, hi: float) -> float:
+def clamp(value: float, lo: float, hi: float) -> float:
     return min(max(value, lo), hi)
 
 
 # ── PDIM Section 4.2 ─────────────────────────────────────────────────────────
 def flood_risk_score(
     rainfall: float,
-    soil_saturation: float,
+    imperviousness: float,
     drainage_capacity: float,
     terrain_sensitivity: float = PDIM_S1["flood"]["terrainDefault"],
 ) -> float:
     """R_f(i) = w1·P̃ + w2·T̃ + w3·Ĩ − w4·D̃, clamped to [0, 1]."""
     f = PDIM_S1["flood"]
-    p = _clamp(rainfall / f["rainRefMmH"], 0, 1)
-    t = _clamp(terrain_sensitivity, 0, 1)
-    i = _clamp(soil_saturation, 0, 1)
-    d = _clamp(drainage_capacity, 0, 1)
-    return _clamp(f["w1"] * p + f["w2"] * t + f["w3"] * i - f["w4"] * d, 0, 1)
+    p = clamp(rainfall / f["rainRefMmH"], 0, 1)
+    t = clamp(terrain_sensitivity, 0, 1)
+    i = clamp(imperviousness, 0, 1)
+    d = clamp(drainage_capacity, 0, 1)
+    return clamp(f["w1"] * p + f["w2"] * t + f["w3"] * i - f["w4"] * d, 0, 1)
 
 
 def flood_risk_level(score: float) -> str:
@@ -74,12 +74,25 @@ def flood_risk_level(score: float) -> str:
     return "low"
 
 
-def aqi_nowcast_step(aqi: float, wind_speed_kmh: float, rainfall_mmh: float) -> float:
-    """AQI(t+1) = AQI(t) · (1 − γ_w·W̃) · (1 − γ_p·P̃)."""
-    a = PDIM_S1["aqi"]
-    w = _clamp(wind_speed_kmh / a["windRefKmH"], 0, 1)
-    p = _clamp(rainfall_mmh / PDIM_S1["flood"]["rainRefMmH"], 0, 1)
-    return aqi * (1 - a["gammaWind"] * w) * (1 - a["gammaRain"] * p)
+def wind_norm(wind_speed_kmh: float) -> float:
+    """W̃ = min(wind / 30 km/h, 1)."""
+    return clamp(wind_speed_kmh / PDIM_S1["aqi"]["windRefKmH"], 0, 1)
+
+
+def rain_norm(rainfall_mmh: float) -> float:
+    """P̃ = min(P / 50 mm/h, 1)."""
+    return clamp(rainfall_mmh / PDIM_S1["flood"]["rainRefMmH"], 0, 1)
+
+
+def aqi_nowcast_step(
+    aqi: float,
+    wind_speed_kmh: float,
+    rainfall_mmh: float,
+    gamma_wind: float = PDIM_S1["aqi"]["gammaWind"],
+    gamma_rain: float = PDIM_S1["aqi"]["gammaRain"],
+) -> float:
+    """AQI(t+1) = AQI(t) · (1 − γ_w·W̃) · (1 − γ_p·P̃). γ default to S1; S2 passes the fitted ones (§H)."""
+    return aqi * (1 - gamma_wind * wind_norm(wind_speed_kmh)) * (1 - gamma_rain * rain_norm(rainfall_mmh))
 
 
 def heat_index(temperature: float, humidity: float) -> float:

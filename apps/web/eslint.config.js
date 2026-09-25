@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 
 // Feature Isolation — no feature may import from another feature, and src/shared may not
 // import a feature either (BOARD Decision 2026-09-14). Shared code lives in src/shared/.
-const FEATURES = ["dashboard", "map", "simulation", "flood", "air-quality", "alerts"];
+const FEATURES = ["dashboard", "map", "simulation", "flood", "air-quality", "alerts", "recommendations"];
 const featureIsolation = FEATURES.map((feat) => ({
   files: [`src/features/${feat}/**/*.{ts,tsx}`],
   rules: {

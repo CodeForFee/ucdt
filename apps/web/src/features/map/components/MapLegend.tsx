@@ -58,6 +58,11 @@ export function MapLegend() {
                 <span className="text-xs text-foreground">{label}</span>
               </div>
             ))}
+            {/* Same marker as AQILayer's OBS_LAYER_ID: measured stations, not CAMS points. */}
+            <div className="flex items-center gap-2 pt-1">
+              <div className="h-3 w-3 rounded-full shrink-0 border-[3px] border-slate-900 bg-muted" />
+              <span className="text-xs text-foreground">{lg("observed")}</span>
+            </div>
           </div>
         </div>
       )}

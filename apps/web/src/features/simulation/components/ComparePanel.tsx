@@ -171,10 +171,9 @@ export function ComparePanel({ scenario, result }: ComparePanelProps) {
   const r = result.results;
   const cmp = result.comparison;
 
-  // B-016: the API still returns affectedPopulation / affectedBuildings (legacy parity), but
-  // they are the Stage-1 heuristic 50k/80k people and 1,200 buildings per affected zone, not
-  // an exposure model. Population exposure is Stage 2 (Decision 2026-09-14), so they are never
-  // rendered as if measured.
+  // B-016: S-002 removed affectedPopulation / affectedBuildings from the API (they were the
+  // Stage-1 heuristic 50k/80k people and 1,200 buildings per affected zone, not
+  // an exposure model). Population exposure is Stage 2 (Decision 2026-09-14): never rendered.
   const floodMetrics = [
     {
       label: sr("floodRiskBefore"),

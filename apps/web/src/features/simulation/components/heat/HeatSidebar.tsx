@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { RainfallSlider } from "../RainfallSlider";
 import { ComparePanel } from "../ComparePanel";
+import { ScenarioRecommendations } from "../ScenarioRecommendations";
+import { GreenCoverageSlider, UrbanDensitySlider } from "../shared/BaselineSliders";
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useHeatMap } from "@/shared/hooks/useHeatMap";
@@ -161,7 +162,7 @@ export function HeatSidebar({ result, isPending, onRun, onReset }: HeatSidebarPr
   const ts = useTranslations("simulation");
   const sc = useTranslations("simulation.scenarios");
   const sl = useTranslations("simulation.sliders");
-  const { params, setParams, setFocusPoint } = useSimulationStore();
+  const { setParams, setFocusPoint } = useSimulationStore();
 
   return (
     <SidebarShell title={ts("titleHeat")} icon={<Thermometer className="h-4 w-4 text-orange-400" />} collapsedIcons={<Thermometer className="h-4 w-4" />}>
@@ -170,32 +171,16 @@ export function HeatSidebar({ result, isPending, onRun, onReset }: HeatSidebarPr
 
         <HeatSimPreview result={result} onFocus={(lat, lng, popupHtml) => setFocusPoint({ lat, lng, popupHtml })} />
 
-        <RainfallSlider
-          label={sl("urbanDensity")}
-          value={Math.round((params.urbanDensity ?? 0.8) * 100)}
-          min={10}
-          max={100}
-          step={5}
-          unit="%"
-          onChange={(v) => setParams({ urbanDensity: v / 100 })}
-          description={sl("urbanDensityDesc")}
-        />
-        <RainfallSlider
-          label={sl("greenCoverage")}
-          value={Math.round(params.greenCoverage * 100)}
-          min={0}
-          max={80}
-          step={5}
-          unit="%"
-          onChange={(v) => setParams({ greenCoverage: v / 100 })}
-          description={sl("greenCoverageHeatDesc")}
-        />
+        <ScenarioRecommendations result={result} />
+
+        <UrbanDensitySlider />
+        <GreenCoverageSlider description={sl("greenCoverageHeatDesc")} />
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{ts("quickScenario")}</label>
           <div className="grid grid-cols-1 gap-1.5">
             {[
-              { label: sc("heatGreenCity"), gc: 0.7, ud: 0.8 },
+              { label: sc("heatGreenCity"), gc: 0.7, ud: undefined },
               { label: sc("heatUrban"), gc: 0.1, ud: 0.95 },
             ].map((p) => (
               <button

@@ -13,6 +13,8 @@ export const KEY = {
   heat: "heat",
   recommend: "recommend",
   alerts: "alerts",
+  maturity: "maturity",
+  units: "units",
 } as const;
 
 export const QUERY_KEY = {
@@ -22,4 +24,6 @@ export const QUERY_KEY = {
   heat: (cityId: string) => [KEY.heat, cityId] as const,
   recommend: (cityId: string) => [KEY.recommend, cityId] as const,
   alerts: (cityId: string) => [KEY.alerts, cityId] as const,
+  maturity: () => [KEY.maturity] as const,
+  units: () => [KEY.units] as const,
 } as const;

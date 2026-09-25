@@ -22,6 +22,9 @@ class Out(BaseModel):
 class Latest(Out):
     observedAt: str = Field(description="computed_at of the snapshot, ISO 8601 UTC")
     stale: bool = Field(description="true when the snapshot is older than STALE_AFTER_MINUTES")
+    modelVersion: str = Field(
+        description="model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+    )
 
 
 # ── weather ─────────────────────────────────────────────────────────────────────
@@ -63,6 +66,20 @@ class AQIStation(Out):
     aqi: float
 
 
+class ObservedStation(Out):
+    """Open monitoring network station (§I.3), served apart from the CAMS points; feeds §H."""
+
+    id: str = Field(description="ag:<locationId>")
+    name: str
+    lat: float
+    lng: float
+    aqi: float = Field(description="US AQI from the station's PM2.5")
+    pm25: float = Field(description="µg/m³")
+    observedAt: str
+    source: str
+    nearestPointId: str = Field(description="nearest AQI point (§A.4)")
+
+
 class AQIData(Out):
     aqi: float
     category: str
@@ -71,8 +88,9 @@ class AQIData(Out):
     o3: float
     no2: float
     trend: Literal["increasing", "decreasing", "stable"]
-    forecast24h: list[AQIForecastItem]
+    forecast24h: list[AQIForecastItem] = Field(description="uses the fitted γ while S2 is active (§H)")
     stations: list[AQIStation]
+    observedStations: list[ObservedStation]
 
 
 # ── flood ───────────────────────────────────────────────────────────────────────
@@ -87,6 +105,15 @@ class FloodGeoJSONFeature(Out):
     properties: dict[str, Any]
 
 
+class FloodTerm(Out):
+    """One R_f term ready to render (§B, B-014): the web holds no PDIM weight."""
+
+    key: Literal["rainfall", "terrain", "imperviousness", "drainage"]
+    weight: float = Field(description="w_i > 0")
+    normalized: float = Field(description="x̃_i in [0, 1]")
+    contribution: float = Field(description="w_i·x̃_i; negative for drainage")
+
+
 class FloodArea(Out):
     id: str
     name: str
@@ -95,14 +122,16 @@ class FloodArea(Out):
     riskLevel: RiskLevel
     riskScore: float
     estimatedDepth: float
+    rainfall: float = Field(description="P(i), mm/h at the zone's own coordinate")
+    decomposition: list[FloodTerm] = Field(description="Σ contribution = R_f(i) before the clamp")
     geojson: FloodGeoJSONFeature
 
 
 class FloodTriggers(Out):
-    currentRainfall: float
-    soilSaturation: float
-    drainageCapacity: float
-    terrainSensitivity: float
+    currentRainfall: float = Field(description="city-centre P, mm/h")
+    terrainSensitivity: float = Field(description="mean T̃ over the 18 zones")
+    imperviousness: float = Field(description="mean Ĩ over the 18 zones")
+    drainageCapacity: float = Field(description="mean D̃ over the 18 zones")
 
 
 class FloodData(Out):
@@ -110,6 +139,7 @@ class FloodData(Out):
     riskScore: float
     affectedAreas: list[FloodArea]
     triggers: FloodTriggers
+    decomposition: list[FloodTerm] = Field(description="city level; Σ contribution = R_f before the clamp")
 
 
 # ── heat (legacy heatController's transformed shape, not heat.service's raw one) ──
@@ -143,35 +173,63 @@ class HeatGeoJSON(Out):
     features: list[HeatFeature]
 
 
+class HeatBaselines(Out):
+    """What-if reference state (§C); the heat sliders start here."""
+
+    density: float = Field(description="ρ₀ = mean builtUp over the 22 cells, 0–1")
+    greenPct: float = Field(description="G₀ = mean green cover over the 22 cells, %")
+
+
 class HeatData(Out):
     city: str
     timestamp: str
-    avgTemperature: float
-    maxTemperature: float
+    avgTemperature: float = Field(description="city-centre AIR temperature, °C")
+    maxTemperature: float = Field(description="max T_eff(i), °C")
     heatIslandIntensity: float
-    # Mean effective temperature T_eff over the 22 heat cells — the baseline of the heat
-    # what-if (B-020). Optional only because snapshots written before it existed lack it.
-    avgEffectiveTemperature: float | None = None
+    avgEffectiveTemperature: float = Field(description="mean T_eff(i), the heat what-if baseline (B-020)")
+    baselines: HeatBaselines
     hotspots: list[HeatHotspot]
     geojson: HeatGeoJSON
 
 
 # ── recommend ───────────────────────────────────────────────────────────────────
+class RecommendationInputs(Out):
+    """The unit's value(s) the rule fired on (flood: riskScore, rainfall; R-COMB-01: riskScore, aqi,
+    aqiPointId; AQI: aqi; heat: effectiveTemperature) + the π(r, i) factors. R-NORM-00 carries only
+    severityBand "none"."""
+
+    severityBand: str
+    exposureE: float | None = Field(None, description="E(i) = clamp(builtUp(i), 0.1, 1)")
+    feasibilityFa: float | None = Field(None, description="F(a)")
+    riskScore: float | None = None
+    rainfall: float | None = None
+    aqi: float | None = None
+    aqiPointId: str | None = None
+    effectiveTemperature: float | None = None
+
+
 class Recommendation(Out):
-    id: str
+    id: str = Field(description="<ruleId>:<unitId>")
     ruleId: str
-    priorityScore: float
+    unitId: str
+    unitName: str = Field(description="toponym")
+    unitKind: Literal["flood_zone", "heat_cell", "aqi_point", "city"]
+    commune: str | None = Field(
+        description="official 2025 commune containing the unit (§A.3): data/API only, never rendered"
+    )
+    priorityScore: float = Field(description="π(r, i) = S(b)·E(i)·F(a)")
     priority: Literal["low", "medium", "high", "urgent"]
     category: Literal["flood", "air", "heat", "combined"]
     title: str
     message: str
     actionItems: list[str]
     timestamp: str
-    inputs: dict[str, Any]
+    inputs: RecommendationInputs
 
 
 class RecommendData(Out):
-    recommendations: list[Recommendation]
+    recommendations: list[Recommendation] = Field(description="top k = 10 by π desc")
+    firedCount: int = Field(description="all fired (r, i), before the top-k cut")
     summary: str
     overallRiskLevel: RiskLevel
 
@@ -201,10 +259,14 @@ LATEST_MODELS: dict[str, type[Latest]] = {
 
 
 # ── alerts ──────────────────────────────────────────────────────────────────────
+AlertType = Literal["flood", "storm", "aqi", "heat"]
+AlertSeverity = Literal["warning", "critical"]
+
+
 class Alert(BaseModel):
-    id: str
-    severity: Literal["info", "warning", "critical"]
-    type: Literal["flood", "aqi", "heat", "storm", "system"]
+    id: str = Field(description="<hazard>:<unitId>:<warning|critical>:<YYYY-MM-DDTHH local>")
+    severity: AlertSeverity
+    type: AlertType
     title: str
     message: str
     isRead: bool
@@ -272,13 +334,56 @@ class SimComparison(BaseModel):
     after: SimComparisonSide
 
 
+class SimStation(BaseModel):
+    id: str
+    name: str
+    before: int
+    after: int
+    delta: int
+
+
 class SimResults(BaseModel):
     floodRiskDelta: float
     newFloodAreas: list[FloodArea]
     tempDelta: float
     aqiDelta: float
-    affectedBuildings: int
-    affectedPopulation: int
+    stations: list[SimStation] = Field(description="per AQI point: AQI_sim(i) (§D)")
+
+
+class SimAlert(BaseModel):
+    """An alert that WOULD fire on the counterfactual state (returned, never persisted)."""
+
+    id: str
+    type: AlertType
+    severity: AlertSeverity
+    unitId: str
+    unitName: str
+    title: str
+    message: str
+    createdAt: str
+    expiresAt: str
+
+
+class BandChange(BaseModel):
+    unitId: str
+    name: str
+    before: str
+    after: str
+
+
+class BandChanges(BaseModel):
+    flood: list[BandChange] = Field(description="bands low / medium / high / critical")
+    heat: list[BandChange] = Field(description="bands low / moderate / high / extreme")
+    aqi: list[BandChange] = Field(description="AQI level codes good … hazardous")
+
+
+class Counterfactual(BaseModel):
+    """Algorithm 2 steps 3–6 re-run on the counterfactual state (§G)."""
+
+    recommendations: list[Recommendation] = Field(description="top k, same shape as /v1/recommend")
+    firedCount: int
+    alerts: list[SimAlert]
+    bandChanges: BandChanges
 
 
 class SimulationResult(BaseModel):
@@ -286,6 +391,75 @@ class SimulationResult(BaseModel):
     status: str
     results: SimResults
     comparison: SimComparison
+    counterfactual: Counterfactual
+
+
+# ── maturity (Algorithm 1, §H line 8) ───────────────────────────────────────────
+class Criterion(BaseModel):
+    name: str
+    current: float
+    required: float
+
+
+class Stage(BaseModel):
+    eligible: bool
+    reason: str | None = None
+    criteria: list[Criterion]
+
+
+class Stages(BaseModel):
+    S1: Stage
+    S2: Stage
+    S3: Stage
+
+
+class GammaEstimate(BaseModel):
+    value: float = Field(description="estimate clamped to [0, 1]")
+    estimate: float = Field(description="OLS estimate, unclamped")
+    se: float
+    ci95: list[float] = Field(description="[lo, hi] around the unclamped estimate")
+
+
+class GammaEstimates(BaseModel):
+    gammaWind: GammaEstimate
+    gammaRain: GammaEstimate
+
+
+class S2Fit(BaseModel):
+    estimates: GammaEstimates
+    maeHoldout: float | None
+    nTrain: int
+    nHoldout: int
+    promoted: bool
+
+
+class HazardMaturity(BaseModel):
+    hazard: Literal["flood", "heat", "aqi"]
+    active: Literal["S1", "S2", "S3"]
+    modelVersion: str
+    stages: Stages
+    s1MaeHoldout: float | None = Field(description="S1 one-step holdout MAE where V exists")
+    s2: S2Fit | None = Field(description="S2 fit when eligible and fitted")
+
+
+class UnitRow(BaseModel):
+    """One spatial unit and its 2025 commune (spec §A.3 mapping table). Data/API only: the web
+    never renders `commune`."""
+
+    id: str
+    kind: Literal["flood_zone", "heat_cell", "aqi_point"]
+    name: str
+    lat: float
+    lng: float
+    commune: str | None
+    communeOsmId: int | None
+
+
+class MaturityResponse(BaseModel):
+    evaluatedAt: str
+    windowDays: int
+    deltaAqi: float
+    hazards: list[HazardMaturity]
 
 
 # ── history ─────────────────────────────────────────────────────────────────────

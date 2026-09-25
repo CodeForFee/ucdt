@@ -3,24 +3,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAQIData } from "@/shared/hooks/useAQIData";
 import { AQIGauge } from "@/shared/components/charts/AQIGauge";
 import { BarChart } from "@/shared/components/charts/BarChart";
-import { LineChart } from "@/shared/components/charts/LineChart";
-import { HeatmapGrid } from "@/shared/components/charts/HeatmapGrid";
 import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import { aqiCode, aqiColor } from "@/shared/lib/aqi";
+import { formatDateTime } from "@/shared/lib/formatters";
 import type { AQIData } from "@/shared/types/aqi";
 
-/** New climate-service `/latest` payloads may carry these; the legacy backend never
- *  sends them, so every read below is optional. */
-type WithFreshness<T> = T & { observedAt?: string; stale?: boolean };
+/**
+ * Open-monitoring-network stations (AirGradient, §I.3): MEASURED PM2.5 → US AQI, listed apart
+ * from the modelled CAMS points. Each is paired with its nearest CAMS point (§A.4), shown by
+ * that point's toponym.
+ */
+export function ObservedStationsList({ data }: { data: AQIData }) {
+  const aq = useTranslations("airQualityPage");
+  const aqiT = useTranslations("aqi");
+  const pointName = new Map(data.stations.map((s) => [s.id, s.name]));
+  const observed = data.observedStations ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">{aq("observedTitle")}</CardTitle>
+        <p className="text-xs text-muted-foreground">{aq("observedSub")}</p>
+      </CardHeader>
+      <CardContent>
+        {observed.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{aq("noObserved")}</p>
+        ) : (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {observed.map((st) => (
+              <li key={st.id} className="flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-border bg-muted/20">
+                <div className="h-3 w-3 rotate-45 shrink-0" style={{ background: aqiColor(st.aqi) }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{st.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {aq("aqiLabel")}
+                    {st.aqi} — {aqiT(aqiCode(st.aqi))} · PM2.5 {st.pm25} µg/m³
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {aq("nearestPoint", { name: pointName.get(st.nearestPointId) ?? "—" })} ·{" "}
+                    {aq("observedAt", { time: formatDateTime(st.observedAt) })}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AirQualityPage() {
   const { data, isLoading, isError, refetch } = useAQIData();
   const aq = useTranslations("airQualityPage");
   const aqiT = useTranslations("aqi");
   const c = useTranslations("cards");
-  const fresh = data as WithFreshness<AQIData> | undefined;
 
   const pollutantsData = data
     ? [
@@ -31,9 +70,6 @@ export default function AirQualityPage() {
       ]
     : [];
 
-  const trend7dData = (data?.trend7d ?? []).map((t) => ({ name: t.date, AQI: t.aqi }));
-  const hourlyData = (data?.hourlyPattern ?? []).map((h) => ({ hour: h.hour, day: h.day, value: h.aqi }));
-
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
@@ -43,7 +79,7 @@ export default function AirQualityPage() {
         </div>
         <div className="flex items-center gap-1.5">
           <DataSourceTag source={aq("source")} />
-          {fresh?.stale && (
+          {data?.stale && (
             <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
               {c("stale")}
             </span>
@@ -65,7 +101,7 @@ export default function AirQualityPage() {
                 <AQIGauge value={data.aqi ?? 0} size={160} />
                 <p className="text-sm text-muted-foreground">
                   {aq("mainPollutant")}
-                  <span className="text-foreground font-medium">{data.dominantPollutant ?? "PM2.5"}</span>
+                  <span className="text-foreground font-medium">PM2.5</span>
                 </p>
               </CardContent>
             </Card>
@@ -88,33 +124,6 @@ export default function AirQualityPage() {
               </CardContent>
             </Card>
           </div>
-
-          {trend7dData.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">{aq("trend7d")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LineChart
-                  data={trend7dData}
-                  lines={[{ dataKey: "AQI", color: "#3b82f6", strokeWidth: 2 }]}
-                  xDataKey="name"
-                  height={180}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {hourlyData.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">{aq("heatmap")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <HeatmapGrid data={hourlyData} minValue={0} maxValue={200} valueLabel={aq("aqiLabel")} />
-              </CardContent>
-            </Card>
-          )}
 
           <Card>
             <CardHeader className="pb-2">
@@ -143,6 +152,8 @@ export default function AirQualityPage() {
               </div>
             </CardContent>
           </Card>
+
+          <ObservedStationsList data={data} />
         </>
       )}
     </div>

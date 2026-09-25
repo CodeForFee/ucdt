@@ -1,17 +1,7 @@
-// Matches BE AlertsResponse exactly
-export interface AlertsResponse {
-  alerts: Alert[];
-  unreadCount: number;
-  totalCount: number;
-}
+import type { components } from "@ucdt/contracts";
 
-export interface Alert {
-  id: string;
-  severity: "info" | "warning" | "critical";
-  type: "flood" | "aqi" | "heat" | "storm" | "system";
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  expiresAt: string;
-}
+type S = components["schemas"];
+
+/** `GET /api/alerts` — per-unit alerts (§F); there is no "system" alert any more. */
+export type AlertsResponse = S["AlertsResponse"];
+export type Alert = S["Alert"];

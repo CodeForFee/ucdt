@@ -24,6 +24,9 @@ const CACHE_TTL = {
   heat: 300,
   recommend: 120,
 } as const
+/** Algorithm 1 reads ≥ 7 days of hourly history; one 15-min worker run cannot move it much. */
+const MATURITY_TTL = 600
+const UNITS_TTL = 3600 // static catalogue: changes only with a deploy
 
 const SSE_CHANNEL = 'ucdt:events'
 const HEARTBEAT_MS = 25_000
@@ -80,6 +83,8 @@ export function createApp(deps: AppDeps) {
         '/api/simulation',
         '/api/recommend',
         '/api/alerts',
+        '/api/maturity',
+        '/api/units',
       ],
     })
   )
@@ -101,6 +106,14 @@ export function createApp(deps: AppDeps) {
       forward(c, deps, 'GET', `/v1/${hazard}/latest`, { query: queryString(c) })
     )
   }
+
+  // ── Model maturity (Algorithm 1, spec §H) ─────────────────────────────────
+  app.get('/api/maturity', createCache(deps.redis, MATURITY_TTL), (c) =>
+    forward(c, deps, 'GET', '/v1/maturity', { query: queryString(c) })
+  )
+
+  // ── Unit -> commune mapping table (spec §A.3; data/API only) ───────────────
+  app.get('/api/units', createCache(deps.redis, UNITS_TTL), (c) => forward(c, deps, 'GET', '/v1/units'))
 
   // ── Alerts (never cached) ───────────────────────────────────────────────────
   app.get('/api/alerts', (c) => forward(c, deps, 'GET', '/v1/alerts', { query: queryString(c) }))

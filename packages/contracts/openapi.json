@@ -24,7 +24,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           }
         }
       }
@@ -48,7 +48,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           }
         }
       }
@@ -72,7 +72,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           }
         }
       }
@@ -96,7 +96,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           }
         }
       }
@@ -120,7 +120,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           }
         }
       }
@@ -131,6 +131,7 @@
           "alerts"
         ],
         "summary": "List Alerts",
+        "description": "Active per-unit alerts (§F), newest first, critical before warning within a run. Rows of the\npre-S-002 types (the dropped always-on `system` / `info` alert) are not served.",
         "operationId": "list_alerts",
         "responses": {
           "200": {
@@ -193,7 +194,7 @@
           "simulation"
         ],
         "summary": "Simulate",
-        "description": "Live what-if against the latest weather/flood/aqi snapshots (what legacy runSimulation fetched).",
+        "description": "What-if (§G, Algorithm 2 step 7): scoring, alerts and ℛ re-run on the counterfactual state\nbuilt from the latest flood, heat and aqi snapshots.",
         "operationId": "simulate",
         "requestBody": {
           "content": {
@@ -225,7 +226,7 @@
             }
           },
           "503": {
-            "description": "no snapshot yet"
+            "description": "no snapshot yet, or none in the current (S-002) shape"
           },
           "422": {
             "description": "Validation Error",
@@ -233,6 +234,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/maturity": {
+      "get": {
+        "tags": [
+          "maturity"
+        ],
+        "summary": "Maturity",
+        "description": "Algorithm 1 evaluated now on the stored history (§H line 8).",
+        "operationId": "maturity",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaturityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/units": {
+      "get": {
+        "tags": [
+          "units"
+        ],
+        "summary": "Units",
+        "description": "Unit -> 2025 commune mapping table of the data layer (§A.3), from the committed catalogue.",
+        "operationId": "units",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnitRow"
+                  },
+                  "type": "array",
+                  "title": "Response Units"
                 }
               }
             }
@@ -358,6 +407,11 @@
             "title": "Stale",
             "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
           },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion",
+            "description": "model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+          },
           "aqi": {
             "type": "number",
             "title": "Aqi"
@@ -396,7 +450,8 @@
               "$ref": "#/components/schemas/AQIForecastItem"
             },
             "type": "array",
-            "title": "Forecast24H"
+            "title": "Forecast24H",
+            "description": "uses the fitted γ while S2 is active (§H)"
           },
           "stations": {
             "items": {
@@ -404,6 +459,13 @@
             },
             "type": "array",
             "title": "Stations"
+          },
+          "observedStations": {
+            "items": {
+              "$ref": "#/components/schemas/ObservedStation"
+            },
+            "type": "array",
+            "title": "Observedstations"
           }
         },
         "additionalProperties": true,
@@ -411,6 +473,7 @@
         "required": [
           "observedAt",
           "stale",
+          "modelVersion",
           "aqi",
           "category",
           "pm25",
@@ -419,7 +482,8 @@
           "no2",
           "trend",
           "forecast24h",
-          "stations"
+          "stations",
+          "observedStations"
         ],
         "title": "AQILatest"
       },
@@ -461,12 +525,12 @@
         "properties": {
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "<hazard>:<unitId>:<warning|critical>:<YYYY-MM-DDTHH local>"
           },
           "severity": {
             "type": "string",
             "enum": [
-              "info",
               "warning",
               "critical"
             ],
@@ -476,10 +540,9 @@
             "type": "string",
             "enum": [
               "flood",
-              "aqi",
-              "heat",
               "storm",
-              "system"
+              "aqi",
+              "heat"
             ],
             "title": "Type"
           },
@@ -543,6 +606,127 @@
         ],
         "title": "AlertsResponse"
       },
+      "BandChange": {
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "title": "Unitid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "before": {
+            "type": "string",
+            "title": "Before"
+          },
+          "after": {
+            "type": "string",
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unitId",
+          "name",
+          "before",
+          "after"
+        ],
+        "title": "BandChange"
+      },
+      "BandChanges": {
+        "properties": {
+          "flood": {
+            "items": {
+              "$ref": "#/components/schemas/BandChange"
+            },
+            "type": "array",
+            "title": "Flood",
+            "description": "bands low / medium / high / critical"
+          },
+          "heat": {
+            "items": {
+              "$ref": "#/components/schemas/BandChange"
+            },
+            "type": "array",
+            "title": "Heat",
+            "description": "bands low / moderate / high / extreme"
+          },
+          "aqi": {
+            "items": {
+              "$ref": "#/components/schemas/BandChange"
+            },
+            "type": "array",
+            "title": "Aqi",
+            "description": "AQI level codes good … hazardous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flood",
+          "heat",
+          "aqi"
+        ],
+        "title": "BandChanges"
+      },
+      "Counterfactual": {
+        "properties": {
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "description": "top k, same shape as /v1/recommend"
+          },
+          "firedCount": {
+            "type": "integer",
+            "title": "Firedcount"
+          },
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/SimAlert"
+            },
+            "type": "array",
+            "title": "Alerts"
+          },
+          "bandChanges": {
+            "$ref": "#/components/schemas/BandChanges"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommendations",
+          "firedCount",
+          "alerts",
+          "bandChanges"
+        ],
+        "title": "Counterfactual",
+        "description": "Algorithm 2 steps 3–6 re-run on the counterfactual state (§G)."
+      },
+      "Criterion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "current": {
+            "type": "number",
+            "title": "Current"
+          },
+          "required": {
+            "type": "number",
+            "title": "Required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "current",
+          "required"
+        ],
+        "title": "Criterion"
+      },
       "FloodArea": {
         "properties": {
           "id": {
@@ -579,6 +763,19 @@
             "type": "number",
             "title": "Estimateddepth"
           },
+          "rainfall": {
+            "type": "number",
+            "title": "Rainfall",
+            "description": "P(i), mm/h at the zone's own coordinate"
+          },
+          "decomposition": {
+            "items": {
+              "$ref": "#/components/schemas/FloodTerm"
+            },
+            "type": "array",
+            "title": "Decomposition",
+            "description": "Σ contribution = R_f(i) before the clamp"
+          },
           "geojson": {
             "$ref": "#/components/schemas/FloodGeoJSONFeature"
           }
@@ -593,6 +790,8 @@
           "riskLevel",
           "riskScore",
           "estimatedDepth",
+          "rainfall",
+          "decomposition",
           "geojson"
         ],
         "title": "FloodArea"
@@ -634,6 +833,11 @@
             "title": "Stale",
             "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
           },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion",
+            "description": "model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+          },
           "overallRisk": {
             "type": "string",
             "title": "Overallrisk"
@@ -651,6 +855,14 @@
           },
           "triggers": {
             "$ref": "#/components/schemas/FloodTriggers"
+          },
+          "decomposition": {
+            "items": {
+              "$ref": "#/components/schemas/FloodTerm"
+            },
+            "type": "array",
+            "title": "Decomposition",
+            "description": "city level; Σ contribution = R_f before the clamp"
           }
         },
         "additionalProperties": true,
@@ -658,41 +870,136 @@
         "required": [
           "observedAt",
           "stale",
+          "modelVersion",
           "overallRisk",
           "riskScore",
           "affectedAreas",
-          "triggers"
+          "triggers",
+          "decomposition"
         ],
         "title": "FloodLatest"
+      },
+      "FloodTerm": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "rainfall",
+              "terrain",
+              "imperviousness",
+              "drainage"
+            ],
+            "title": "Key"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight",
+            "description": "w_i > 0"
+          },
+          "normalized": {
+            "type": "number",
+            "title": "Normalized",
+            "description": "x̃_i in [0, 1]"
+          },
+          "contribution": {
+            "type": "number",
+            "title": "Contribution",
+            "description": "w_i·x̃_i; negative for drainage"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "key",
+          "weight",
+          "normalized",
+          "contribution"
+        ],
+        "title": "FloodTerm",
+        "description": "One R_f term ready to render (§B, B-014): the web holds no PDIM weight."
       },
       "FloodTriggers": {
         "properties": {
           "currentRainfall": {
             "type": "number",
-            "title": "Currentrainfall"
-          },
-          "soilSaturation": {
-            "type": "number",
-            "title": "Soilsaturation"
-          },
-          "drainageCapacity": {
-            "type": "number",
-            "title": "Drainagecapacity"
+            "title": "Currentrainfall",
+            "description": "city-centre P, mm/h"
           },
           "terrainSensitivity": {
             "type": "number",
-            "title": "Terrainsensitivity"
+            "title": "Terrainsensitivity",
+            "description": "mean T̃ over the 18 zones"
+          },
+          "imperviousness": {
+            "type": "number",
+            "title": "Imperviousness",
+            "description": "mean Ĩ over the 18 zones"
+          },
+          "drainageCapacity": {
+            "type": "number",
+            "title": "Drainagecapacity",
+            "description": "mean D̃ over the 18 zones"
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
           "currentRainfall",
-          "soilSaturation",
-          "drainageCapacity",
-          "terrainSensitivity"
+          "terrainSensitivity",
+          "imperviousness",
+          "drainageCapacity"
         ],
         "title": "FloodTriggers"
+      },
+      "GammaEstimate": {
+        "properties": {
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "estimate clamped to [0, 1]"
+          },
+          "estimate": {
+            "type": "number",
+            "title": "Estimate",
+            "description": "OLS estimate, unclamped"
+          },
+          "se": {
+            "type": "number",
+            "title": "Se"
+          },
+          "ci95": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Ci95",
+            "description": "[lo, hi] around the unclamped estimate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "estimate",
+          "se",
+          "ci95"
+        ],
+        "title": "GammaEstimate"
+      },
+      "GammaEstimates": {
+        "properties": {
+          "gammaWind": {
+            "$ref": "#/components/schemas/GammaEstimate"
+          },
+          "gammaRain": {
+            "$ref": "#/components/schemas/GammaEstimate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gammaWind",
+          "gammaRain"
+        ],
+        "title": "GammaEstimates"
       },
       "HTTPValidationError": {
         "properties": {
@@ -706,6 +1013,90 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HazardMaturity": {
+        "properties": {
+          "hazard": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "heat",
+              "aqi"
+            ],
+            "title": "Hazard"
+          },
+          "active": {
+            "type": "string",
+            "enum": [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            "title": "Active"
+          },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion"
+          },
+          "stages": {
+            "$ref": "#/components/schemas/Stages"
+          },
+          "s1MaeHoldout": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "S1Maeholdout",
+            "description": "S1 one-step holdout MAE where V exists"
+          },
+          "s2": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/S2Fit"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "S2 fit when eligible and fitted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hazard",
+          "active",
+          "modelVersion",
+          "stages",
+          "s1MaeHoldout",
+          "s2"
+        ],
+        "title": "HazardMaturity"
+      },
+      "HeatBaselines": {
+        "properties": {
+          "density": {
+            "type": "number",
+            "title": "Density",
+            "description": "ρ₀ = mean builtUp over the 22 cells, 0–1"
+          },
+          "greenPct": {
+            "type": "number",
+            "title": "Greenpct",
+            "description": "G₀ = mean green cover over the 22 cells, %"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "density",
+          "greenPct"
+        ],
+        "title": "HeatBaselines",
+        "description": "What-if reference state (§C); the heat sliders start here."
       },
       "HeatFeature": {
         "properties": {
@@ -823,6 +1214,11 @@
             "title": "Stale",
             "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
           },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion",
+            "description": "model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+          },
           "city": {
             "type": "string",
             "title": "City"
@@ -833,26 +1229,25 @@
           },
           "avgTemperature": {
             "type": "number",
-            "title": "Avgtemperature"
+            "title": "Avgtemperature",
+            "description": "city-centre AIR temperature, °C"
           },
           "maxTemperature": {
             "type": "number",
-            "title": "Maxtemperature"
+            "title": "Maxtemperature",
+            "description": "max T_eff(i), °C"
           },
           "heatIslandIntensity": {
             "type": "number",
             "title": "Heatislandintensity"
           },
           "avgEffectiveTemperature": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avgeffectivetemperature"
+            "type": "number",
+            "title": "Avgeffectivetemperature",
+            "description": "mean T_eff(i), the heat what-if baseline (B-020)"
+          },
+          "baselines": {
+            "$ref": "#/components/schemas/HeatBaselines"
           },
           "hotspots": {
             "items": {
@@ -870,11 +1265,14 @@
         "required": [
           "observedAt",
           "stale",
+          "modelVersion",
           "city",
           "timestamp",
           "avgTemperature",
           "maxTemperature",
           "heatIslandIntensity",
+          "avgEffectiveTemperature",
+          "baselines",
           "hotspots",
           "geojson"
         ],
@@ -931,6 +1329,96 @@
           "marked"
         ],
         "title": "MarkReadResponse"
+      },
+      "MaturityResponse": {
+        "properties": {
+          "evaluatedAt": {
+            "type": "string",
+            "title": "Evaluatedat"
+          },
+          "windowDays": {
+            "type": "integer",
+            "title": "Windowdays"
+          },
+          "deltaAqi": {
+            "type": "number",
+            "title": "Deltaaqi"
+          },
+          "hazards": {
+            "items": {
+              "$ref": "#/components/schemas/HazardMaturity"
+            },
+            "type": "array",
+            "title": "Hazards"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evaluatedAt",
+          "windowDays",
+          "deltaAqi",
+          "hazards"
+        ],
+        "title": "MaturityResponse"
+      },
+      "ObservedStation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "ag:<locationId>"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "aqi": {
+            "type": "number",
+            "title": "Aqi",
+            "description": "US AQI from the station's PM2.5"
+          },
+          "pm25": {
+            "type": "number",
+            "title": "Pm25",
+            "description": "µg/m³"
+          },
+          "observedAt": {
+            "type": "string",
+            "title": "Observedat"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "nearestPointId": {
+            "type": "string",
+            "title": "Nearestpointid",
+            "description": "nearest AQI point (§A.4)"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lat",
+          "lng",
+          "aqi",
+          "pm25",
+          "observedAt",
+          "source",
+          "nearestPointId"
+        ],
+        "title": "ObservedStation",
+        "description": "Open monitoring network station (§I.3), served apart from the CAMS points; feeds §H."
       },
       "PointGeometry": {
         "properties": {
@@ -994,12 +1482,23 @@
             "title": "Stale",
             "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
           },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion",
+            "description": "model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+          },
           "recommendations": {
             "items": {
               "$ref": "#/components/schemas/Recommendation"
             },
             "type": "array",
-            "title": "Recommendations"
+            "title": "Recommendations",
+            "description": "top k = 10 by π desc"
+          },
+          "firedCount": {
+            "type": "integer",
+            "title": "Firedcount",
+            "description": "all fired (r, i), before the top-k cut"
           },
           "summary": {
             "type": "string",
@@ -1021,7 +1520,9 @@
         "required": [
           "observedAt",
           "stale",
+          "modelVersion",
           "recommendations",
+          "firedCount",
           "summary",
           "overallRiskLevel"
         ],
@@ -1031,15 +1532,48 @@
         "properties": {
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "<ruleId>:<unitId>"
           },
           "ruleId": {
             "type": "string",
             "title": "Ruleid"
           },
+          "unitId": {
+            "type": "string",
+            "title": "Unitid"
+          },
+          "unitName": {
+            "type": "string",
+            "title": "Unitname",
+            "description": "toponym"
+          },
+          "unitKind": {
+            "type": "string",
+            "enum": [
+              "flood_zone",
+              "heat_cell",
+              "aqi_point",
+              "city"
+            ],
+            "title": "Unitkind"
+          },
+          "commune": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commune",
+            "description": "official 2025 commune containing the unit (§A.3): data/API only, never rendered"
+          },
           "priorityScore": {
             "type": "number",
-            "title": "Priorityscore"
+            "title": "Priorityscore",
+            "description": "π(r, i) = S(b)·E(i)·F(a)"
           },
           "priority": {
             "type": "string",
@@ -1081,9 +1615,7 @@
             "title": "Timestamp"
           },
           "inputs": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Inputs"
+            "$ref": "#/components/schemas/RecommendationInputs"
           }
         },
         "additionalProperties": true,
@@ -1091,6 +1623,10 @@
         "required": [
           "id",
           "ruleId",
+          "unitId",
+          "unitName",
+          "unitKind",
+          "commune",
           "priorityScore",
           "priority",
           "category",
@@ -1101,6 +1637,139 @@
           "inputs"
         ],
         "title": "Recommendation"
+      },
+      "RecommendationInputs": {
+        "properties": {
+          "severityBand": {
+            "type": "string",
+            "title": "Severityband"
+          },
+          "exposureE": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposuree",
+            "description": "E(i) = clamp(builtUp(i), 0.1, 1)"
+          },
+          "feasibilityFa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feasibilityfa",
+            "description": "F(a)"
+          },
+          "riskScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Riskscore"
+          },
+          "rainfall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall"
+          },
+          "aqi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aqi"
+          },
+          "aqiPointId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aqipointid"
+          },
+          "effectiveTemperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectivetemperature"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "severityBand"
+        ],
+        "title": "RecommendationInputs",
+        "description": "The unit's value(s) the rule fired on (flood: riskScore, rainfall; R-COMB-01: riskScore, aqi,\naqiPointId; AQI: aqi; heat: effectiveTemperature) + the π(r, i) factors. R-NORM-00 carries only\nseverityBand \"none\"."
+      },
+      "S2Fit": {
+        "properties": {
+          "estimates": {
+            "$ref": "#/components/schemas/GammaEstimates"
+          },
+          "maeHoldout": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maeholdout"
+          },
+          "nTrain": {
+            "type": "integer",
+            "title": "Ntrain"
+          },
+          "nHoldout": {
+            "type": "integer",
+            "title": "Nholdout"
+          },
+          "promoted": {
+            "type": "boolean",
+            "title": "Promoted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estimates",
+          "maeHoldout",
+          "nTrain",
+          "nHoldout",
+          "promoted"
+        ],
+        "title": "S2Fit"
       },
       "Scenario": {
         "properties": {
@@ -1151,6 +1820,70 @@
         "type": "object",
         "title": "Scenario",
         "description": "Bounds = legacy validateScenario. Omitted/null levers take the legacy controller defaults."
+      },
+      "SimAlert": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "storm",
+              "aqi",
+              "heat"
+            ],
+            "title": "Type"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "warning",
+              "critical"
+            ],
+            "title": "Severity"
+          },
+          "unitId": {
+            "type": "string",
+            "title": "Unitid"
+          },
+          "unitName": {
+            "type": "string",
+            "title": "Unitname"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "expiresAt": {
+            "type": "string",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "severity",
+          "unitId",
+          "unitName",
+          "title",
+          "message",
+          "createdAt",
+          "expiresAt"
+        ],
+        "title": "SimAlert",
+        "description": "An alert that WOULD fire on the counterfactual state (returned, never persisted)."
       },
       "SimComparison": {
         "properties": {
@@ -1207,13 +1940,13 @@
             "type": "number",
             "title": "Aqidelta"
           },
-          "affectedBuildings": {
-            "type": "integer",
-            "title": "Affectedbuildings"
-          },
-          "affectedPopulation": {
-            "type": "integer",
-            "title": "Affectedpopulation"
+          "stations": {
+            "items": {
+              "$ref": "#/components/schemas/SimStation"
+            },
+            "type": "array",
+            "title": "Stations",
+            "description": "per AQI point: AQI_sim(i) (§D)"
           }
         },
         "type": "object",
@@ -1222,10 +1955,42 @@
           "newFloodAreas",
           "tempDelta",
           "aqiDelta",
-          "affectedBuildings",
-          "affectedPopulation"
+          "stations"
         ],
         "title": "SimResults"
+      },
+      "SimStation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "before": {
+            "type": "integer",
+            "title": "Before"
+          },
+          "after": {
+            "type": "integer",
+            "title": "After"
+          },
+          "delta": {
+            "type": "integer",
+            "title": "Delta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "before",
+          "after",
+          "delta"
+        ],
+        "title": "SimStation"
       },
       "SimulationRequest": {
         "properties": {
@@ -1256,6 +2021,9 @@
           },
           "comparison": {
             "$ref": "#/components/schemas/SimComparison"
+          },
+          "counterfactual": {
+            "$ref": "#/components/schemas/Counterfactual"
           }
         },
         "type": "object",
@@ -1263,9 +2031,125 @@
           "simulationId",
           "status",
           "results",
-          "comparison"
+          "comparison",
+          "counterfactual"
         ],
         "title": "SimulationResult"
+      },
+      "Stage": {
+        "properties": {
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "Criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "eligible",
+          "criteria"
+        ],
+        "title": "Stage"
+      },
+      "Stages": {
+        "properties": {
+          "S1": {
+            "$ref": "#/components/schemas/Stage"
+          },
+          "S2": {
+            "$ref": "#/components/schemas/Stage"
+          },
+          "S3": {
+            "$ref": "#/components/schemas/Stage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "S1",
+          "S2",
+          "S3"
+        ],
+        "title": "Stages"
+      },
+      "UnitRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "flood_zone",
+              "heat_cell",
+              "aqi_point"
+            ],
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "commune": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commune"
+          },
+          "communeOsmId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Communeosmid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "lat",
+          "lng",
+          "commune",
+          "communeOsmId"
+        ],
+        "title": "UnitRow",
+        "description": "One spatial unit and its 2025 commune (spec §A.3 mapping table). Data/API only: the web\nnever renders `commune`."
       },
       "ValidationError": {
         "properties": {
@@ -1402,6 +2286,11 @@
             "title": "Stale",
             "description": "true when the snapshot is older than STALE_AFTER_MINUTES"
           },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion",
+            "description": "model of the snapshot: pdim-s1, or pdim-s2-aqi for aqi while S2 is active (§H)"
+          },
           "current": {
             "$ref": "#/components/schemas/WeatherCurrent"
           },
@@ -1418,6 +2307,7 @@
         "required": [
           "observedAt",
           "stale",
+          "modelVersion",
           "current",
           "forecast"
         ],

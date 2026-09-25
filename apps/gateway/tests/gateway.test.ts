@@ -170,4 +170,54 @@ describe('alerts + history', () => {
     const res = await app.request('/api/history/flood?hours=24')
     expect(res.status).toBe(200)
   })
+
+  test('GET /api/alerts is never cached', async () => {
+    let calls = 0
+    const app = appWith(() => (calls++, jsonResponse({ alerts: [] })))
+    await app.request('/api/alerts')
+    const res = await app.request('/api/alerts')
+    expect(calls).toBe(2)
+    expect(res.headers.get('X-Cache')).toBeNull()
+  })
+})
+
+describe('units', () => {
+  test('GET /api/units -> GET /v1/units, enveloped and cached', async () => {
+    let calls = 0
+    const app = appWith((url) => {
+      calls++
+      expect(url.pathname).toBe('/v1/units')
+      return jsonResponse([{ id: 'gz-x', kind: 'flood_zone' }])
+    })
+    expect((await (await app.request('/api/units')).json()).data).toEqual([{ id: 'gz-x', kind: 'flood_zone' }])
+    expect((await app.request('/api/units')).headers.get('X-Cache')).toBe('HIT')
+    expect(calls).toBe(1)
+  })
+})
+
+describe('maturity', () => {
+  test('GET /api/maturity -> GET /v1/maturity, enveloped and cached', async () => {
+    let calls = 0
+    const app = appWith((url) => {
+      calls++
+      expect(url.pathname).toBe('/v1/maturity')
+      return jsonResponse({ windowDays: 14, hazards: [] })
+    })
+    const first = await app.request('/api/maturity')
+    expect(first.status).toBe(200)
+    expect(first.headers.get('X-Cache')).toBe('MISS')
+    expect((await first.json()).data).toEqual({ windowDays: 14, hazards: [] })
+    const second = await app.request('/api/maturity')
+    expect(second.headers.get('X-Cache')).toBe('HIT')
+    expect(calls).toBe(1)
+  })
+
+  test('climate 503 (no snapshot in the current shape) -> 502, not cached', async () => {
+    let calls = 0
+    const app = appWith(() => (calls++, jsonResponse({ detail: 'no snapshot yet in the current shape' }, 503)))
+    expect((await app.request('/api/maturity')).status).toBe(502)
+    expect((await app.request('/api/flood')).status).toBe(502)
+    expect((await app.request('/api/maturity')).status).toBe(502)
+    expect(calls).toBe(3)
+  })
 })

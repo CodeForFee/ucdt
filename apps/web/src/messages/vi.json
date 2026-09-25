@@ -7,7 +7,8 @@
     "flood": "Ngập lụt",
     "alerts": "Cảnh báo",
     "appName": "Urban Climate DT",
-    "version": "UCDT v1.0"
+    "version": "UCDT v1.0",
+    "recommendations": "Khuyến nghị"
   },
   "header": {
     "switchTheme": "Chuyển giao diện"
@@ -15,15 +16,7 @@
   "dashboard": {
     "title": "Tổng quan",
     "subtitle": "Theo dõi thời tiết, chất lượng không khí và nguy cơ ngập lụt theo thời gian thực",
-    "aiRecommend": "Khuyến nghị được xếp hạng",
-    "noRecommend": "Không có khuyến nghị nào đang kích hoạt",
-    "alertsTitle": "Cảnh báo",
-    "allAlerts": "Tất cả",
-    "noAlerts": "Không có cảnh báo mới",
-    "rule": "Luật",
-    "priorityScore": "Điểm ưu tiên",
-    "whyThis": "Vì sao",
-    "ruleBasedNote": "Bộ luật tường minh. Ưu tiên π(r,i) = S(b) × E(i) × F(a)."
+    "provenance": "Nguồn dữ liệu:"
   },
   "cards": {
     "airQuality": "Chất lượng không khí",
@@ -39,22 +32,23 @@
     "affectedAreas": " khu vực bị ảnh hưởng",
     "detail": "Chi tiết",
     "simulate": "Mô phỏng",
-    "dominant": "Ô nhiễm chủ đạo",
-    "stations": "Trạm quan trắc",
+    "dominant": "AQI tính từ",
+    "stations": "Điểm AQI (CAMS)",
     "avgTemp": "Trung bình",
     "maxTemp": "Cao nhất",
     "uhiEffect": "UHI effect",
     "hotspot": "Điểm nóng",
     "overallScore": "Điểm rủi ro tổng thể",
     "rainfallMM": "mm/h mưa",
-    "soilSat": "bão hòa đất",
-    "drainage": "thoát nước",
+    "drainage": "thoát nước (chuyên gia)",
     "affectedAreaCount": "Khu vực ảnh hưởng (",
     "next6hTemp": "cao nhất, 6 giờ tới",
     "next6hRain": "dự kiến, 6 giờ tới",
     "vs24hTemp": "so với 24 giờ trước",
     "vs24hRain": "so với 24 giờ trước",
-    "stale": "Dữ liệu cũ"
+    "stale": "Dữ liệu cũ",
+    "imperviousness": "không thấm (WorldCover)",
+    "terrain": "địa hình (DEM)"
   },
   "risk": {
     "low": "Thấp",
@@ -71,7 +65,7 @@
     "high": "cao",
     "riskScore": " — điểm rủi ro: ",
     "aqiPoor": "Chất lượng không khí kém — AQI: ",
-    "mainPollutant": ", ô nhiễm chính: "
+    "mainPollutant": " (từ PM2.5)"
   },
   "chart": {
     "temp24h": "Nhiệt độ 24 giờ (°C)",
@@ -108,7 +102,8 @@
       "trafficClear": "Thông thoáng",
       "trafficModerate": "Bình thường",
       "trafficCongested": "Ùn ứ",
-      "trafficHeavy": "Kẹt xe"
+      "trafficHeavy": "Kẹt xe",
+      "observed": "Trạm quan trắc (AirGradient)"
     },
     "popup": {
       "title": "Thông tin vị trí",
@@ -121,16 +116,19 @@
   "airQualityPage": {
     "title": "Chất lượng không khí",
     "subtitle": "Dữ liệu AQI và ô nhiễm theo thời gian thực",
-    "source": "Open-Meteo · PDIM Giai đoạn 1",
+    "source": "Open-Meteo (CAMS) · AirGradient · PDIM",
     "currentAqi": "Chỉ số AQI hiện tại",
-    "mainPollutant": "Ô nhiễm chủ đạo: ",
+    "mainPollutant": "AQI tính từ: ",
     "breakdown": "Thành phần ô nhiễm (µg/m³)",
     "measured": "Đo được",
     "whoLimit": "Giới hạn WHO",
-    "trend7d": "Xu hướng AQI 7 ngày",
-    "heatmap": "Phân bố AQI theo giờ trong tuần",
-    "stations": "Trạm đo AQI",
-    "aqiLabel": "AQI: "
+    "stations": "Điểm AQI mô hình (CAMS, Open-Meteo)",
+    "aqiLabel": "AQI: ",
+    "observedTitle": "Trạm quan trắc (AirGradient)",
+    "observedSub": "Đo thực tế từ mạng quan trắc mở; mỗi trạm được ghép với điểm CAMS gần nhất để kiểm định (Thuật toán 1)",
+    "noObserved": "Chưa có trạm nào báo cáo trong 2 giờ qua",
+    "nearestPoint": "Điểm CAMS gần nhất: {name}",
+    "observedAt": "đo lúc {time}"
   },
   "floodPage": {
     "title": "Nguy cơ ngập lụt",
@@ -146,19 +144,24 @@
     "colLevel": "Mức độ",
     "noZones": "Không có khu vực nguy hiểm được phát hiện",
     "triggers": "Phân giải điểm rủi ro R_f",
-    "trigRainfall": "Lượng mưa",
-    "trigSoil": "Bão hòa đất",
-    "trigDrainage": "Thoát nước",
-    "trigTerrain": "Độ nhạy địa hình",
-    "triggersSub": "Bốn số hạng cấu thành điểm tổng hợp; cộng lại đúng bằng R_f (DP3)",
-    "refBound": "chuẩn hóa theo mốc {value} mm/h",
-    "terrainNote": "mặc định cấp thành phố cho vùng đất thấp",
-    "soilNote": "biến đại diện theo mùa, không phải quan trắc",
-    "drainageNote": "số hạng GIẢM TRỪ — thoát nước tốt hơn thì rủi ro thấp hơn",
+    "trigRainfall": "Cường độ mưa",
+    "trigDrainage": "Năng lực thoát nước (hằng số chuyên gia)",
+    "trigTerrain": "Độ nhạy địa hình (DEM)",
+    "triggersSub": "Bốn số hạng do máy chủ tính; cộng lại đúng bằng R_f trước khi kẹp (DP3)",
+    "drainageNote": "số hạng GIẢM TRỪ — không có dữ liệu thoát nước mở cho TP.HCM nên là hằng số chuyên gia",
     "weightIs": "trọng số {w}",
     "sumLabel": "Tổng",
     "clamped": "(đã kẹp về [0, 1])",
-    "screeningNote": "Đầu ra sàng lọc Giai đoạn 1 từ hệ số minh bạch, không phải dự báo thủy văn."
+    "screeningNote": "Đầu ra sàng lọc Giai đoạn 1 từ hệ số minh bạch, không phải dự báo thủy văn.",
+    "trigImperviousness": "Độ không thấm (Sentinel/WorldCover)",
+    "rainfallNote": "Open-Meteo, tại tọa độ của đơn vị",
+    "terrainNote": "Copernicus DEM GLO-90: cao độ và độ dốc",
+    "imperviousnessNote": "ESA WorldCover 2021 (Sentinel-1/2): tỉ lệ xây dựng",
+    "normalizedIs": "x̃ = {x}",
+    "decompCity": "Toàn thành phố",
+    "decompPick": "Chọn một khu vực trong bảng để xem phân giải riêng",
+    "backToCity": "Về toàn thành phố",
+    "colRain": "Mưa (mm/h)"
   },
   "alertsPage": {
     "title": "Cảnh báo",
@@ -171,7 +174,6 @@
     "filterFlood": "Ngập lụt",
     "filterAqi": "AQI",
     "empty": "Không có cảnh báo nào",
-    "info": "Thông tin",
     "warning": "Cảnh báo",
     "urgent": "Khẩn cấp"
   },
@@ -191,7 +193,8 @@
     "sensitive": "Nhạy cảm",
     "unhealthy": "Không lành mạnh",
     "veryUnhealthy": "Rất không lành mạnh",
-    "hazardous": "Nguy hiểm"
+    "hazardous": "Nguy hiểm",
+    "observed": "Trạm quan trắc (AirGradient)"
   },
   "landUse": {
     "industrial": "Công nghiệp",
@@ -225,20 +228,21 @@
     "preview": {
       "floodTitle": "Dự báo rủi ro ngập",
       "heatTitle": "Dự báo nhiệt độ mô phỏng",
-      "heatBasis": "Nhiệt độ cảm nhận trung bình {count} ô · T_eff = HI(T, RH) + ρ·3,5 °C · ΔT = −0,15·ΔG + 3,5·(ρ − 0,8)",
+      "heatBasis": "Nhiệt độ cảm nhận trung bình {count} ô · T_eff = HI(T, RH) + ρ·3,5 °C · ΔT = −0,15·ΔG + 3,5·(ρ − ρ₀)",
       "aqiTitle": "Dự báo AQI mô phỏng",
       "current": "Hiện tại",
       "simulated": "Mô phỏng",
       "triggers": "Các yếu tố kích hoạt",
       "rainfall": "Lượng mưa",
-      "drainage": "Năng lực thoát nước",
-      "soilSat": "Bão hòa đất",
+      "drainage": "Năng lực thoát nước (chuyên gia)",
       "districts": "Khu vực (",
-      "aqiStations": "Các trạm quan trắc (",
+      "aqiStations": "Các điểm AQI (",
       "affectedAreas": "Các khu vực",
-      "urbanDensityLabel": "Mật độ đô thị: "
+      "urbanDensityLabel": "Mật độ đô thị: ",
+      "imperviousness": "Độ không thấm (WorldCover)",
+      "terrain": "Độ nhạy địa hình (DEM)"
     },
-    "floodDesc": "Mô phỏng rủi ro ngập lụt theo lượng mưa và độ bão hòa đất.",
+    "floodDesc": "Mô phỏng rủi ro ngập lụt theo lượng mưa và độ phủ cây xanh.",
     "heatDesc": "Phân tích hiệu ứng đảo nhiệt đô thị (Urban Heat Island).",
     "aqiDesc": "Mô phỏng chất lượng không khí theo giao thông và cây xanh.",
     "sliders": {
@@ -253,7 +257,10 @@
       "trafficReduction": "Giảm lưu lượng giao thông",
       "trafficReductionAqiDesc": "Giảm xe → AQI giảm ~0.3/1% (hệ số β)",
       "rainWash": "Tăng mưa (rửa bụi)",
-      "rainWashDesc": "Mưa rửa trôi bụi: ×(1 − 0.15×mưa thêm) (hệ số γ_p)"
+      "rainWashDesc": "Mưa rửa trôi bụi: ×(1 − 0.15×mưa thêm) (hệ số γ_p)",
+      "greenBaseline": "Bắt đầu tại G₀ = {g0}% hiện tại (ESA WorldCover); ΔG = G − G₀",
+      "densityBaseline": "Bắt đầu tại ρ₀ = {rho0}: tỉ lệ xây dựng hiện tại (ESA WorldCover)",
+      "waitingBaseline": "Đang chờ đường cơ sở từ máy chủ…"
     },
     "scenarios": {
       "floodLight": "Mưa vừa (+50%)",
@@ -310,15 +317,15 @@
     "floodTitle": "Giải thích kết quả ngập lụt",
     "floodIntro": "Kết quả mô phỏng dự báo mức độ ngập lụt khi áp dụng tham số lượng mưa bạn đã chọn. Các chỉ số dưới đây phản ánh tình trạng trước và sau kịch bản.",
     "floodRiskBefore": "Rủi ro ngập (trước)",
-    "floodRiskBeforeDesc": "Điểm rủi ro ngập tổng thể (0–100%) trước khi áp dụng kịch bản, dựa trên lượng mưa thực tế, độ bão hòa đất và năng lực thoát nước hiện tại.",
-    "floodRiskFormula": "R_f = 0.45×(mưa/50) + 0.30×địa hình + 0.25×bão hòa đất − 0.15×thoát nước · Ngưỡng Θ: 0.25/0.50/0.75",
+    "floodRiskBeforeDesc": "Điểm rủi ro ngập tổng thể (0–100%) trước khi áp dụng kịch bản, từ lượng mưa thực tế, độ nhạy địa hình (DEM), độ không thấm (WorldCover) và năng lực thoát nước.",
+    "floodRiskFormula": "R_f = 0.45×(mưa/50) + 0.30×địa hình + 0.25×độ không thấm − 0.15×thoát nước · Ngưỡng Θ: 0.25/0.50/0.75",
     "affectedAreas": "Khu vực ảnh hưởng",
-    "affectedAreasDesc": "Số khu vực/phường bị ngập trước → sau kịch bản. Tăng nghĩa là mưa lớn hơn gây ngập thêm nhiều nơi.",
+    "affectedAreasDesc": "Số khu vực bị ngập trước → sau kịch bản. Tăng nghĩa là mưa lớn hơn gây ngập thêm nhiều nơi.",
     "heatTitle": "Giải thích kết quả nhiệt độ",
     "heatIntro": "Kết quả phân tích hiệu ứng đảo nhiệt đô thị (Urban Heat Island). Nhiệt độ hiệu dụng đã bao gồm ảnh hưởng của mật độ xây dựng, cây xanh và giao thông.",
     "tempDelta": "Biến động nhiệt độ",
     "tempDeltaDesc": "Mức thay đổi nhiệt độ hiệu dụng so với baseline. Giá trị âm (xanh) là tốt — kịch bản giúp hạ nhiệt đô thị.",
-    "tempFormula": "Δ nhiệt = −0.15×Δcây xanh (α) + 3.5×(mật độ−0.8) (UHI)",
+    "tempFormula": "Δ nhiệt = −0.15×Δcây xanh (α) + 3.5×(mật độ − ρ₀) (UHI)",
     "floodRiskImpact": "Rủi ro ngập (ảnh hưởng)",
     "floodRiskImpactDesc": "Nhiệt độ cao làm tăng bốc hơi và thay đổi chu kỳ mưa, ảnh hưởng gián tiếp đến rủi ro ngập. Hiển thị mức trước → sau.",
     "aqiTitle": "Giải thích kết quả chất lượng không khí",
@@ -348,5 +355,122 @@
       "T",
       "TB"
     ]
+  },
+  "bands": {
+    "low": "Thấp",
+    "medium": "Trung bình",
+    "high": "Cao",
+    "critical": "Nguy hiểm",
+    "moderate": "Vừa",
+    "extreme": "Cực đoan",
+    "good": "Tốt",
+    "unhealthy_sensitive": "Nhạy cảm",
+    "unhealthy": "Không lành mạnh",
+    "very_unhealthy": "Rất không lành mạnh",
+    "hazardous": "Nguy hại",
+    "none": "Bình thường"
+  },
+  "maturity": {
+    "title": "Độ trưởng thành mô hình (Thuật toán 1)",
+    "subtitle": "Giai đoạn S1 → S2 → S3 theo từng hiểm họa, đánh giá lại trên dữ liệu đã lưu",
+    "purpose": "Mỗi hiểm họa chạy trên hệ số công bố sẵn (S1) cho đến khi đủ dữ liệu quan trắc địa phương để tự hiệu chỉnh (S2) hoặc huấn luyện riêng (S3); nếu dữ liệu không còn đủ, mô hình tự hạ về S1 thay vì âm thầm sai lệch.",
+    "active": "Đang dùng",
+    "eligible": "Đạt",
+    "notEligible": "Chưa đạt",
+    "noCriteria": "Hệ số công bố (mặc định)",
+    "s1Mae": "MAE holdout S1",
+    "s2Fit": "Ước lượng S2 (KTC 95%)",
+    "s2Mae": "MAE holdout S2",
+    "promoted": "đã nâng lên S2",
+    "notPromoted": "chưa đủ biên δ để nâng",
+    "fitSize": "n huấn luyện {train} · n kiểm tra {holdout}",
+    "footer": "δ = {delta} AQI · W = {w} ngày · đánh giá lúc {at}",
+    "hazard": {
+      "flood": "Ngập lụt",
+      "heat": "Nhiệt",
+      "aqi": "Chất lượng không khí"
+    },
+    "criteria": {
+      "inundationSeries": "Chuỗi quan trắc ngập / mực nước",
+      "lstSeries": "Chuỗi nhiệt độ bề mặt (Landsat LST)",
+      "consecutiveHourPairs": "Cặp giờ liên tiếp trạm–điểm",
+      "spanDays": "Số ngày bao phủ",
+      "archiveMonths": "Số tháng dữ liệu lưu trữ"
+    },
+    "formula": {
+      "flood": {
+        "S1": "R_f = 0,45·P̃ + 0,30·T̃ + 0,25·Ĩ − 0,15·D̃ (hệ số cố định, Bảng 6)",
+        "S2": "hiệu chỉnh lại w₁–w₄ trên chuỗi độ sâu ngập quan trắc",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      },
+      "heat": {
+        "S1": "T_eff = HI(T, RH) + 3,5·ρ (hệ số cố định, Bảng 6)",
+        "S2": "hiệu chỉnh lại α, u trên chuỗi nhiệt độ bề mặt (Landsat LST)",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      },
+      "aqi": {
+        "S1": "AQI(t+1) = AQI(t)·(1 − 0,05·W̃)·(1 − 0,15·P̃) (hệ số cố định, Bảng 6)",
+        "S2": "γ_w, γ_p ước lượng lại bằng hồi quy OLS trên quan trắc địa phương (xem bên dưới)",
+        "S3": "mô hình huấn luyện trên dữ liệu lưu trữ, không còn công thức cố định"
+      }
+    }
+  },
+  "scenarioRec": {
+    "title": "Khuyến nghị cho kịch bản",
+    "topK": "Top {shown} / {fired} cặp (luật, đơn vị) kích hoạt",
+    "noRecs": "Không luật nào kích hoạt trong kịch bản này",
+    "bandChanges": "Thay đổi mức theo đơn vị",
+    "noBandChanges": "Không đơn vị nào đổi mức",
+    "alerts": "Cảnh báo sẽ phát",
+    "noAlerts": "Không có cảnh báo mới",
+    "stations": "AQI theo điểm (trước → sau)",
+    "hazard": {
+      "flood": "Ngập",
+      "heat": "Nhiệt",
+      "aqi": "AQI"
+    },
+    "severity": {
+      "warning": "Cảnh báo",
+      "critical": "Nghiêm trọng"
+    }
+  },
+  "recInputs": {
+    "riskScore": "R_f",
+    "rainfall": "P (mm/h, Open-Meteo)",
+    "aqi": "AQI",
+    "effectiveTemperature": "T_eff (°C)",
+    "severityBand": "Mức",
+    "exposureE": "E(i) — tỉ lệ xây dựng (WorldCover)",
+    "feasibilityFa": "F(a)"
+  },
+  "unitKind": {
+    "flood_zone": "Vùng ngập",
+    "heat_cell": "Ô nhiệt",
+    "aqi_point": "Điểm AQI",
+    "city": "Toàn thành phố"
+  },
+  "recommendations": {
+    "title": "Khuyến nghị",
+    "subtitle": "Toàn bộ danh sách xếp hạng theo π(r, i): đơn vị, luật, điểm ưu tiên và dữ liệu đầu vào của luật",
+    "listTitle": "Khuyến nghị được xếp hạng",
+    "noRecommend": "Không có khuyến nghị nào đang kích hoạt",
+    "rule": "Luật",
+    "priorityScore": "Điểm ưu tiên",
+    "ruleBasedNote": "Bộ luật tường minh. Ưu tiên π(r,i) = S(b) × E(i) × F(a).",
+    "firedCount": "Top {shown} / {fired} cặp (luật, đơn vị) kích hoạt",
+    "whyThis": "Vì sao"
+  },
+  "alertsBell": {
+    "open": "Mở cảnh báo",
+    "title": "Cảnh báo theo đơn vị",
+    "unread": "{count} chưa đọc",
+    "empty": "Không có cảnh báo đang hiệu lực",
+    "markRead": "Đã đọc",
+    "readAll": "Đọc tất cả",
+    "all": "Tất cả",
+    "severity": {
+      "warning": "Cảnh báo",
+      "critical": "Nghiêm trọng"
+    }
   }
 }

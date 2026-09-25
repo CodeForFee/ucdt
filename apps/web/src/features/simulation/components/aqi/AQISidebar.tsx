@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { RainfallSlider } from "../RainfallSlider";
 import { ComparePanel } from "../ComparePanel";
+import { ScenarioRecommendations } from "../ScenarioRecommendations";
+import { GreenCoverageSlider } from "../shared/BaselineSliders";
 import { SidebarShell } from "../shared/SidebarShell";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
 import { useAQIData } from "@/shared/hooks/useAQIData";
@@ -93,38 +95,6 @@ function AQISimPreview({ result }: { result?: SimulationResult }) {
         </div>
       </div>
 
-      {(data.stations?.length ?? 0) > 0 && (
-        <div className="border-t border-border">
-          <div className="px-3 py-1.5 bg-muted/30">
-            <p className="text-xs font-medium text-muted-foreground">
-              {sp("aqiStations")}
-              {data.stations.length})
-            </p>
-          </div>
-          <div className="divide-y divide-border/50 max-h-44 overflow-y-auto">
-            {data.stations.map((s) => {
-              const sBase = s.aqi;
-              const sSim = Math.max(0, Math.round(sBase + delta));
-              const sd = sSim - sBase;
-              return (
-                <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
-                  <span className="text-xs truncate text-foreground flex-1">{s.name}</span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${aqiColor(sBase)} ${sBase > 50 && sBase <= 100 ? "text-gray-800" : "text-white"}`}>{sBase}</span>
-                    {sd !== 0 && (
-                      <>
-                        <span className="text-xs text-muted-foreground">→</span>
-                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${aqiColor(sSim)} ${sSim > 50 && sSim <= 100 ? "text-gray-800" : "text-white"}`}>{sSim}</span>
-                        <span className={`text-xs font-bold ${sd < 0 ? "text-green-400" : "text-red-400"}`}>{sd > 0 ? `+${sd}` : sd}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -148,6 +118,8 @@ export function AQISidebar({ result, isPending, onRun, onReset }: AQISidebarProp
         <p className="text-xs text-muted-foreground">{ts("aqiDesc")}</p>
 
         <AQISimPreview result={result} />
+        {/* Per-point before/after comes from results.stations (AQI_sim(i), §D). */}
+        <ScenarioRecommendations result={result} showStations />
 
         <RainfallSlider
           label={sl("trafficReduction")}
@@ -159,16 +131,7 @@ export function AQISidebar({ result, isPending, onRun, onReset }: AQISidebarProp
           onChange={(v) => setParams({ trafficReduction: v })}
           description={sl("trafficReductionAqiDesc")}
         />
-        <RainfallSlider
-          label={sl("greenCoverage")}
-          value={Math.round(params.greenCoverage * 100)}
-          min={0}
-          max={80}
-          step={5}
-          unit="%"
-          onChange={(v) => setParams({ greenCoverage: v / 100 })}
-          description={sl("greenCoverageAqiDesc")}
-        />
+        <GreenCoverageSlider description={sl("greenCoverageAqiDesc")} />
         <RainfallSlider
           label={sl("rainWash")}
           value={Math.round(params.rainfallMultiplier * 100)}
@@ -184,10 +147,11 @@ export function AQISidebar({ result, isPending, onRun, onReset }: AQISidebarProp
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{ts("quickScenario")}</label>
           <div className="grid grid-cols-1 gap-1.5">
             {[
-              { label: sc("aqiLimitCars"), tr: 50, gc: 0.3, rf: 1.0 },
+              // gc undefined = green cover left at the served G₀
+              { label: sc("aqiLimitCars"), tr: 50, gc: undefined, rf: 1.0 },
               { label: sc("aqiPark"), tr: 20, gc: 0.5, rf: 1.0 },
-              { label: sc("aqiCarFree"), tr: 100, gc: 0.3, rf: 1.0 },
-              { label: sc("aqiRain"), tr: 0, gc: 0.3, rf: 2.5 },
+              { label: sc("aqiCarFree"), tr: 100, gc: undefined, rf: 1.0 },
+              { label: sc("aqiRain"), tr: 0, gc: undefined, rf: 2.5 },
             ].map((p) => (
               <button
                 key={p.label}

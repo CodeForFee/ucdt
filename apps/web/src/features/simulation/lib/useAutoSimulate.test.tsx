@@ -4,23 +4,23 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { SimulationRequest, SimulationResult } from "@/shared/types/simulation";
 import { useSimulationStore } from "@/shared/stores/simulationStore";
+import { heat, simulation } from "@/test/fixtures";
 
 // Each POST resolves only when the test says so, in any order.
 const pending: Array<{ body: SimulationRequest; resolve: (r: SimulationResult) => void }> = [];
 vi.mock("@/shared/services", () => ({
   runSimulation: (body: SimulationRequest) =>
     new Promise<SimulationResult>((resolve) => pending.push({ body, resolve })),
+  fetchHeat: () => Promise.resolve(heat),
 }));
 
 const { useAutoSimulate } = await import("./useAutoSimulate");
 
-const resultWith = (tempDelta: number) =>
-  ({
-    simulationId: `sim-${tempDelta}`,
-    status: "completed",
-    results: { floodRiskDelta: 0, newFloodAreas: [], tempDelta, aqiDelta: 0, affectedBuildings: 0, affectedPopulation: 0 },
-    comparison: { before: { riskScore: 0, affectedAreas: 0 }, after: { riskScore: 0, affectedAreas: 0 } },
-  }) as SimulationResult;
+const resultWith = (tempDelta: number): SimulationResult => ({
+  ...simulation,
+  simulationId: `sim-${tempDelta}`,
+  results: { ...simulation.results, tempDelta },
+});
 
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;

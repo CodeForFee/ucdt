@@ -25,7 +25,7 @@
       "Caddy",
       "GitHub Actions + GHCR"
     ],
-    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). Monorepo rewrite of Hackathon-BE/FE, sprint S-001 (all 13 tasks merged into dev). The full stack runs from one compose file behind Caddy (worker -> Postgres -> climate API -> gateway -> web, SSE live); CI builds and pushes GHCR images, and compose.prod.yml + infra/deploy.sh deploy them on a VPS with daily backups. Open: B-014 (web copy of flood weights), B-017 (info-modal text), the VITE_MAPBOX_TOKEN repo secret."
+    "description": "UCDT v2 — Urban Climate Digital Twin for Ho Chi Minh City (flood, heat, air quality, what-if simulation, rule-based recommendations). S-001 rewrote Hackathon-BE/FE as this monorepo; S-002 made it match Figure 2 of the PO-UCDT manuscript box for box (spec .agent/sprints/S-002-spec.md is normative for code AND manuscript §4.2): per-unit weather, AirGradient, DEM/WorldCover/OSM static layers, per-unit π(r,i) and alerts, counterfactual what-if, Algorithm 1 maturity. Open: B-017 (info-modal text)."
   },
   "nodes": [
     {
@@ -70,7 +70,7 @@
       "type": "file",
       "name": "web.Dockerfile",
       "filePath": "infra/web.Dockerfile",
-      "summary": "Builds apps/web with pnpm (corepack, --filter web...) and bakes VITE_* build args into the bundle, then copies dist + Caddyfile into caddy:2-alpine. VITE_MAPBOX_TOKEN is required — env.ts blanks the app without it.",
+      "summary": "Builds apps/web with pnpm (corepack, --filter web...) and bakes VITE_* build args into the bundle, then copies dist + Caddyfile into caddy:2-alpine. Copies packages/contracts too: tsc -b resolves @ucdt/contracts by path. VITE_MAPBOX_TOKEN is required.",
       "tags": [
         "infra",
         "docker",
@@ -303,7 +303,7 @@
       "type": "file",
       "name": "units.py",
       "filePath": "services/climate/climate/spatial/units.py",
-      "summary": "The 63 spatial units: 18 FLOOD_ZONES, 22 HEAT_CELLS, 23 AQI_POINTS (+ ALL_UNITS). Named by coordinate-anchored TOPONYMS, never administrative units (district tier abolished 2025); `id` keeps the historic slug as an internal key only. localDrain/terrain/urbanDensity are expert-judgement constants pending Stage-2 calibration. Seeded into the DB by migration 001.",
+      "summary": "The 63 spatial units: 18 FLOOD_ZONES, 22 HEAT_CELLS, 23 AQI_POINTS (+ ALL_UNITS). Named by coordinate-anchored TOPONYMS, never administrative units (district tier abolished 2025); `id` keeps the historic slug as an internal key only. Only the expert constant localDrain (D̃) remains hand-set; terrain, imperviousness and density come from derived.json via catalogue.py (S-002).",
       "tags": [
         "climate",
         "spatial",
@@ -382,7 +382,7 @@
       "type": "file",
       "name": "simulation.py",
       "filePath": "services/climate/climate/pdim/simulation.py",
-      "summary": "What-if Algorithm 2: validate_scenario bounds every lever (rainfall 0-500 %, duration 0-72 h, green ±100, traffic, urbanDensity) and rejects NaN/inf/bool; run_simulation re-scores flood, heat and AQI. urbanDensity reaches the UHI term (B-004). A dry day uses a 20 mm/h reference shower.",
+      "summary": "What-if = Algorithm 2 step 7 (spec §G): validate_scenario bounds every lever and rejects NaN/inf/bool; run_counterfactual re-runs steps 3–6 on the counterfactual state (P_sim, D̃_sim, T_eff+ΔT with ΔT = −0.15ΔG + 3.5(ρ−ρ₀), per-point AQI_sim) and returns results.stations plus counterfactual{recommendations, firedCount, alerts (never persisted), bandChanges}.",
       "tags": [
         "climate",
         "pdim",
@@ -395,7 +395,7 @@
       "type": "file",
       "name": "rules.py",
       "filePath": "services/climate/climate/pdim/rules.py",
-      "summary": "Rule base R: recommendations() and new_alerts(). Priority pi = S(b)·E(i)·F(a) with E(i)=min(1, 0.4+0.1·|affected zones|); S(b) 4/3/2/1 -> urgent/high/medium/low uniformly (B-008). Every recommendation carries ruleId, priorityScore and inputs (B-005 traceability). new_alerts dedupes against active alerts.",
+      "summary": "Rule base ℛ per unit (spec §E–§F): unit_values() → recommendations() ranks every fired (r, i) by π = S(b)·E(i)·F(a) with E(i) = clamp(builtUp, 0.1, 1), top-10 + firedCount, R-NORM-00 when none; band_alerts() fires on band RISES vs the previous snapshot with ids `<hazard>:<unit>:<band>:<local hour>` and per-hazard expiry (ALERT_BANDS). Every item carries ruleId, π and inputs.",
       "tags": [
         "climate",
         "pdim",
@@ -690,7 +690,7 @@
       "type": "directory",
       "name": "dashboard",
       "filePath": "apps/web/src/features/dashboard",
-      "summary": "Overview cards, risk banner, 24 h charts, rule-based RecommendPanel (ruleId/priorityScore/inputs, B-005). lib/weatherOutlook: a 'vs 24 h ago' delta only when history really spans >= 23 h, else the 6 h forecast outlook (B-007, B-015).",
+      "summary": "Overview: summary cards, risk banner, 24 h charts, data-source chips and the MaturityCard (Algorithm 1 line 8: active stage, criteria current/required, S2 γ with 95 % CI). Recommendations moved to their own tab and alerts to the header bell (S-002). lib/weatherOutlook: 'vs 24 h ago' only when history spans >= 23 h (B-007, B-015).",
       "tags": [
         "web",
         "features"
@@ -702,7 +702,7 @@
       "type": "directory",
       "name": "flood",
       "filePath": "apps/web/src/features/flood",
-      "summary": "Flood page: per-zone table + RiskDecomposition of all four R_f terms, drainage drawn subtractive (B-010/B-011). LANDMINE: lib/decomposeFloodRisk.ts keeps its own copy of w1..w4 with no cross-check (B-014, #26) — change a flood weight in climate and this silently desyncs.",
+      "summary": "Flood page: per-zone table + RiskDecomposition rendered from the SERVED decomposition (city and per zone), drainage subtractive, each term naming its data source. The web keeps no flood weights (B-014 closed by deleting decomposeFloodRisk.ts).",
       "tags": [
         "web",
         "features",
@@ -727,7 +727,7 @@
       "type": "directory",
       "name": "alerts",
       "filePath": "apps/web/src/features/alerts",
-      "summary": "Alerts page: list + mark-read (optimistic, persisted via POST /api/alerts/read).",
+      "summary": "Full alerts page (/alerts, reached from the header bell's 'All' link): list + mark-read via POST /api/alerts/read.",
       "tags": [
         "web",
         "features"
@@ -752,7 +752,7 @@
       "type": "directory",
       "name": "simulation",
       "filePath": "apps/web/src/features/simulation",
-      "summary": "Heat/flood/AQI what-if pages. No local PDIM: sliders debounce (150 ms) POST /api/simulation and render TanStack mutation state; zustand holds slider state only. SimHeatLayer shows only the backend tempDelta (B-006); urbanDensity is sent (B-004). The affected-population figure it shows is a legacy heuristic (B-016). ComparePanel never renders affectedPopulation / affectedBuildings: the API still sends them for legacy parity, but they are the Stage-1 heuristic (50k/80k people, 1,200 buildings per zone), not an exposure model (B-016, user decision).",
+      "summary": "Heat/flood/AQI what-if pages. No local PDIM: sliders debounce POST /api/simulation; scenarioRequest sends ΔG = G − served G₀ and omits an untouched urbanDensity (scored at ρ₀). Each simulator renders ScenarioRecommendations (counterfactual top-k, band changes, would-fire alerts; AQI also per-point before→after from results.stations) and AirGradient stations. ComparePanel never shows population/buildings (B-016).",
       "tags": [
         "web",
         "features",
@@ -826,7 +826,7 @@
       "type": "directory",
       "name": "types",
       "filePath": "apps/web/src/shared/types",
-      "summary": "Response types ported from Hackathon-FE. To be replaced/checked against packages/contracts once T-007 generates them from the OpenAPI schema.",
+      "summary": "App-facing types, derived from @ucdt/contracts (type-only path in tsconfig.app.json; web does not list the package as a dependency).",
       "tags": [
         "web",
         "types"
@@ -948,7 +948,7 @@
       "type": "file",
       "name": "schema.ts",
       "filePath": "packages/contracts/src/schema.ts",
-      "summary": "Generated TS types for the climate API. Not yet consumed by apps/web, whose shared/types were ported by hand — known mismatches are on the board (T-007 follow-ups).",
+      "summary": "Generated TS types for the climate API, consumed type-only by apps/web through a tsconfig path. CI fails on drift.",
       "tags": [
         "contracts",
         "generated"
@@ -1039,6 +1039,117 @@
       "tags": [
         "docs",
         "deploy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/spatial/derive.py",
+      "type": "file",
+      "name": "derive.py",
+      "filePath": "services/climate/climate/spatial/derive.py",
+      "summary": "One-off deriver of the STATIC layers (spec §A.2–A.3), run by hand, never by the worker: elevation z + slope s = 100·max(|zE−zW|,|zN−zS|)/1000 from a 4-point 500 m stencil (Copernicus DEM GLO-90 via the Open-Meteo Elevation API), ESA WorldCover 2021 v200 class fractions in a 2×2 km window read as rasterio COG windows (builtUp=50, green=10/20/30/90/95, water=80), OSM Overpass 2025 commune + road density (segment midpoint within 1 km, km/π km²), nearest-neighbour mappings. Responses cached in derive_cache.json so a rerun is offline. LANDMINE: Overpass returns 406 without a User-Agent and 504s under load (retries in _get_json).",
+      "tags": [
+        "processing",
+        "static-layers",
+        "landmine"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/spatial/derived.json",
+      "type": "file",
+      "name": "derived.json",
+      "filePath": "services/climate/climate/spatial/derived.json",
+      "summary": "COMMITTED output of derive.py — do not hand-edit: per-unit z, s, T̃, builtUp/green/water, commune, roadDensity, flood→AQI and station mappings, served baselines ρ₀ 0.708 / G₀ 21.8 %, plus provenance (sources, licences, retrieval date 2026-09-24). Copernicus DEM is a DSM (the manuscript states the caveat).",
+      "tags": [
+        "data",
+        "static-layers",
+        "generated"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/spatial/catalogue.py",
+      "type": "file",
+      "name": "catalogue.py",
+      "filePath": "services/climate/climate/spatial/catalogue.py",
+      "summary": "load_catalogue(): the immutable join of units.py and derived.json that every PDIM module scores on (flood_zones, heat_cells, aqi_points with their derived fields). legacy_catalogue() keeps the pre-S-002 constants for the parity fixture only.",
+      "tags": [
+        "processing",
+        "spatial"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:services/climate/climate/ingest/airgradient.py",
+      "type": "file",
+      "name": "airgradient.py",
+      "filePath": "services/climate/climate/ingest/airgradient.py",
+      "summary": "fetch_airgradient(): the keyless AirGradient open network inside the HCMC bbox (lat 10.3–11.2, lng 106.3–107.1); readings older than 2 h are dropped and station names pass the §A.1 guard. Stored as aqi_obs `ag:<id>` and mapped to the nearest AQI point.",
+      "tags": [
+        "ingest",
+        "air"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/ingest/names.py",
+      "type": "file",
+      "name": "names.py",
+      "filePath": "services/climate/climate/ingest/names.py",
+      "summary": "§A.1 administrative-name guard (accent-folded regex + former district list) used by ingest and by every name test. `commune` (official 2025 name, 'Phường …') is API/data-only and must never be rendered: it reuses the abolished district words.",
+      "tags": [
+        "ingest",
+        "naming",
+        "landmine"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:services/climate/climate/pdim/maturity.py",
+      "type": "file",
+      "name": "maturity.py",
+      "filePath": "services/climate/climate/pdim/maturity.py",
+      "summary": "Algorithm 1 (spec §H), stateless, evaluated on every /v1/maturity read: W = 14 d, δ = 2 AQI; AQI D(S2) = ≥168 consecutive hour pairs over ≥7 days; OLS without intercept on ln-ratio (70/30 split, t-quantile 95 % CI); promotes S2 when holdout MAE beats S1 by δ, demotes on the next failing read. Flood/heat have D = false with stated reasons; S3 needs 12 months. nowcast_gammas feeds the served nowcast.",
+      "tags": [
+        "processing",
+        "maturity"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:services/climate/climate/db/migrations/versions/002_static_layers.py",
+      "type": "file",
+      "name": "002_static_layers.py",
+      "filePath": "services/climate/climate/db/migrations/versions/002_static_layers.py",
+      "summary": "Renames the 12 district-named heat cells to street/landmark toponyms at the same coordinates (spec §A.1). Renames only — derived static values live in derived.json, not the DB.",
+      "tags": [
+        "db",
+        "migration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "directory:apps/web/src/features/recommendations",
+      "type": "directory",
+      "name": "recommendations",
+      "filePath": "apps/web/src/features/recommendations",
+      "summary": "Recommendations tab (/recommendations, 5th nav tab): the ranked top-k π(r,i) list with toponym, rule, π, the rule's inputs ('Vì sao') and firedCount; R-NORM-00 when nothing fired. `commune` never rendered.",
+      "tags": [
+        "web",
+        "feature"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:apps/web/src/shared/components/layout/AlertsBell.tsx",
+      "type": "file",
+      "name": "AlertsBell.tsx",
+      "filePath": "apps/web/src/shared/components/layout/AlertsBell.tsx",
+      "summary": "Header bell: unread badge + dropdown of per-unit alerts (severity, toponym, title, time), mark-read one/all via POST /api/alerts/read, empty state, live via SSE invalidation. The Alert payload has no unitId, so the toponym is joined by splitting the §F id `<hazard>:<unitId>:<band>:<hour>` against /api/units.",
+      "tags": [
+        "web",
+        "alerts"
       ],
       "complexity": "moderate"
     }
@@ -1719,6 +1830,83 @@
       "type": "configures",
       "weight": 0.4,
       "description": "documents the deploy/rollback procedure"
+    },
+    {
+      "source": "file:services/climate/climate/spatial/derive.py",
+      "target": "file:services/climate/climate/spatial/derived.json",
+      "type": "writes",
+      "weight": 0.9,
+      "description": "static layers + provenance"
+    },
+    {
+      "source": "file:services/climate/climate/spatial/catalogue.py",
+      "target": "file:services/climate/climate/spatial/derived.json",
+      "type": "reads",
+      "weight": 0.9,
+      "description": "joins derived fields onto units"
+    },
+    {
+      "source": "file:services/climate/climate/spatial/catalogue.py",
+      "target": "file:services/climate/climate/spatial/units.py",
+      "type": "imports",
+      "weight": 0.8,
+      "description": "unit list + toponyms"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/climate/pdim/rules.py",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "steps 5–6 on the counterfactual state"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/simulation.py",
+      "target": "file:services/climate/climate/spatial/catalogue.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "scores on the catalogue"
+    },
+    {
+      "source": "file:services/climate/climate/pdim/rules.py",
+      "target": "file:services/climate/climate/spatial/catalogue.py",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "E(i) = builtUp"
+    },
+    {
+      "source": "file:services/climate/climate/ingest/airgradient.py",
+      "target": "file:services/climate/climate/ingest/names.py",
+      "type": "calls",
+      "weight": 0.6,
+      "description": "station-name guard"
+    },
+    {
+      "source": "file:services/climate/climate/worker/main.py",
+      "target": "file:services/climate/climate/ingest/airgradient.py",
+      "type": "calls",
+      "weight": 0.7,
+      "description": "every ingest cycle"
+    },
+    {
+      "source": "file:services/climate/climate/api/main.py",
+      "target": "file:services/climate/climate/pdim/maturity.py",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "/v1/maturity evaluates Algorithm 1"
+    },
+    {
+      "source": "file:services/climate/climate/snapshots.py",
+      "target": "file:services/climate/climate/pdim/maturity.py",
+      "type": "calls",
+      "weight": 0.6,
+      "description": "S2 γ drive the served nowcast"
+    },
+    {
+      "source": "file:apps/web/src/shared/components/layout/AlertsBell.tsx",
+      "target": "file:apps/web/src/shared/hooks/useLiveEvents.ts",
+      "type": "depends_on",
+      "weight": 0.5,
+      "description": "SSE invalidation refreshes the badge"
     }
   ],
   "layers": [
@@ -1761,7 +1949,9 @@
         "file:services/climate/climate/pdim/simulation.py",
         "file:services/climate/climate/pdim/rules.py",
         "file:services/climate/climate/pdim/geo.py",
-        "file:services/climate/climate/spatial/units.py"
+        "file:services/climate/climate/spatial/units.py",
+        "file:services/climate/climate/spatial/catalogue.py",
+        "file:services/climate/climate/pdim/maturity.py"
       ]
     },
     {
@@ -1776,7 +1966,10 @@
         "file:services/climate/climate/db/repo.py",
         "file:services/climate/climate/db/session.py",
         "file:services/climate/climate/db/migrations/env.py",
-        "file:services/climate/climate/db/migrations/versions/001_initial.py"
+        "file:services/climate/climate/db/migrations/versions/001_initial.py",
+        "file:services/climate/climate/spatial/derive.py",
+        "file:services/climate/climate/spatial/derived.json",
+        "file:services/climate/climate/db/migrations/versions/002_static_layers.py"
       ]
     },
     {
@@ -1788,7 +1981,9 @@
         "file:services/climate/climate/worker/main.py",
         "file:services/climate/climate/api/main.py",
         "file:services/climate/climate/api/models.py",
-        "file:services/climate/Dockerfile"
+        "file:services/climate/Dockerfile",
+        "file:services/climate/climate/ingest/airgradient.py",
+        "file:services/climate/climate/ingest/names.py"
       ]
     },
     {
@@ -1848,7 +2043,8 @@
         "directory:apps/web/src/shared/types",
         "file:apps/web/src/shared/lib/aqi.ts",
         "directory:apps/web/src/shared/components",
-        "directory:apps/web/src/shared/stores"
+        "directory:apps/web/src/shared/stores",
+        "file:apps/web/src/shared/components/layout/AlertsBell.tsx"
       ]
     },
     {
@@ -1861,7 +2057,8 @@
         "directory:apps/web/src/features/air-quality",
         "directory:apps/web/src/features/alerts",
         "directory:apps/web/src/features/map",
-        "directory:apps/web/src/features/simulation"
+        "directory:apps/web/src/features/simulation",
+        "directory:apps/web/src/features/recommendations"
       ]
     },
     {

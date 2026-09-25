@@ -33,6 +33,9 @@ export function useLiveEvents() {
       }
       const key = KEY[payload.hazard as keyof typeof KEY];
       if (key) queryClient.invalidateQueries({ queryKey: [key] });
+      // Algorithm 1 (§H) re-evaluates from the stored AQI/station history, so a new aqi
+      // snapshot can move the AQI criteria; flood and heat have no data-driven S2 path.
+      if (key === KEY.aqi) queryClient.invalidateQueries({ queryKey: [KEY.maturity] });
     };
 
     const onAlertCreated = () => {

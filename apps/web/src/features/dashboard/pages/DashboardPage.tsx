@@ -2,11 +2,11 @@ import { useTranslations } from "use-intl";
 import { RiskSummaryBanner } from "@/features/dashboard/components/RiskSummaryBanner";
 import { OverviewCards } from "@/features/dashboard/components/OverviewCards";
 import { WeatherTrendChart } from "@/features/dashboard/components/WeatherTrendChart";
-import { RecommendPanel } from "@/features/dashboard/components/RecommendPanel";
 import { AQISummaryCard } from "@/features/dashboard/components/AQISummaryCard";
 import { HeatSummaryCard } from "@/features/dashboard/components/HeatSummaryCard";
 import { FloodSummaryCard } from "@/features/dashboard/components/FloodSummaryCard";
-import { AlertsSummaryCard } from "@/features/dashboard/components/AlertsSummaryCard";
+import { MaturityCard } from "@/features/dashboard/components/MaturityCard";
+import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 
 export default function DashboardPage() {
   const d = useTranslations("dashboard");
@@ -19,6 +19,13 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-xl font-semibold">{d("title")}</h1>
           <p className="text-sm text-muted-foreground">{d("subtitle")}</p>
+          {/* Data layer provenance (Figure 2, DP3): every source a served value derives from. */}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <span>{d("provenance")}</span>
+            {["Open-Meteo", "CAMS", "AirGradient", "Copernicus DEM", "ESA WorldCover (Sentinel)", "OpenStreetMap"].map((s) => (
+              <DataSourceTag key={s} source={s} />
+            ))}
+          </div>
         </div>
 
         <RiskSummaryBanner />
@@ -31,10 +38,8 @@ export default function DashboardPage() {
           <FloodSummaryCard />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <AlertsSummaryCard />
-          <RecommendPanel />
-        </div>
+        {/* Recommendations have their own tab and alerts live in the header bell (T-105). */}
+        <MaturityCard />
       </div>
     </div>
   );
