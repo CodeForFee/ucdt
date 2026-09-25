@@ -233,7 +233,9 @@ class RecommendData(Out):
     # Added 2026-09-25 for the per-hazard /risks pages: `recommendations` is a CITY-WIDE top
     # k, so one hazard can crowd another out of it entirely even though the smaller hazard has
     # real, lower-priority items of its own.
-    allRecommendations: list[Recommendation] = Field(description="every fired (r, i), unlike recommendations' top-k cut")
+    allRecommendations: list[Recommendation] = Field(
+        description="every fired (r, i), unlike recommendations' top-k cut"
+    )
     summary: str
     overallRiskLevel: RiskLevel
 
