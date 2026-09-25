@@ -8,8 +8,8 @@ import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import { aqiCode, aqiColor } from "@/shared/lib/aqi";
 import { formatDateTime } from "@/shared/lib/formatters";
-import { HazardRecommendations } from "@/features/recommendations/components/HazardRecommendations";
-import { HazardAlerts } from "@/features/alerts/components/HazardAlerts";
+import { HazardRecommendations } from "@/shared/components/hazards/HazardRecommendations";
+import { HazardAlerts } from "@/shared/components/hazards/HazardAlerts";
 import type { AQIData } from "@/shared/types/aqi";
 
 /**

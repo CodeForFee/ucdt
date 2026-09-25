@@ -9,8 +9,8 @@ import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import type { RiskLevel } from "@/shared/constants/riskLevels";
 import { RiskDecomposition } from "@/features/flood/components/RiskDecomposition";
-import { HazardRecommendations } from "@/features/recommendations/components/HazardRecommendations";
-import { HazardAlerts } from "@/features/alerts/components/HazardAlerts";
+import { HazardRecommendations } from "@/shared/components/hazards/HazardRecommendations";
+import { HazardAlerts } from "@/shared/components/hazards/HazardAlerts";
 
 export default function FloodPage() {
   const { data, isLoading, isError, refetch } = useFloodRisk();

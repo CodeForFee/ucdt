@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRecommend } from "@/shared/hooks/useRecommend";
 import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
-import { RecommendList } from "@/features/recommendations/components/RecommendList";
+import { RecommendList } from "@/shared/components/hazards/RecommendList";
 
 /** Ranked recommendations (§E, §J) on their own tab: the full top-k by π(r, i) with the
  *  toponym, rule, π and the rule's inputs, plus the firedCount note. */

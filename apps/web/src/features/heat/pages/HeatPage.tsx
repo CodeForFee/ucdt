@@ -7,8 +7,8 @@ import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 import { heatRiskLevel } from "@/shared/lib/heatRisk";
-import { HazardRecommendations } from "@/features/recommendations/components/HazardRecommendations";
-import { HazardAlerts } from "@/features/alerts/components/HazardAlerts";
+import { HazardRecommendations } from "@/shared/components/hazards/HazardRecommendations";
+import { HazardAlerts } from "@/shared/components/hazards/HazardAlerts";
 
 /** Mirrors FloodPage's layout (score card + per-unit table), merged under /risks with a
  *  hazard-filtered HazardRecommendations instead of a link out to a separate tab. */
