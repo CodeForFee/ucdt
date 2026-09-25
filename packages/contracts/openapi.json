@@ -1533,6 +1533,14 @@
             "title": "Firedcount",
             "description": "all fired (r, i), before the top-k cut"
           },
+          "allRecommendations": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            },
+            "type": "array",
+            "title": "Allrecommendations",
+            "description": "every fired (r, i), unlike recommendations' top-k cut"
+          },
           "summary": {
             "type": "string",
             "title": "Summary"
@@ -1556,6 +1564,7 @@
           "modelVersion",
           "recommendations",
           "firedCount",
+          "allRecommendations",
           "summary",
           "overallRiskLevel"
         ],

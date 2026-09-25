@@ -92,6 +92,7 @@
     "legend": {
       "flood": "Ngập lụt",
       "aqi": "AQI",
+      "heat": "Nhiệt độ",
       "low": "Thấp",
       "medium": "Trung bình",
       "high": "Cao",
@@ -121,6 +122,8 @@
     "subtitle": "Dữ liệu AQI và ô nhiễm theo thời gian thực",
     "source": "Open-Meteo (CAMS) · AirGradient · PDIM",
     "currentAqi": "Chỉ số AQI hiện tại",
+    "scoreLabel": "Chỉ số chất lượng không khí",
+    "pointCount": "Điểm quan trắc",
     "mainPollutant": "AQI tính từ: ",
     "breakdown": "Thành phần ô nhiễm (µg/m³)",
     "measured": "Đo được",
@@ -210,6 +213,12 @@
     "veryUnhealthy": "Rất không lành mạnh",
     "hazardous": "Nguy hiểm",
     "observed": "Trạm quan trắc (AirGradient)"
+  },
+  "floodLegend": {
+    "title": "Độ sâu ngập (m)"
+  },
+  "heatLegend": {
+    "title": "Nhiệt độ hiệu dụng (°C)"
   },
   "landUse": {
     "industrial": "Công nghiệp",

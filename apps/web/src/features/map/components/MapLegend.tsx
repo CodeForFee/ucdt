@@ -1,15 +1,16 @@
 import { useMapStore } from "@/shared/stores/mapStore";
-import { FLOOD_COLORS, AQI_COLORS } from "@/shared/lib/colorScales";
+import { FLOOD_COLORS, AQI_COLORS, HEAT_GRADIENT } from "@/shared/lib/colorScales";
 import { useTranslations } from "use-intl";
 
 export function MapLegend() {
   const { activeLayers } = useMapStore();
   const showFlood = activeLayers.includes("flood");
   const showAQI = activeLayers.includes("aqi");
+  const showHeat = activeLayers.includes("heat");
   const showTraffic = activeLayers.includes("traffic");
   const lg = useTranslations("map.legend");
 
-  if (!showFlood && !showAQI && !showTraffic) return null;
+  if (!showFlood && !showAQI && !showHeat && !showTraffic) return null;
 
   const floodItems = [
     { color: FLOOD_COLORS.low, label: lg("low") },
@@ -63,6 +64,21 @@ export function MapLegend() {
               <div className="h-3 w-3 rounded-full shrink-0 border-[3px] border-slate-900 bg-muted" />
               <span className="text-xs text-foreground">{lg("observed")}</span>
             </div>
+          </div>
+        </div>
+      )}
+      {showHeat && (
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{lg("heat")}</p>
+          {/* A continuous density gradient (HeatLayer's heatmap-color), not discrete bands
+              like flood/AQI — a gradient bar reads more honestly than made-up thresholds. */}
+          <div
+            className="h-2.5 w-full rounded-full"
+            style={{ background: `linear-gradient(to right, ${HEAT_GRADIENT.join(", ")})` }}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-muted-foreground">{lg("low")}</span>
+            <span className="text-[10px] text-muted-foreground">{lg("high")}</span>
           </div>
         </div>
       )}

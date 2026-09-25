@@ -288,7 +288,18 @@ def recommendations(values: dict, cat: Catalogue, now: datetime, k: int = RECOMM
             "inputs": {"severityBand": "none"},
         }
     ]
-    return {"recommendations": top, "firedCount": len(fired), "summary": summary, "overallRiskLevel": level}
+    return {
+        "recommendations": top,
+        # Every fired (r, i), not just the city-wide top k — /v1/recommend's own "top 10" is a
+        # deliberate cap (test_api.py, test_pdim_invariants.py both assert it), but a hazard
+        # can be fully crowded out of it by a bigger one (flood dominated all 10 slots the day
+        # this was added, 2026-09-25) even with real, lower-priority items of its own. The
+        # per-hazard /risks pages (HazardRecommendations) filter this instead of `recommendations`.
+        "allRecommendations": fired if fired else top,
+        "firedCount": len(fired),
+        "summary": summary,
+        "overallRiskLevel": level,
+    }
 
 
 # ── §F per-unit band-rise alerts ─────────────────────────────────────────────
