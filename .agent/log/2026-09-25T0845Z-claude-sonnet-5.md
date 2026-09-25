@@ -27,5 +27,27 @@ status: done
 - Pushed the merge commit directly to `origin/dev` (user confirmed) — never touched `main`.
   `gh pr view 64` now reports `mergeable: MERGEABLE`.
 
+## Verified
+- `git diff --stat dev HEAD` (before pushing) -> empty output: merge-commit tree is byte-identical
+  to dev's pre-merge tip, so no main-side content actually landed anywhere.
+- `cd apps/web && npx tsc -b --noEmit` -> exit 0, no output, on the merge commit.
+- `cd apps/web && npx vitest run` -> `Test Files 1 failed | 16 passed (17)`, `Tests 2 failed | 84
+  passed (86)`; both failures in `src/router/routes.test.tsx` (timeout in `findByRole` under
+  full-suite load). Re-ran isolated: `npx vitest run src/router/routes.test.tsx` -> `Test Files 1
+  passed (1)`, `Tests 13 passed (13)` — confirms full-suite timeout flakiness, not a regression
+  from the merge (matches the pre-existing BOARD.md follow-up note on this file).
+- `grep -rl "AlertsSummaryCard\|RecommendPanel\|decomposeFloodRisk" apps/web/src` -> no matches,
+  after removing the 4 resurrected files, confirming nothing still imports them.
+- `gh pr view 64 --json mergeable,mergeStateStatus` (after push) ->
+  `{"mergeable":"MERGEABLE","mergeStateStatus":"UNSTABLE"}` — GitHub's conflict block is gone;
+  UNSTABLE is pending/running CI checks, not a merge conflict.
+- Did NOT run: `services/climate` pytest suite (`python -m pytest` -> `No module named pytest`,
+  not installed on this machine). Mitigated, not substituted, by the tree-diff check above: since
+  the FULL merge-commit tree (not just heat.py) is byte-identical to dev's pre-merge tip, every
+  python file — models.py, snapshots.py, the three test files — is the exact content already
+  covered by dev's own gate (S-002 gate log: pytest 265 green). That is real evidence the merge
+  introduced no python diff, but it is not a fresh pytest run; flagging the gap rather than
+  claiming one.
+
 ## Next
 - User promotes dev -> main (their action, not mine) once CI on the PR goes green.
