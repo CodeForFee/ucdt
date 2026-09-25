@@ -1,0 +1,28 @@
+# deploy — runs infra/deploy.sh on the VPS after `images` finishes publishing to GHCR on main.
+# The SSH key (VPS_SSH_KEY secret) is scoped to the `deploy` user and forced, in
+# ~/.ssh/authorized_keys on the VPS, to run exactly `cd /opt/ucdt && infra/deploy.sh` — even a
+# leaked key can't do anything else. See docs/DEPLOY.md.
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [images]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: SSH and run infra/deploy.sh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # The authorized_keys forced command ignores this and always runs deploy.sh —
+          # spelled out here only for readability.
+          script: cd /opt/ucdt && infra/deploy.sh

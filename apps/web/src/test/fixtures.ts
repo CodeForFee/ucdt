@@ -284,6 +284,7 @@ export const simulation: S["SimulationResult"] = {
         severity: "critical",
         unitId: "gz-q8-rach-ong",
         unitName: "Rạch Ông",
+        value: 0.78,
         title: "Ngập nghiêm trọng tại Rạch Ông",
         message: "Điểm rủi ro 78% tại Rạch Ông.",
         createdAt: T,

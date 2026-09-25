@@ -453,7 +453,7 @@
     "noRecommend": "Không có khuyến nghị nào đang kích hoạt",
     "rule": "Luật",
     "priorityScore": "Điểm ưu tiên",
-    "ruleBasedNote": "Hệ thống dựa trên bộ luật rõ ràng, minh bạch — không phải AI học máy.",
+    "ruleBasedNote": "Hệ thống dựa trên bộ luật rõ ràng, minh bạch.",
     "firedCount": "Top {shown} / {fired} cặp (luật, đơn vị) kích hoạt",
     "whyThis": "Vì sao"
   },
@@ -508,6 +508,16 @@
       "message": "Thời tiết và chất lượng không khí trong ngưỡng an toàn tại mọi đơn vị không gian.",
       "actions": ["Tiếp tục theo dõi thường xuyên"]
     }
+  },
+  "alertRules": {
+    "flood_warning": { "title": "Cảnh báo nguy cơ ngập", "message": "Nguy cơ ngập cao tại {name}. Điểm rủi ro: {riskPct}%." },
+    "flood_critical": { "title": "Cảnh báo ngập lụt nghiêm trọng", "message": "Nguy cơ ngập rất cao tại {name}. Điểm rủi ro: {riskPct}%." },
+    "storm_warning": { "title": "Mưa lớn", "message": "Lượng mưa tại {name}: {value}mm/h. Cẩn thận khi di chuyển." },
+    "storm_critical": { "title": "Mưa rất lớn", "message": "Lượng mưa tại {name}: {value}mm/h. Hạn chế ra đường." },
+    "aqi_warning": { "title": "Chất lượng không khí kém", "message": "AQI tại {name} = {value} — {category}. Đeo khẩu trang N95." },
+    "aqi_critical": { "title": "Ô nhiễm không khí nghiêm trọng", "message": "AQI tại {name} = {value} — {category}. Hạn chế ra ngoài." },
+    "heat_warning": { "title": "Nắng nóng", "message": "Nhiệt độ hiệu dụng tại {name}: {value}°C. Uống đủ nước, tránh nắng trực tiếp." },
+    "heat_critical": { "title": "Nắng nóng cực đoan", "message": "Nhiệt độ hiệu dụng tại {name}: {value}°C. Uống đủ nước, tránh nắng trực tiếp." }
   },
   "alertsBell": {
     "open": "Mở cảnh báo",

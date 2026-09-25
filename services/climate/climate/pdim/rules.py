@@ -363,6 +363,7 @@ def band_alerts(values: dict, previous: dict, cat: Catalogue, now: datetime) -> 
                 "severity": severity,
                 "unitId": unit_id,
                 "unitName": name,
+                "value": x,
                 "title": title,
                 "message": message,
                 "createdAt": js_iso(now),

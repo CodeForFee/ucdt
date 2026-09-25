@@ -7,6 +7,7 @@ import { useMarkAlertsRead } from "@/shared/hooks/useMarkAlertsRead";
 import { useUnitNames } from "@/shared/hooks/useUnits";
 import { useAlertStore } from "@/shared/stores/alertStore";
 import { formatDateTime } from "@/shared/lib/formatters";
+import { localizeAlert } from "@/shared/lib/alertText";
 import type { Alert } from "@/shared/types/alert";
 
 const TYPE_ICONS: Record<Alert["type"], React.ComponentType<{ className?: string }>> = {
@@ -16,8 +17,9 @@ const TYPE_ICONS: Record<Alert["type"], React.ComponentType<{ className?: string
   storm: CloudRain,
 };
 
-/** §F alert id `<hazard>:<unitId>:<band>:<YYYY-MM-DDTHH>` → unitId. The Alert payload carries
- *  no unitId/unitName field (SimAlert does), so the toponym is joined via /api/units. */
+/** §F alert id `<hazard>:<unitId>:<band>:<YYYY-MM-DDTHH>` → unitId. Migration 003 added
+ *  `unitName` to the Alert payload directly; this /api/units join is only a fallback for an
+ *  alert raised before that migration (unitName null). */
 const alertUnitId = (id: string) => id.split(":")[1];
 
 /**
@@ -32,6 +34,8 @@ export function AlertsBell() {
   const { mutate: markRead } = useMarkAlertsRead();
   const { data: unitNames } = useUnitNames();
   const t = useTranslations("alertsBell");
+  const ar = useTranslations("alertRules");
+  const aqiT = useTranslations("aqi");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -102,7 +106,8 @@ export function AlertsBell() {
             <ul className="max-h-96 overflow-y-auto divide-y divide-border/60">
               {alerts.map((a) => {
                 const Icon = TYPE_ICONS[a.type] ?? Bell;
-                const toponym = unitNames?.get(alertUnitId(a.id));
+                const toponym = a.unitName ?? unitNames?.get(alertUnitId(a.id));
+                const { title } = localizeAlert(a, ar, aqiT);
                 return (
                   <li key={a.id} className={`flex gap-2 px-3 py-2 ${a.isRead ? "opacity-60" : ""}`}>
                     <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
@@ -115,7 +120,7 @@ export function AlertsBell() {
                         </span>
                         {toponym && <span className="text-xs font-medium truncate">{toponym}</span>}
                       </div>
-                      <p className="text-xs leading-snug mt-0.5">{a.title}</p>
+                      <p className="text-xs leading-snug mt-0.5">{title}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{formatDateTime(a.createdAt)}</p>
                     </div>
                     {!a.isRead && (

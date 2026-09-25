@@ -10,6 +10,7 @@ import { useMarkAlertsRead } from "@/shared/hooks/useMarkAlertsRead";
 import { LoadingSkeleton } from "@/shared/components/common/LoadingSkeleton";
 import { ErrorState } from "@/shared/components/common/ErrorState";
 import { formatDateTime } from "@/shared/lib/formatters";
+import { localizeAlert } from "@/shared/lib/alertText";
 import type { Alert } from "@/shared/types/alert";
 
 const TYPE_ICONS: Record<Alert["type"], React.ComponentType<{ className?: string }>> = {
@@ -35,11 +36,15 @@ function AlertCard({ alert }: { alert: Alert }) {
   const { mutate: markRead } = useMarkAlertsRead();
   const Icon = TYPE_ICONS[alert.type] ?? Bell;
   const ap = useTranslations("alertsPage");
+  const ar = useTranslations("alertRules");
+  const aqiT = useTranslations("aqi");
 
   const SEVERITY_LABELS: Record<Alert["severity"], string> = {
     warning: ap("warning"),
     critical: ap("urgent"),
   };
+
+  const { title, message } = localizeAlert(alert, ar, aqiT);
 
   return (
     <li
@@ -53,13 +58,13 @@ function AlertCard({ alert }: { alert: Alert }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className={`text-sm font-medium leading-snug truncate ${!alert.isRead ? "text-foreground" : "text-muted-foreground"}`}>
-            {alert.title}
+            {title}
           </p>
           <Badge className={`shrink-0 text-[10px] px-1.5 ${SEVERITY_BADGE[alert.severity]}`}>
             {SEVERITY_LABELS[alert.severity]}
           </Badge>
         </div>
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{alert.message}</p>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{message}</p>
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-[11px] text-muted-foreground">{formatDateTime(alert.createdAt)}</span>
           {!alert.isRead && (
