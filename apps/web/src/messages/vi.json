@@ -5,6 +5,9 @@
     "simulation": "Mô phỏng",
     "airQuality": "Chất lượng Không khí",
     "flood": "Ngập lụt",
+    "heat": "Nhiệt độ",
+    "aqi": "Chất lượng Không khí",
+    "risks": "Rủi ro",
     "alerts": "Cảnh báo",
     "appName": "Urban Climate DT",
     "version": "UCDT v1.0",
@@ -162,6 +165,18 @@
     "decompPick": "Chọn một khu vực trong bảng để xem phân giải riêng",
     "backToCity": "Về toàn thành phố",
     "colRain": "Mưa (mm/h)"
+  },
+  "heatPage": {
+    "title": "Nguy cơ nắng nóng",
+    "subtitle": "Hiệu ứng đảo nhiệt đô thị theo thời gian thực",
+    "source": "Open-Meteo · PDIM Giai đoạn 1",
+    "scoreLabel": "Nhiệt độ hiệu dụng trung bình",
+    "affectedAreas": "Ô nhiệt đáng chú ý",
+    "uhiEffect": "Hiệu ứng UHI",
+    "hotspots": "Các ô nhiệt",
+    "colArea": "Khu vực",
+    "colTemp": "Nhiệt độ hiệu dụng",
+    "colLevel": "Mức độ"
   },
   "alertsPage": {
     "title": "Cảnh báo",
