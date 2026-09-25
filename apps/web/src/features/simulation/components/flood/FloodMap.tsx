@@ -9,6 +9,7 @@ import { TerrainLayer } from "@/shared/components/map/TerrainLayer";
 import { BuildingLayer3D } from "@/shared/components/map/BuildingLayer3D";
 import { FloodExtrusion3D } from "../FloodExtrusion3D";
 import { RainOverlay } from "../RainOverlay";
+import { FloodLegend } from "../FloodLegend";
 import { useFocusPoint } from "../shared/useFocusPoint";
 import type { SimulationResult } from "@/shared/types/simulation";
 
@@ -49,6 +50,7 @@ export function FloodMap({ result }: FloodMapProps) {
       )}
 
       <MapControls styleKey={styleKey} onStyleChange={setStyleKey} onReset2D={resetView} onReset3D={() => reset3DView()} />
+      <FloodLegend />
 
       {!result && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

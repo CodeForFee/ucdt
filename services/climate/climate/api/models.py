@@ -230,6 +230,10 @@ class Recommendation(Out):
 class RecommendData(Out):
     recommendations: list[Recommendation] = Field(description="top k = 10 by π desc")
     firedCount: int = Field(description="all fired (r, i), before the top-k cut")
+    # Added 2026-09-25 for the per-hazard /risks pages: `recommendations` is a CITY-WIDE top
+    # k, so one hazard can crowd another out of it entirely even though the smaller hazard has
+    # real, lower-priority items of its own.
+    allRecommendations: list[Recommendation] = Field(description="every fired (r, i), unlike recommendations' top-k cut")
     summary: str
     overallRiskLevel: RiskLevel
 

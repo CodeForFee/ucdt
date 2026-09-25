@@ -12,12 +12,20 @@ import type { Recommendation } from "@/shared/types/recommend";
  * to a separate Recommendations tab (merged per user request 2026-09-25 — see [[recommendations]]
  * commit history). `combined` (multi-hazard rules like R-COMB-01, and the R-NORM-00 default)
  * is included on every hazard's tab since it's relevant to more than one.
+ *
+ * Filters `allRecommendations` (every fired rule), not `recommendations` (the city-wide top
+ * 10) — a hazard with real but lower-priority items can be crowded out of that top 10
+ * entirely by a bigger one (flood dominated all 10 slots the day this was found, 2026-09-25),
+ * which made Heat/AQI show empty here even while their own alerts were firing.
  */
 export function HazardRecommendations({ category }: { category: Exclude<Recommendation["category"], "combined"> }) {
   const { data, isLoading, isError, refetch } = useRecommend();
   const r = useTranslations("recommendations");
 
-  const filtered = data?.recommendations.filter((rec) => rec.category === category || rec.category === "combined") ?? [];
+  // Optional-chained on allRecommendations too, not just data: a frontend deployed ahead of
+  // its backend (this field is new, 2026-09-25) would otherwise throw here instead of
+  // degrading to an empty list.
+  const filtered = data?.allRecommendations?.filter((rec) => rec.category === category || rec.category === "combined") ?? [];
 
   return (
     <Card>

@@ -171,6 +171,7 @@ export const recommendations: S["Recommendation"][] = [
 export const recommend: S["RecommendLatest"] = {
   ...fresh,
   recommendations,
+  allRecommendations: recommendations,
   firedCount: 14,
   summary: "3 khuyến nghị",
   overallRiskLevel: "medium",

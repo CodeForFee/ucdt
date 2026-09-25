@@ -3,6 +3,7 @@ import { useSimMap } from "../shared/useSimMap";
 import { MapControls } from "../shared/MapControls";
 import { MapBootOverlay } from "@/shared/components/map/MapBootOverlay";
 import { SimHeatLayer } from "../SimHeatLayer";
+import { HeatLegend } from "../HeatLegend";
 import { useTranslations } from "use-intl";
 import { useFocusPoint } from "../shared/useFocusPoint";
 import type { SimulationResult } from "@/shared/types/simulation";
@@ -31,9 +32,12 @@ export function HeatMap({ result }: HeatMapProps) {
       {map && <SimHeatLayer map={map} result={result} />}
 
       <MapControls styleKey={styleKey} onStyleChange={setStyleKey} onReset2D={resetView} onReset3D={() => reset3DView()} />
+      <HeatLegend />
 
       {!result && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
+        // Centered like FloodMap/AQIMap's idle hint (was bottom-anchored, colliding with
+        // HeatLegend once it was added here — matches the other two maps now too).
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-card/85 backdrop-blur-sm rounded-lg px-4 py-2.5 border border-border shadow-lg text-center">
             <p className="text-xs text-muted-foreground">{ts("idleHintHeat")}</p>
           </div>
