@@ -5,7 +5,6 @@ import { WeatherTrendChart } from "@/features/dashboard/components/WeatherTrendC
 import { AQISummaryCard } from "@/features/dashboard/components/AQISummaryCard";
 import { HeatSummaryCard } from "@/features/dashboard/components/HeatSummaryCard";
 import { FloodSummaryCard } from "@/features/dashboard/components/FloodSummaryCard";
-import { MaturityCard } from "@/features/dashboard/components/MaturityCard";
 import { DataSourceTag } from "@/shared/components/common/DataSourceTag";
 
 export default function DashboardPage() {
@@ -37,9 +36,6 @@ export default function DashboardPage() {
           <HeatSummaryCard />
           <FloodSummaryCard />
         </div>
-
-        {/* Recommendations have their own tab and alerts live in the header bell (T-105). */}
-        <MaturityCard />
       </div>
     </div>
   );

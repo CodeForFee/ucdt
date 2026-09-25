@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslations } from "use-intl";
 import { Bell, CheckCheck, Droplets, Wind, Thermometer, AlertTriangle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -21,9 +20,10 @@ const TYPE_ICONS: Record<Alert["type"], React.ComponentType<{ className?: string
 };
 
 // Per-unit alerts (§F): warning / critical only — the legacy "system" info alert is gone.
-const SEVERITY_STYLES: Record<Alert["severity"], string> = {
-  warning: "border-l-yellow-500 bg-yellow-500/5",
-  critical: "border-l-red-500 bg-red-500/5",
+// Same card layout as RecommendList's RecommendCard — only the icon/badge color follows severity.
+const SEVERITY_ICON_STYLES: Record<Alert["severity"], string> = {
+  warning: "bg-yellow-500/10 text-yellow-500",
+  critical: "bg-red-500/10 text-red-500",
 };
 
 const SEVERITY_BADGE: Record<Alert["severity"], string> = {
@@ -42,40 +42,40 @@ function AlertCard({ alert }: { alert: Alert }) {
   };
 
   return (
-    <Card
-      className={`border-l-4 transition-opacity ${SEVERITY_STYLES[alert.severity]} ${alert.isRead ? "opacity-60" : ""}`}
+    <li
+      className={`flex gap-3 p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors ${alert.isRead ? "opacity-60" : ""}`}
     >
-      <CardContent className="flex gap-3 py-4">
-        <div className="shrink-0 mt-0.5">
-          <Icon className="h-5 w-5 text-muted-foreground" />
+      <div className="shrink-0">
+        <div className={`h-9 w-9 rounded-full flex items-center justify-center ${SEVERITY_ICON_STYLES[alert.severity]}`}>
+          <Icon className="h-4 w-4" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className={`text-sm font-medium ${!alert.isRead ? "text-foreground" : "text-muted-foreground"}`}>
-              {alert.title}
-            </p>
-            <Badge className={`shrink-0 text-[10px] px-1.5 ${SEVERITY_BADGE[alert.severity]}`}>
-              {SEVERITY_LABELS[alert.severity]}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">{alert.message}</p>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[10px] text-muted-foreground">{formatDateTime(alert.createdAt)}</span>
-            {!alert.isRead && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 px-2 text-[10px] ml-auto"
-                onClick={() => markRead([alert.id])}
-              >
-                {ap("markRead")}
-              </Button>
-            )}
-          </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-sm font-medium leading-snug truncate ${!alert.isRead ? "text-foreground" : "text-muted-foreground"}`}>
+            {alert.title}
+          </p>
+          <Badge className={`shrink-0 text-[10px] px-1.5 ${SEVERITY_BADGE[alert.severity]}`}>
+            {SEVERITY_LABELS[alert.severity]}
+          </Badge>
         </div>
-        {!alert.isRead && <div className="shrink-0 h-2 w-2 rounded-full bg-primary mt-1" />}
-      </CardContent>
-    </Card>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{alert.message}</p>
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className="text-[11px] text-muted-foreground">{formatDateTime(alert.createdAt)}</span>
+          {!alert.isRead && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-2 text-[10px] ml-auto"
+              onClick={() => markRead([alert.id])}
+            >
+              {ap("markRead")}
+            </Button>
+          )}
+        </div>
+      </div>
+      {!alert.isRead && <div className="shrink-0 h-2 w-2 rounded-full bg-primary mt-1" />}
+    </li>
   );
 }
 
@@ -97,7 +97,8 @@ export default function AlertsPage() {
   });
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="h-full overflow-y-auto">
+    <div className="space-y-5 max-w-4xl mx-auto p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{ap("title")}</h1>
@@ -138,11 +139,14 @@ export default function AlertsPage() {
           </TabsList>
 
           {TABS.map((tab) => (
-            <TabsContent key={tab} value={tab} className="mt-4 space-y-3">
-              {filtered.map((alert) => (
-                <AlertCard key={alert.id} alert={alert} />
-              ))}
-              {filtered.length === 0 && (
+            <TabsContent key={tab} value={tab} className="mt-4">
+              {filtered.length > 0 ? (
+                <ul className="space-y-3">
+                  {filtered.map((alert) => (
+                    <AlertCard key={alert.id} alert={alert} />
+                  ))}
+                </ul>
+              ) : (
                 <div className="text-center py-12">
                   <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">{ap("empty")}</p>
@@ -152,6 +156,7 @@ export default function AlertsPage() {
           ))}
         </Tabs>
       )}
+    </div>
     </div>
   );
 }
