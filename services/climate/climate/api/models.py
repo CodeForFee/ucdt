@@ -363,6 +363,7 @@ class SimAlert(BaseModel):
     severity: AlertSeverity
     unitId: str
     unitName: str
+    value: float
     title: str
     message: str
     createdAt: str

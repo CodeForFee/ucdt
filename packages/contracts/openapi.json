@@ -1886,6 +1886,10 @@
             "type": "string",
             "title": "Unitname"
           },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -1910,6 +1914,7 @@
           "severity",
           "unitId",
           "unitName",
+          "value",
           "title",
           "message",
           "createdAt",

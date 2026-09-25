@@ -974,6 +974,8 @@ export interface components {
             unitId: string;
             /** Unitname */
             unitName: string;
+            /** Value */
+            value: number;
             /** Title */
             title: string;
             /** Message */
